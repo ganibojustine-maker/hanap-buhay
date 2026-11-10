@@ -3,6 +3,7 @@ services:
   - type: web
     name: hanapbuhay-api
     runtime: docker
+    plan: free
     rootDir: backend
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
