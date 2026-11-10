@@ -1,4 +1,4 @@
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '251811791555-mvl6ocpp50plffnudmqk8lnr5fnj106l.apps.googleusercontent.com'
 let loading
 
 function loadGsi() {
