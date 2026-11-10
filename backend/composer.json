@@ -1,0 +1,25 @@
+{
+    "name": "hanapbuhay/backend",
+    "description": "HanapBuhay - Oriental Mindoro Job and Skills Matching Platform (LavaLust Backend)",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "HanapBuhay Dev Team"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "nesbot/carbon": "^3.15",
+        "phpmailer/phpmailer": "^7.1"
+    },
+    "autoload": {
+        "classmap": [
+            "app/libraries/"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

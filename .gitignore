@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+client_secret*.json
+node_modules/
+dist/
+vendor/
+*.log
+.DS_Store
+.vscode/
+.idea/
+backend/runtime/*
+!backend/runtime/.htaccess
+!backend/runtime/index.html

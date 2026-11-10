@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="favGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD043"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="favNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#0A1E4A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Speed Lines -->
+  <rect x="2"  y="44" width="22" height="5" rx="2.5" fill="#2563EB"/>
+  <rect x="0"  y="54" width="28" height="6" rx="3" fill="#1D4ED8"/>
+  <rect x="6"  y="65" width="20" height="5" rx="2.5" fill="#2563EB"/>
+
+  <!-- Magnifying Glass Ring -->
+  <circle cx="60" cy="56" r="34" fill="none" stroke="url(#favNavy)" stroke-width="8"/>
+
+  <!-- Briefcase -->
+  <path d="M 51 40 V 35 C 51 32 54 30 57 30 H 63 C 66 30 69 32 69 35 V 40" 
+        fill="none" stroke="#0A1E4A" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="43" y="40" width="34" height="23" rx="4" fill="#0A1E4A"/>
+  <line x1="43" y1="49" x2="77" y2="49" stroke="#FFFFFF" stroke-width="1.8"/>
+  <rect x="57" y="46.5" width="6" height="5.5" rx="1.2" fill="#FFFFFF"/>
+
+  <!-- Golden Swoosh Crescent -->
+  <path d="M 36 65 C 45 81 73 81 85 60 C 73 73 48 73 36 65 Z" fill="url(#favGold)"/>
+
+  <!-- Handle -->
+  <line x1="84" y1="80" x2="104" y2="100" stroke="#0A1E4A" stroke-width="9.5" stroke-linecap="round"/>
+</svg>

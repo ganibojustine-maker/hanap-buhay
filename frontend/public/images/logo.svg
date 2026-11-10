@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 130" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant Gold Gradient -->
+    <linearGradient id="hbGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFBE1A"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <!-- Electric Speed Blue Gradient -->
+    <linearGradient id="hbBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <!-- Deep Navy Gradient for Lens Ring -->
+    <linearGradient id="hbNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#0A1E4A"/>
+    </linearGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0A1E4A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(0, 0)">
+    <!-- ── Speed Lines (Left) ── -->
+    <rect x="8"  y="47" width="34" height="6.5" rx="3.25" fill="#2563EB"/>
+    <rect x="0"  y="60" width="44" height="7.5" rx="3.75" fill="#1D4ED8"/>
+    <rect x="12" y="74" width="30" height="6.5" rx="3.25" fill="#2563EB"/>
+
+    <!-- ── Magnifying Glass Outer Ring ── -->
+    <circle cx="88" cy="67" r="41" fill="none" stroke="url(#hbNavy)" stroke-width="9.5" filter="url(#subtleShadow)"/>
+
+    <!-- ── Briefcase inside Magnifier ── -->
+    <!-- Handle -->
+    <path d="M 77 47 V 41 C 77 37 81 35 85 35 H 91 C 95 35 99 37 99 41 V 47" 
+          fill="none" stroke="#0A1E4A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Body -->
+    <rect x="68" y="47" width="40" height="28" rx="5" fill="#0A1E4A"/>
+    <!-- Groove line -->
+    <line x1="68" y1="58" x2="108" y2="58" stroke="#FFFFFF" stroke-width="2"/>
+    <!-- Center Buckle Clasp -->
+    <rect x="84" y="55" width="8" height="7" rx="1.5" fill="#FFFFFF"/>
+
+    <!-- ── Golden Swoosh Crescent across lower lens ── -->
+    <path d="M 59 78 C 70 98 104 98 118 72 C 104 88 74 88 59 78 Z" fill="url(#hbGold)"/>
+
+    <!-- ── Magnifying Glass Handle ── -->
+    <line x1="118" y1="97" x2="142" y2="121" stroke="#0A1E4A" stroke-width="11" stroke-linecap="round"/>
+  </g>
+
+  <!-- ── Typography ── -->
+  <!-- "HanapBuhay" Wordmark -->
+  <text x="160" y="81" font-family="'Inter Tight', 'Inter', system-ui, -apple-system, sans-serif" font-weight="900" font-size="64" letter-spacing="-1.5">
+    <tspan fill="#0A1E4A">Hanap</tspan><tspan fill="url(#hbGold)">Buhay</tspan>
+  </text>
+
+  <!-- Tagline: "Find. Apply. Get Hired." -->
+  <text x="164" y="106" font-family="'Inter', system-ui, -apple-system, sans-serif" font-weight="700" font-size="15" letter-spacing="1.8" fill="#0A1E4A">
+    Find. Apply. Get Hired.
+  </text>
+
+  <!-- Golden Swoosh Underline -->
+  <path d="M 210 116 Q 345 127 480 115" fill="none" stroke="url(#hbGold)" stroke-width="3" stroke-linecap="round"/>
+</svg>

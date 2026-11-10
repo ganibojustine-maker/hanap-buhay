@@ -1,0 +1,80 @@
+services:
+  # ── 1. Backend Web Service (PHP 8.2 Apache + MySQL) ────────────────
+  - type: web
+    name: hanapbuhay-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_NAME
+        value: HANAPBUHAY
+      - key: APP_ENV
+        value: production
+      - key: DB_DRIVER
+        value: mysql
+      - key: DB_CHARSET
+        value: utf8mb4
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_CA
+        value: certs/aiven-ca.pem
+      - key: DB_NAME
+        value: hanapbuhay
+      - key: APP_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_KEY
+        generateValue: true
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: APP_FRONTEND_URL
+        sync: false
+      - key: PAYMONGO_SECRET_KEY
+        sync: false
+      - key: PAYMONGO_PUBLIC_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_ENCRYPTION
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        value: noreply@hanapbuhay.ph
+      - key: MAIL_FROM_NAME
+        value: "HanapBuhay Oriental Mindoro"
+
+  # ── 2. Frontend Static Site (React + Vite) ─────────────────────────
+  - type: web
+    name: hanapbuhay-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
