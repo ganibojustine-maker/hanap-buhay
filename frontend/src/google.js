@@ -23,7 +23,17 @@ export async function requestGoogleToken() {
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: 'openid email profile',
-      callback: (r) => (r.access_token ? resolve(r.access_token) : reject(new Error('Google sign-in was cancelled.'))),
+      callback: (r) => {
+        if (r?.error) {
+          // origin_mismatch or other OAuth errors
+          const msg = r.error === 'origin_mismatch'
+            ? 'Google sign-in failed: this site is not authorised. Please contact support.'
+            : `Google sign-in failed: ${r.error}`
+          reject(new Error(msg))
+          return
+        }
+        r?.access_token ? resolve(r.access_token) : reject(new Error('Google sign-in was cancelled.'))
+      },
       error_callback: (e) =>
         reject(new Error(e?.type === 'popup_closed' ? 'Google sign-in was cancelled.' : 'Google sign-in failed. Allow popups and try again.')),
     })
