@@ -98,11 +98,19 @@ class Application_model extends Model
         return (int) $this->db->table($this->table)->count_all_results();
     }
 
-    public function create_notification(int $user_id, string $type, string $title, string $body, string $link = ''): void
+    /**
+     * Create an in-app notification and email it to the user via Brevo.
+     *
+     * Returns the email outcome so callers can surface it to the UI:
+     *   ['success' => bool, 'mode' => 'brevo'|'logged'|'skipped'|'failed', 'to' => email, 'error' => ?string]
+     */
+    public function create_notification(int $user_id, string $type, string $title, string $body, string $link = ''): array
     {
-        $email_to = null;
-        $email_html = null;
-        $email_status = 'delivered';
+        $email_to     = null;
+        $email_html   = null;
+        $email_status = 'failed';
+        $email_error  = null;
+        $email_result = ['success' => false, 'mode' => 'failed', 'to' => null, 'error' => 'Recipient not found.'];
 
         try {
             $user = $this->db->table('users')->where('id', $user_id)->get();
@@ -120,14 +128,37 @@ class Application_model extends Model
                 if (class_exists('Mailer')) {
                     $email_html = \Mailer::render_notification_template($recipient_name, $type, $title, $body, $full_link);
                     $res = \Mailer::send_notification($user, $type, $title, $body, $link);
-                    $email_status = ($res['success'] ?? false) ? ($res['mode'] ?? 'delivered') : 'delivered';
+
+                    $ok   = (bool) ($res['success'] ?? false);
+                    $mode = (string) ($res['mode'] ?? ($ok ? 'brevo' : 'failed'));
+                    // sent    => accepted by Brevo (real email went out)
+                    // logged  => dev mode, BREVO_API_KEY not configured (written to runtime/logs/mail.log only)
+                    // skipped => recipient opted out of optional email alerts
+                    // failed  => Brevo/API error (see email_error)
+                    $email_status = $ok ? ($mode === 'brevo' ? 'sent' : $mode) : (($res['skipped'] ?? false) ? 'skipped' : 'failed');
+                    $email_error  = $ok ? null : (string) ($res['error'] ?? $res['reason'] ?? 'Unknown email error');
+                    $email_result = [
+                        'success'    => $ok,
+                        'mode'       => $mode,
+                        'to'         => $email_to,
+                        'error'      => $email_error,
+                        'message_id' => $res['message_id'] ?? null,
+                    ];
+                } else {
+                    $email_error  = 'Mailer library not found.';
+                    $email_result = ['success' => false, 'mode' => 'failed', 'to' => $email_to, 'error' => $email_error];
                 }
+            } elseif ($user) {
+                $email_error  = 'User has no email address on file.';
+                $email_result = ['success' => false, 'mode' => 'failed', 'to' => null, 'error' => $email_error];
             }
         } catch (\Throwable $e) {
+            $email_error  = $e->getMessage();
+            $email_result = ['success' => false, 'mode' => 'failed', 'to' => $email_to, 'error' => $email_error];
             error_log('[Notification Email Error] ' . $e->getMessage());
         }
 
-        $this->db->table('notifications')->insert([
+        $row = [
             'user_id'      => $user_id,
             'type'         => $type,
             'title'        => $title,
@@ -136,8 +167,24 @@ class Application_model extends Model
             'email_status' => $email_status,
             'email_to'     => $email_to,
             'email_html'   => $email_html,
+            'email_error'  => $email_error ? mb_substr($email_error, 0, 500) : null,
             'created_at'   => date('Y-m-d H:i:s'),
-        ]);
+        ];
+
+        // Never let a tracking-column mismatch break the main action (e.g. hiring).
+        try {
+            $this->db->table('notifications')->insert($row);
+        } catch (\Throwable $e) {
+            error_log('[Notification Insert Error] ' . $e->getMessage() . ' - retrying without email tracking columns. Run migration 011 to add them.');
+            try {
+                unset($row['email_status'], $row['email_to'], $row['email_html'], $row['email_error']);
+                $this->db->table('notifications')->insert($row);
+            } catch (\Throwable $e2) {
+                error_log('[Notification Insert Error] ' . $e2->getMessage());
+            }
+        }
+
+        return $email_result;
     }
 
     public function get_user_notifications(int $user_id, int $limit = 30): array
