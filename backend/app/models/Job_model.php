@@ -127,14 +127,49 @@ class Job_model extends Model
     public function get_featured_jobs(int $limit = 8): array
     {
         $rows = $this->db->table('jobs j')
-            ->select('j.*, u.full_name AS employer_name')
+            ->select('j.*, u.full_name AS employer_name, u.picture AS employer_picture, u.is_verified AS employer_verified')
             ->join('users u', 'u.id = j.employer_id', 'LEFT')
             ->where('j.status', 'active')
             ->order_by('j.is_featured DESC, j.created_at DESC')
             ->limit($limit)
             ->get_all();
 
-        return $rows ?: [];
+        return $this->attach_applicant_counts($rows ?: []);
+    }
+
+    /**
+     * Add an `applicants` count to each job row (used by job cards:
+     * "Be an early applicant" / "12 applicants").
+     */
+    private function attach_applicant_counts(array $rows): array
+    {
+        $ids = array_values(array_unique(array_map(fn($r) => (int) ($r['id'] ?? 0), $rows)));
+        $ids = array_filter($ids);
+        $counts = [];
+
+        if (!empty($ids)) {
+            try {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $stmt = $this->db->raw(
+                    "SELECT job_id, COUNT(*) AS c FROM applications WHERE job_id IN ({$placeholders}) GROUP BY job_id",
+                    array_values($ids)
+                );
+                if ($stmt) {
+                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $c) {
+                        $counts[(int) $c['job_id']] = (int) $c['c'];
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('[Job_model] applicant count failed: ' . $e->getMessage());
+            }
+        }
+
+        foreach ($rows as &$r) {
+            $r['applicants'] = $counts[(int) ($r['id'] ?? 0)] ?? 0;
+        }
+        unset($r);
+
+        return $rows;
     }
 
     public function get_all_admin_jobs(int $limit = 100): array

@@ -13,6 +13,7 @@ import {
 import { Avatar, TYPES, TOWNS } from '../components/art.jsx'
 import ImageCropModal from '../components/ImageCropModal.jsx'
 import { getJobImage } from '../utils/jobImages.js'
+import { FeaturedJobCard, useSavedJobs } from '../components/JobCard.jsx'
 import { db, firebaseConfigured } from '../firebase.js'
 import {
   ref as dbRef, push, onValue, off, serverTimestamp, query,
@@ -27,13 +28,14 @@ const greet = () => { const h = new Date().getHours(); return GREET[h < 11 ? 0 :
 const fmt = (n, max) => { if (!n && !max) return 'Negotiable'; const f = v => '₱'+Number(v).toLocaleString(); return n && max ? `${f(n)}–${f(max)}/mo` : n ? `From ${f(n)}/mo` : `Up to ${f(max)}/mo` }
 const days = dt => { const d = Math.floor((Date.now()-new Date(dt))/86400000); return d===0?'Today':d===1?'1 day ago':`${d}d ago` }
 
+const demoDate = d => new Date(Date.now() - d * 86400000).toISOString().slice(0, 19).replace('T', ' ')
 const DEMO_FEATURED_JOBS = [
-  { id: 1, title: 'Civil Engineer (Site)', company: 'DMC Major Construction', location: 'Calapan City, Oriental Mindoro', job_type: 'full-time', salary_min: 25000, salary_max: 35000, match_pct: 95, is_featured: 1, description: 'Looking for a licensed or experienced Civil Engineer for infrastructure and commercial building projects across Oriental Mindoro.' },
-  { id: 2, title: 'Construction Worker', company: 'Vicor Construction Services', location: 'Calapan City, Oriental Mindoro', job_type: 'full-time', salary_min: 15000, salary_max: 20000, match_pct: 92, is_featured: 1, description: 'Skilled carpenters, masons, and general construction workers needed for immediate deployment on ongoing municipal developments.' },
-  { id: 3, title: 'Electrician (Commercial)', company: 'Calapan Power Solutions', location: 'Calapan City, Oriental Mindoro', job_type: 'contractual', salary_min: 14000, salary_max: 22000, match_pct: 88, is_featured: 1, description: 'Certified NC II Electricians for commercial wiring, transformer maintenance, and solar rooftop installations in Calapan City.' },
-  { id: 4, title: 'Graphic Designer', company: 'Mindoro Creative Studio', location: 'Naujan, Oriental Mindoro', job_type: 'freelance', salary_min: 15000, salary_max: null, match_pct: 85, is_featured: 1, description: 'Creative graphic designer for local brand marketing, MSME packaging, social media promotional campaigns, and print materials.' },
-  { id: 5, title: 'Welder (SMAW / GTAW)', company: 'Mindoro Metal Works', location: 'Bongabong, Oriental Mindoro', job_type: 'contractual', salary_min: 12000, salary_max: 18000, match_pct: 80, is_featured: 1, description: 'Structural welders with TESDA NC II certification for metal fabrication, gate construction, and agricultural machinery repair.' },
-  { id: 6, title: 'Service Crew & Barista', company: 'Oriental Food Corp', location: 'Calapan City, Oriental Mindoro', job_type: 'part-time', salary_min: 8000, salary_max: 12000, match_pct: 78, is_featured: 1, description: 'Customer-oriented service crew and beverage specialists for busy food establishment in Calapan City.' }
+  { id: 1, title: 'Civil Engineer (Site)', company: 'DMC Major Construction', location: 'Calapan City, Oriental Mindoro', job_type: 'full-time', salary_min: 25000, salary_max: 35000, match_pct: 95, is_featured: 1, created_at: demoDate(1), applicants: 3, skills_needed: 'AutoCAD, Site Supervision, PRC License', description: 'Looking for a licensed or experienced Civil Engineer for infrastructure and commercial building projects across Oriental Mindoro.' },
+  { id: 2, title: 'Construction Worker', company: 'Vicor Construction Services', location: 'Calapan City, Oriental Mindoro', job_type: 'full-time', salary_min: 15000, salary_max: 20000, match_pct: 92, is_featured: 1, created_at: demoDate(2), applicants: 12, skills_needed: 'Carpentry, Masonry, Safety Training', description: 'Skilled carpenters, masons, and general construction workers needed for immediate deployment on ongoing municipal developments.' },
+  { id: 3, title: 'Electrician (Commercial)', company: 'Calapan Power Solutions', location: 'Calapan City, Oriental Mindoro', job_type: 'contractual', salary_min: 14000, salary_max: 22000, match_pct: 88, is_featured: 1, created_at: demoDate(4), applicants: 0, skills_needed: 'NC II Electrical, Wiring, Solar Installation', description: 'Certified NC II Electricians for commercial wiring, transformer maintenance, and solar rooftop installations in Calapan City.' },
+  { id: 4, title: 'Graphic Designer', company: 'Mindoro Creative Studio', location: 'Naujan, Oriental Mindoro', job_type: 'freelance', salary_min: 15000, salary_max: null, match_pct: 85, is_featured: 1, created_at: demoDate(6), applicants: 7, skills_needed: 'Photoshop, Canva, Branding', description: 'Creative graphic designer for local brand marketing, MSME packaging, social media promotional campaigns, and print materials.' },
+  { id: 5, title: 'Welder (SMAW / GTAW)', company: 'Mindoro Metal Works', location: 'Bongabong, Oriental Mindoro', job_type: 'contractual', salary_min: 12000, salary_max: 18000, match_pct: 80, is_featured: 1, created_at: demoDate(9), applicants: 2, skills_needed: 'SMAW, GTAW, TESDA NC II', description: 'Structural welders with TESDA NC II certification for metal fabrication, gate construction, and agricultural machinery repair.' },
+  { id: 6, title: 'Service Crew & Barista', company: 'Oriental Food Corp', location: 'Calapan City, Oriental Mindoro', job_type: 'part-time', salary_min: 8000, salary_max: 12000, match_pct: 78, is_featured: 1, created_at: demoDate(12), applicants: 21, skills_needed: 'Customer Service, Barista, POS', description: 'Customer-oriented service crew and beverage specialists for busy food establishment in Calapan City.' }
 ]
 
 /* ─ Sidebar nav config ──────────────────────────────────── */
@@ -446,6 +448,7 @@ function WorkerOverview({ user, call }) {
   const [appliedIds, setAppliedIds] = useState(new Set())
   const [applying, setApplying] = useState(null)
   const [applySuccess, setApplySuccess] = useState({})
+  const savedJobs = useSavedJobs()
 
   useEffect(() => {
     Promise.allSettled([
@@ -599,131 +602,25 @@ function WorkerOverview({ user, call }) {
         {loadingFeatured ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {Array(3).fill(0).map((_, i) => (
-              <div key={i} className="skel" style={{ height: 190, borderRadius: 14 }} />
+              <div key={i} className="skel" style={{ height: 230, borderRadius: 18 }} />
             ))}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {(featuredJobs.length > 0 ? featuredJobs : DEMO_FEATURED_JOBS).slice(0, 3).map((job, idx) => {
-              const isApplied = appliedIds.has(Number(job.id)) || applySuccess[job.id]
-              const isBusy = applying === job.id
-
-              return (
-                <div
-                  key={job.id || idx}
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: 14,
-                    border: '1px solid #f1f5f9',
-                    borderTop: '3px solid var(--gold)',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-                    padding: '18px 18px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    transition: 'all .2s ease'
-                  }}
-                  className="featured-job-card"
-                >
-                  <div>
-                    {/* Top row */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 46,
-                          height: 46,
-                          borderRadius: 12,
-                          overflow: 'hidden',
-                          background: '#f8fafc',
-                          border: '1px solid var(--line)',
-                          flexShrink: 0,
-                          position: 'relative',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <img
-                            src={getJobImage(job)}
-                            alt={job.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                            onError={e => { e.currentTarget.style.display = 'none' }}
-                          />
-                          <span style={{ position: 'absolute', fontWeight: 800, color: 'var(--navy)', fontSize: 16 }}>
-                            {(job.company || job.employer_name || job.title || 'J')[0].toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--navy-d)', lineHeight: 1.3 }}>
-                            {job.title}
-                          </h3>
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{job.company || job.employer_name || 'Oriental Mindoro MSME'}</span>
-                            <span title="Verified Employer" style={{ color: '#0284c7', fontSize: 12, fontWeight: 700 }}>● Verified</span>
-                          </div>
-                        </div>
-                      </div>
-                      <span className="chip gold" style={{ fontSize: 10, padding: '2px 7px', fontWeight: 700, flexShrink: 0 }}>
-                        ⭐ Featured
-                      </span>
-                    </div>
-
-                    {/* Meta chips */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-                      <span style={{ fontSize: 12, color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <IconPin size={13} /> {job.location || 'Oriental Mindoro'}
-                      </span>
-                      <span className={`chip ${job.job_type === 'full-time' ? 'navy' : job.job_type === 'part-time' ? 'blue' : 'gray'}`} style={{ fontSize: 11, padding: '2px 8px', textTransform: 'capitalize' }}>
-                        {(job.job_type || 'Full-time').replace('-', ' ')}
-                      </span>
-                      {job.match_pct && (
-                        <span className="chip green" style={{ fontSize: 11, padding: '2px 8px', fontWeight: 700 }}>
-                          {job.match_pct}% Match
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Bottom offer & actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #f1f5f9', marginTop: 4 }}>
-                    <div>
-                      <span style={{ fontSize: 10, color: 'var(--muted)', display: 'block', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '.4px' }}>
-                        Salary Offer
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy-d)' }}>
-                        {fmt(job.salary_min, job.salary_max)}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Link
-                        to={`/jobs/${job.id}`}
-                        className="btn btn-light btn-sm"
-                        style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600 }}
-                      >
-                        Details
-                      </Link>
-                      {isApplied ? (
-                        <span className="chip green" style={{ padding: '6px 12px', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <IconCheck size={13} /> Applied
-                        </span>
-                      ) : (
-                        <button
-                          className="btn btn-navy btn-sm"
-                          disabled={isBusy}
-                          onClick={() => handleQuickApply(job)}
-                          style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                        >
-                          {isBusy ? 'Applying…' : 'Quick Apply'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {(featuredJobs.length > 0 ? featuredJobs : DEMO_FEATURED_JOBS).slice(0, 3).map((job, idx) => (
+              <FeaturedJobCard
+                key={job.id || idx}
+                job={job}
+                variant="grid"
+                applied={appliedIds.has(Number(job.id)) || !!applySuccess[job.id]}
+                busy={applying === job.id}
+                onApply={handleQuickApply}
+                saved={savedJobs.isSaved(job.id)}
+                onToggleSave={savedJobs.toggle}
+              />
+            ))}
           </div>
-        )}
-      </div>
+        )}      </div>
 
       <div className="dash-grid">
         {/* Main col */}
@@ -3499,15 +3396,25 @@ function JobMatches({ call, user }) {
 }
 
 /* ─ Featured Jobs page (Worker view) ────────────────────── */
+const FJ_SORTS = [
+  { id: 'featured', label: 'Recommended' },
+  { id: 'newest',   label: 'Most recent' },
+  { id: 'salary',   label: 'Highest salary' },
+  { id: 'match',    label: 'Best match' },
+]
+
 function FeaturedJobsPage({ call, user }) {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedTown, setSelectedTown] = useState('')
   const [selectedType, setSelectedType] = useState('')
+  const [sort, setSort] = useState('featured')
+  const [onlySaved, setOnlySaved] = useState(false)
   const [applying, setApplying] = useState(null)
   const [appliedIds, setAppliedIds] = useState(new Set())
   const [appliedSuccess, setAppliedSuccess] = useState({})
+  const savedJobs = useSavedJobs()
 
   useEffect(() => {
     Promise.all([
@@ -3545,26 +3452,34 @@ function FeaturedJobsPage({ call, user }) {
     }
   }
 
-  const filtered = jobs.filter(j => {
-    const q = search.trim().toLowerCase()
-    if (q) {
-      const matchTitle = (j.title || '').toLowerCase().includes(q)
-      const matchComp = (j.company || j.employer_name || '').toLowerCase().includes(q)
-      const matchLoc = (j.location || '').toLowerCase().includes(q)
-      if (!matchTitle && !matchComp && !matchLoc) return false
-    }
-    if (selectedTown && !(j.location || '').toLowerCase().includes(selectedTown.toLowerCase())) {
-      return false
-    }
-    if (selectedType && j.job_type !== selectedType) {
-      return false
-    }
-    return true
-  })
+  const q = search.trim().toLowerCase()
+  const filtered = jobs
+    .filter(j => {
+      if (q) {
+        const hay = `${j.title || ''} ${j.company || j.employer_name || ''} ${j.location || ''} ${j.skills_needed || ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      if (selectedTown && !(j.location || '').toLowerCase().includes(selectedTown.toLowerCase())) return false
+      if (selectedType && j.job_type !== selectedType) return false
+      if (onlySaved && !savedJobs.isSaved(j.id)) return false
+      return true
+    })
+    .sort((a, b) => {
+      if (sort === 'newest') return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      if (sort === 'salary') return (Number(b.salary_max || b.salary_min) || 0) - (Number(a.salary_max || a.salary_min) || 0)
+      if (sort === 'match') return (Number(b.match_pct) || 0) - (Number(a.match_pct) || 0)
+      // recommended: featured first, then newest
+      return (Number(b.is_featured ?? 1) - Number(a.is_featured ?? 1)) || (new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    })
+
+  const hasFilter = search || selectedTown || selectedType || onlySaved
+  const resetFilters = () => { setSearch(''); setSelectedTown(''); setSelectedType(''); setOnlySaved(false) }
+  const savedCount = jobs.filter(j => savedJobs.isSaved(j.id)).length
 
   return (
     <div className="dash-page">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 14 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
         <div>
           <p className="eyebrow" style={{ color: 'var(--gold)', fontWeight: 700 }}>Priority Opportunities</p>
           <h1 style={{ fontSize: 28, marginTop: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -3584,181 +3499,91 @@ function FeaturedJobsPage({ call, user }) {
         </div>
       </div>
 
-      {/* Filter bar */}
-      <div className="panel" style={{ padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: '1 1 240px', position: 'relative' }}>
-          <input
-            type="text"
-            className="input"
-            placeholder="Search by job title, company, or keyword…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', paddingLeft: 34 }}
-          />
-          <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }}>
-            <IconSearch size={15} />
-          </span>
-        </div>
-        <select
-          className="input"
-          value={selectedTown}
-          onChange={e => setSelectedTown(e.target.value)}
-          style={{ width: 190 }}
-        >
-          <option value="">All Municipalities</option>
-          {TOWNS.map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-        <select
-          className="input"
-          value={selectedType}
-          onChange={e => setSelectedType(e.target.value)}
-          style={{ width: 160 }}
-        >
-          <option value="">All Job Types</option>
-          <option value="full-time">Full-time</option>
-          <option value="part-time">Part-time</option>
-          <option value="contractual">Contractual</option>
-          <option value="freelance">Freelance</option>
-          <option value="gig">Gig / Project</option>
-        </select>
-        {(search || selectedTown || selectedType) && (
-          <button
-            className="btn btn-light btn-sm"
-            onClick={() => { setSearch(''); setSelectedTown(''); setSelectedType('') }}
-          >
-            Clear Filters
+      {/* Search & filters */}
+      <div className="panel" style={{ padding: '14px 18px', marginBottom: 14 }}>
+        <div className="fj-toolbar">
+          <div style={{ flex: '1 1 260px', position: 'relative' }}>
+            <input
+              type="text"
+              className="input"
+              placeholder="Job title, company, skill or keyword…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', paddingLeft: 36 }}
+            />
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', display: 'flex' }}>
+              <IconSearch size={15} />
+            </span>
+          </div>
+          <select className="input" value={selectedTown} onChange={e => setSelectedTown(e.target.value)} style={{ width: 190 }}>
+            <option value="">All Municipalities</option>
+            {TOWNS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select className="input" value={selectedType} onChange={e => setSelectedType(e.target.value)} style={{ width: 160 }}>
+            <option value="">All Job Types</option>
+            <option value="full-time">Full-time</option>
+            <option value="part-time">Part-time</option>
+            <option value="contractual">Contractual</option>
+            <option value="freelance">Freelance</option>
+            <option value="gig">Gig / Project</option>
+          </select>
+          <button type="button" className={`fj-pill${onlySaved ? ' on' : ''}`} onClick={() => setOnlySaved(v => !v)} aria-pressed={onlySaved}>
+            <IconStar size={13} /> Saved {savedCount > 0 && `(${savedCount})`}
           </button>
-        )}
+          {hasFilter && (
+            <button type="button" className="btn btn-light btn-sm" onClick={resetFilters}>Clear</button>
+          )}
+        </div>
+      </div>
+
+      {/* Result count + sort */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div className="fj-count">
+          {loading ? 'Loading featured jobs…' : <><b>{filtered.length}</b> featured {filtered.length === 1 ? 'job' : 'jobs'}{hasFilter ? ' match your filters' : ' available now'}</>}
+        </div>
+        <label className="fj-count" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          Sort by
+          <select className="input" value={sort} onChange={e => setSort(e.target.value)} style={{ height: 36, width: 160, fontSize: 13 }}>
+            {FJ_SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </label>
       </div>
 
       {/* Jobs list */}
       {loading ? (
-        <div style={{ display: 'grid', gap: 16 }}>
-          {Array(3).fill(0).map((_, i) => (
-            <div key={i} className="panel"><div className="skel" style={{ height: 160 }} /></div>
-          ))}
+        <div style={{ display: 'grid', gap: 14 }}>
+          {Array(3).fill(0).map((_, i) => <div key={i} className="skel" style={{ height: 210, borderRadius: 18 }} />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="panel" style={{ textAlign: 'center', padding: '48px 20px' }}>
-          <p style={{ color: 'var(--muted)', fontSize: 15, marginBottom: 16 }}>No featured jobs match your current filter.</p>
-          <button
-            className="btn btn-light"
-            onClick={() => { setSearch(''); setSelectedTown(''); setSelectedType('') }}
-          >
-            Reset Filters
-          </button>
+          <div style={{ fontSize: 34, marginBottom: 8 }}>{onlySaved ? '🔖' : '🔍'}</div>
+          <p style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+            {onlySaved ? 'No saved jobs yet' : 'No featured jobs match your filters'}
+          </p>
+          <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 16 }}>
+            {onlySaved ? 'Tap the bookmark on any job to save it here for later.' : 'Try a different keyword, municipality, or job type.'}
+          </p>
+          <button className="btn btn-light" onClick={resetFilters}>Reset Filters</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
-          {filtered.map(j => {
-            const hasApplied = appliedIds.has(Number(j.id)) || appliedSuccess[j.id]
-            const isBusy = applying === j.id
-
-            return (
-              <div
-                key={j.id}
-                className="panel"
-                style={{
-                  borderLeft: '4px solid var(--gold)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  transition: 'transform .15s ease',
-                  padding: '22px 24px'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-                  <div style={{ display: 'flex', gap: 16, flex: 1, minWidth: 260 }}>
-                    <div style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 14,
-                      overflow: 'hidden',
-                      background: '#f8fafc',
-                      border: '1px solid var(--line)',
-                      flexShrink: 0,
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <img
-                        src={getJobImage(j)}
-                        alt={j.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={e => { e.currentTarget.style.display = 'none' }}
-                      />
-                      <span style={{ position: 'absolute', fontWeight: 800, color: 'var(--navy)', fontSize: 20 }}>
-                        {(j.company || j.employer_name || j.title || 'J')[0].toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--navy-d)' }}>{j.title}</h2>
-                        <span className="chip gold" style={{ fontSize: 10, padding: '2px 8px', fontWeight: 700 }}>⭐ Featured</span>
-                        {j.match_pct && (
-                          <span className="chip green" style={{ fontSize: 11, padding: '2px 8px', fontWeight: 700 }}>
-                            {j.match_pct}% Match
-                          </span>
-                        )}
-                      </div>
-                      <p style={{ margin: '4px 0 10px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{j.company || j.employer_name || 'Oriental Mindoro MSME'}</span>
-                        <span style={{ color: '#0284c7', fontSize: 12, fontWeight: 700 }}>● Verified Employer</span>
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-                        <span style={{ fontSize: 13, color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <IconPin size={14} /> {j.location || 'Oriental Mindoro'}
-                        </span>
-                        <span className="chip navy" style={{ textTransform: 'capitalize', fontSize: 11, padding: '2px 8px' }}>
-                          {(j.job_type || 'Full-time').replace('-', ' ')}
-                        </span>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy-d)' }}>
-                          💰 {fmt(j.salary_min, j.salary_max)}
-                        </span>
-                      </div>
-                      {j.description && (
-                        <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: 0, maxWidth: 650 }}>
-                          {j.description.length > 180 ? j.description.slice(0, 180) + '…' : j.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 140, alignItems: 'stretch' }}>
-                    {hasApplied ? (
-                      <span className="chip green" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        <IconCheck size={15} /> Applied
-                      </span>
-                    ) : (
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleApply(j)}
-                        disabled={isBusy}
-                        style={{ fontWeight: 600 }}
-                      >
-                        {isBusy ? 'Applying…' : 'Quick Apply'}
-                      </button>
-                    )}
-                    <Link
-                      to={`/jobs/${j.id}`}
-                      className="btn btn-light btn-sm"
-                      style={{ textAlign: 'center', fontWeight: 600 }}
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        <div style={{ display: 'grid', gap: 14 }}>
+          {filtered.map(j => (
+            <FeaturedJobCard
+              key={j.id}
+              job={j}
+              variant="list"
+              applied={appliedIds.has(Number(j.id)) || !!appliedSuccess[j.id]}
+              busy={applying === j.id}
+              onApply={handleApply}
+              saved={savedJobs.isSaved(j.id)}
+              onToggleSave={savedJobs.toggle}
+            />
+          ))}
         </div>
       )}
     </div>
   )
 }
-
 /* ─ Settings page ───────────────────────────────────────── */
 function Settings({ user, call, updateUser }) {
   const initialPrefs = user?.notification_prefs || {}

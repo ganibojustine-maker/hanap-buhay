@@ -8,7 +8,7 @@ import { Avatar, TOWNS } from '../components/art.jsx'
 import Reveal from '../components/Reveal.jsx'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { getJobImage } from '../utils/jobImages.js'
+import { FeaturedJobCard } from '../components/JobCard.jsx'
 import { useLanguage, LanguageSwitcher } from '../i18n.jsx'
 
 /* ─ Nav ─────────────────────────────────────────────────── */
@@ -222,17 +222,6 @@ function FeaturedJobs() {
       .finally(() => setLoading(false))
   }, [])
 
-  const matchColor = (score) => score >= 80 ? 'green' : score >= 60 ? 'match-mid' : 'match-low'
-  const fmt = (min, max) => {
-    if (!min && !max) return t('jobs.negotiable')
-    const f = n => '₱' + Number(n).toLocaleString()
-    return min && max
-      ? `${f(min)}–${f(max)}${t('jobs.mo')}`
-      : min
-        ? `${t('jobs.from')} ${f(min)}${t('jobs.mo')}`
-        : `${t('jobs.up_to')} ${f(max)}${t('jobs.mo')}`
-  }
-
   return (
     <section id="jobs" className="featured-jobs">
       <Reveal className="section-head">
@@ -244,28 +233,10 @@ function FeaturedJobs() {
       </Reveal>
       <div className="jobs-grid">
         {loading
-          ? Array(4).fill(0).map((_, i) => <div key={i} className="fjob"><div className="skel" style={{ height: 140 }} /></div>)
+          ? Array(4).fill(0).map((_, i) => <div key={i} className="skel" style={{ height: 230, borderRadius: 18 }} />)
           : (jobs.length ? jobs : DEMO_JOBS).slice(0, 8).map((job, i) => (
-            <Reveal key={job.id || i} as="article" className="fjob" delay={i * 0.06}>
-              <div className="fjob-header">
-                <div className="fjob-logo">
-                  <img src={getJobImage(job)} alt={job.title} onError={e => { e.currentTarget.style.display = 'none' }} />
-                  <span>{(job.company || job.title || 'J')[0].toUpperCase()}</span>
-                </div>
-                <div>
-                  <div className="fjob-title">{job.title}</div>
-                  <div className="fjob-company">{job.company || job.employer_name || t('jobs.local_employer')}</div>
-                </div>
-              </div>
-              <div className="fjob-meta">
-                <span className="fjob-meta-item"><IconPin size={13} />{job.location || 'Oriental Mindoro'}</span>
-                <span className={`fjob-type ${job.job_type || 'full-time'}`}>{(job.job_type || 'Full-time').replace('-', ' ')}</span>
-              </div>
-              <div className="fjob-footer">
-                <span className="fjob-salary">{fmt(job.salary_min, job.salary_max)}</span>
-                {job.match_pct && <span className={`chip ${matchColor(job.match_pct)}`}>{job.match_pct}% {t('jobs.match')}</span>}
-                <Link to={`/jobs/${job.id}`} className="btn btn-navy btn-sm">{t('jobs.view_details')}</Link>
-              </div>
+            <Reveal key={job.id || i} delay={i * 0.06}>
+              <FeaturedJobCard job={job} variant="grid" compact style={{ height: '100%' }} />
             </Reveal>
           ))
         }
@@ -273,7 +244,6 @@ function FeaturedJobs() {
     </section>
   )
 }
-
 /* ─ How it works ────────────────────────────────────────── */
 function How() {
   const { t } = useLanguage()
