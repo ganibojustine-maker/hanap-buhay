@@ -1,29 +1,33 @@
 <?php
 defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
-
 /**
  * ------------------------------------------------------------------
  * HanapBuhay Mailer Library
  * ------------------------------------------------------------------
- * Handles transactional email notifications via PHPMailer & SMTP,
- * with graceful fallback to file logging in local/development mode
- * when SMTP credentials are not yet set.
+ * Handles transactional email notifications via the Brevo (Sendinblue)
+ * HTTP API.  Falls back to file logging in development mode when no
+ * BREVO_API_KEY is configured.
+ *
+ * Required env vars for production:
+ *   BREVO_API_KEY        – Brevo v3 API key
+ *   MAIL_FROM_ADDRESS    – verified sender (default: noreply@hanapbuhay.ph)
+ *   MAIL_FROM_NAME       – sender display name
  */
 class Mailer
 {
+    /** Brevo transactional email endpoint */
+    private const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
+
     /**
-     * Send an email using SMTP (or fallback to mail.log in development).
+     * Send an email via the Brevo API (or fallback to mail.log).
      *
-     * @param string $to_email Recipient email address
-     * @param string $to_name Recipient display name
-     * @param string $subject Email subject line
+     * @param string $to_email  Recipient email address
+     * @param string $to_name   Recipient display name
+     * @param string $subject   Email subject line
      * @param string $html_body HTML formatted body
      * @param string $text_body Plain-text fallback (optional)
-     * @return array Result summary with status and mode
+     * @return array  Result summary with status and mode
      */
     public static function send(string $to_email, string $to_name, string $subject, string $html_body, string $text_body = ''): array
     {
@@ -32,104 +36,89 @@ class Mailer
             return ['success' => false, 'error' => 'Invalid recipient email address.'];
         }
 
-        $mailer_driver = strtolower(trim(self::get_env('MAIL_MAILER', self::get_env('MAIL_DRIVER', 'smtp'))));
-        $host          = trim(self::get_env('MAIL_HOST', ''));
-        $port          = (int) self::get_env('MAIL_PORT', '587');
-        $username      = trim(self::get_env('MAIL_USERNAME', ''));
-        $password      = trim(self::get_env('MAIL_PASSWORD', ''));
-        $encryption    = strtolower(trim(self::get_env('MAIL_ENCRYPTION', '')));
-        $from_address  = trim(self::get_env('MAIL_FROM_ADDRESS', 'noreply@hanapbuhay.ph'));
-        $from_name     = trim(self::get_env('MAIL_FROM_NAME', 'HanapBuhay Oriental Mindoro'));
+        $api_key      = trim(self::get_env('BREVO_API_KEY', ''));
+        $from_address = trim(self::get_env('MAIL_FROM_ADDRESS', 'noreply@hanapbuhay.ph'));
+        $from_name    = trim(self::get_env('MAIL_FROM_NAME', 'HanapBuhay Oriental Mindoro'));
 
-        // Detect local mail catcher (Mailpit, MailHog, etc.) — no credentials or TLS needed
-        $is_local = in_array($host, ['127.0.0.1', 'localhost', '::1'], true);
-
-        // If using Gmail App Password, strip any accidental spaces (e.g. "abcd efgh ijkl mnop")
-        if (str_contains($host, 'gmail') && !empty($password)) {
-            $password = str_replace(' ', '', $password);
-        }
-
-        // If using Gmail SMTP and default placeholder sender, use authenticated username to avoid 550 relay errors
-        if (str_contains($host, 'gmail') && ($from_address === 'noreply@hanapbuhay.ph' || empty($from_address))) {
-            $from_address = $username;
-        }
-
-        // Fallback to log mode only when NOT local and credentials are missing
-        if ($mailer_driver === 'log' || (empty($host)) || (!$is_local && (empty($username) || empty($password)))) {
-            self::log_email($to_email, $to_name, $subject, $html_body, 'Dev/Logged mode (no SMTP credentials configured)');
+        // Fallback to log mode when no API key is set
+        if (empty($api_key)) {
+            self::log_email($to_email, $to_name, $subject, $html_body, 'Dev/Logged mode (BREVO_API_KEY not configured)');
             return [
                 'success' => true,
                 'mode'    => 'logged',
-                'message' => 'Email logged to runtime/logs/mail.log (SMTP credentials not configured).'
+                'message' => 'Email logged to runtime/logs/mail.log (BREVO_API_KEY not configured).'
             ];
         }
 
-        $mail = new PHPMailer(true);
+        // Build Brevo API payload
+        $payload = [
+            'sender'      => ['name' => $from_name, 'email' => $from_address],
+            'to'          => [['email' => $to_email, 'name' => $to_name ?: $to_email]],
+            'subject'     => $subject,
+            'htmlContent' => $html_body,
+        ];
 
-        try {
-            $mail->isSMTP();
-            $mail->Host    = $host;
-            $mail->Port    = $port;
-            $mail->CharSet = 'UTF-8';
-            $mail->Timeout = 10;
+        if (!empty($text_body)) {
+            $payload['textContent'] = $text_body;
+        }
 
-            if ($is_local) {
-                // Local mail catcher: no auth, no TLS
-                $mail->SMTPAuth   = false;
-                $mail->SMTPSecure = '';
-                $mail->SMTPAutoTLS = false;
-            } else {
-                $mail->SMTPAuth = true;
-                $mail->Username = $username;
-                $mail->Password = $password;
-                if ($encryption === 'ssl' || $port === 465) {
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                } else {
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                }
-            }
+        // cURL POST to Brevo
+        $ch = curl_init(self::BREVO_URL);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER     => [
+                'accept: application/json',
+                'content-type: application/json',
+                'api-key: ' . $api_key,
+            ],
+        ]);
 
-            // Sender & Recipient
-            $mail->setFrom($from_address, $from_name);
-            $mail->addAddress($to_email, $to_name ?: $to_email);
+        $raw  = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
 
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body    = $html_body;
-            $mail->AltBody = $text_body ?: strip_tags(str_replace(['<br>', '<br/>', '<p>', '</p>'], ["\n", "\n", "\n", "\n\n"], $html_body));
+        if ($raw === false || !empty($err)) {
+            $error_msg = 'Brevo cURL error: ' . ($err ?: 'no response');
+            error_log('[Mailer Error] ' . $error_msg);
+            self::log_email($to_email, $to_name, $subject, $html_body, 'FAILED: ' . $error_msg);
+            return ['success' => false, 'mode' => 'failed', 'error' => $error_msg];
+        }
 
-            $mail->send();
+        $result = json_decode($raw, true);
 
-            self::log_email($to_email, $to_name, $subject, $html_body, 'SMTP Sent successfully via ' . $host . ':' . $port);
-
+        // Brevo returns 201 on success
+        if ($code === 201 || $code === 200) {
+            $msg_id = $result['messageId'] ?? 'unknown';
+            self::log_email($to_email, $to_name, $subject, $html_body, "Brevo Sent OK (messageId: {$msg_id})");
             return [
-                'success' => true,
-                'mode'    => 'smtp',
-                'message' => 'Email sent successfully via SMTP.'
-            ];
-        } catch (Exception $e) {
-            $err = $mail->ErrorInfo ?: $e->getMessage();
-            error_log('[Mailer Error] ' . $err);
-            self::log_email($to_email, $to_name, $subject, $html_body, 'SMTP Failed: ' . $err);
-
-            return [
-                'success' => false,
-                'mode'    => 'failed',
-                'error'   => $err
+                'success'    => true,
+                'mode'       => 'brevo',
+                'message'    => 'Email sent successfully via Brevo API.',
+                'message_id' => $msg_id,
             ];
         }
+
+        // Error response from Brevo
+        $brevo_error = $result['message'] ?? ($result['code'] ?? "HTTP {$code}");
+        error_log("[Mailer Error] Brevo API {$code}: {$brevo_error}");
+        self::log_email($to_email, $to_name, $subject, $html_body, "Brevo FAILED ({$code}): {$brevo_error}");
+
+        return ['success' => false, 'mode' => 'failed', 'error' => "Brevo: {$brevo_error}"];
     }
 
     /**
      * Send a notification email if the recipient has email notifications enabled.
      *
-     * @param array $recipient User row from database
-     * @param string $type Notification type (e.g. application, application_status, job_match, message, test)
-     * @param string $title Notification title
-     * @param string $message Detailed message or body
-     * @param string $link Optional link relative to frontend URL
-     * @param string $cta_label Optional Call-to-action button label
+     * @param array  $recipient  User row from database
+     * @param string $type       Notification type (e.g. application, hired, message, test)
+     * @param string $title      Notification title
+     * @param string $message    Detailed message or body
+     * @param string $link       Optional link relative to frontend URL
+     * @param string $cta_label  Optional Call-to-action button label
      * @return array
      */
     public static function send_notification(array $recipient, string $type, string $title, string $message, string $link = '', string $cta_label = 'View on HanapBuhay'): array
@@ -192,6 +181,9 @@ class Mailer
         $safe_cta = htmlspecialchars($cta_label, ENT_QUOTES, 'UTF-8');
         $year = date('Y');
 
+        $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+        $settings_url = htmlspecialchars($frontend_url . '/dashboard/settings', ENT_QUOTES, 'UTF-8');
+
         $button_html = '';
         if (!empty($cta_url)) {
             $safe_url = htmlspecialchars($cta_url, ENT_QUOTES, 'UTF-8');
@@ -219,7 +211,7 @@ HTML;
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div>
                     <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">HanapBuhay</h1>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #a7f3d0;">Oriental Mindoro Employment & Skills Portal</p>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #a7f3d0;">Oriental Mindoro Employment &amp; Skills Portal</p>
                 </div>
             </div>
         </div>
@@ -245,7 +237,7 @@ HTML;
             {$button_html}
 
             <p style="font-size: 12px; color: #94a3b8; margin: 24px 0 0 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-                If you did not request this notification or have questions, you can manage your alert preferences in your <a href="http://localhost:5173/dashboard/settings" style="color: #047857; text-decoration: underline;">Account Settings</a>.
+                If you did not request this notification or have questions, you can manage your alert preferences in your <a href="{$settings_url}" style="color: #047857; text-decoration: underline;">Account Settings</a>.
             </p>
         </div>
 
