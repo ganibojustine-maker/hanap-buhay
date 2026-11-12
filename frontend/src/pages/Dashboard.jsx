@@ -3813,24 +3813,20 @@ function Settings({ user, call, updateUser }) {
     try {
       const res = await call('/notifications/test-email', { method: 'POST' })
       const r = res?.result || {}
-      const isSmtp = r?.mode === 'smtp' && r?.success
-      if (isSmtp) {
+      if (r?.success && r?.mode === 'brevo') {
         setTestResult({
           ok: true,
-          isSmtp: true,
-          text: `Nai-send na sa totoong Gmail inbox ni ${res.email || user.email}! Pakitingnan ang iyong inbox o spam folder.`
+          text: `Nai-send na sa totoong Gmail inbox ni ${res.email || user.email} sa pamamagitan ng Brevo! Pakitingnan ang iyong Inbox o Spam folder.`
         })
-      } else if (r?.mode === 'failed') {
+      } else if (r?.success && r?.mode === 'logged') {
         setTestResult({
           ok: false,
-          isSmtp: false,
-          text: `TINANGGIHAN NG GOOGLE ANG PASSWORD: ${r?.error || 'Could not authenticate'}. Hindi tinatanggap ng Google ang personal login password. Kailangan po munang i-ON ang 2-Step Verification sa iyong Google Account para makagawa ng 16-character App Password.`
+          text: `Nai-save ang notification pero HINDI naipadala sa Gmail: walang BREVO_API_KEY na naka-set sa server (.env / Render). Na-log lang ito sa runtime/logs/mail.log.`
         })
       } else {
         setTestResult({
-          ok: true,
-          isSmtp: false,
-          text: `Nai-save ang notification sa account! (Kailangan pa ng Google App Password para maipadala sa cellphone/Gmail app)`
+          ok: false,
+          text: `HINDI naipadala ang email: ${r?.error || 'Unknown error'}`
         })
       }
     } catch (err) {
@@ -4063,6 +4059,7 @@ function EmployerApplicants({ call }) {
   const [filter, setFilter] = useState('all')
   const [updatingId, setUpdatingId] = useState(null)
   const [feedback, setFeedback] = useState('')
+  const [feedbackOk, setFeedbackOk] = useState(true)
   const [statusModal, setStatusModal] = useState(null)
 
   const load = useCallback(async () => {
@@ -4088,14 +4085,31 @@ function EmployerApplicants({ call }) {
       if (interviewDate !== null) body.interview_date = interviewDate
       if (interviewNotes !== null) body.interview_notes = interviewNotes
 
-      await call(`/applications/${id}/status`, {
+      const res = await call(`/applications/${id}/status`, {
         method: 'PATCH',
         body
       })
       const opt = STATUS_OPTIONS.find(o => o.id === status)
       const label = opt ? opt.label.toUpperCase() : status.toUpperCase()
-      setFeedback(`Candidate ${applicantName || ''} marked as ${label}! Notification dispatched to applicant.`)
-      setTimeout(() => setFeedback(''), 5000)
+      const email = res?.email || {}
+      const who = applicantName || 'Candidate'
+      let msg
+      let ok = true
+      if (email.success && email.mode === 'brevo') {
+        msg = `${who} marked as ${label}! Email notification sent to ${email.to || 'the applicant'} via Brevo. Ask them to check Inbox or Spam.`
+      } else if (email.success && email.mode === 'logged') {
+        msg = `${who} marked as ${label}. In-app notification saved, but email was only LOGGED (BREVO_API_KEY is not set on the server). No Gmail was sent.`
+        ok = false
+      } else if (email.mode === 'skipped') {
+        msg = `${who} marked as ${label}. In-app notification saved; email skipped because the applicant turned off email alerts.`
+        ok = false
+      } else {
+        msg = `${who} marked as ${label}. In-app notification saved, but the email FAILED: ${email.error || 'unknown error'}`
+        ok = false
+      }
+      setFeedbackOk(ok)
+      setFeedback(msg)
+      setTimeout(() => setFeedback(''), ok ? 6000 : 12000)
       load()
     } catch (err) {
       alert('Error updating status: ' + (err.message || 'Server error'))
@@ -4155,8 +4169,8 @@ function EmployerApplicants({ call }) {
       </div>
 
       {feedback && (
-        <div style={{ padding: '12px 18px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, color: '#065f46', fontSize: 14, fontWeight: 600, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconCheck size={18} /> {feedback}
+        <div style={{ padding: '12px 18px', background: feedbackOk ? '#ecfdf5' : '#fffbeb', border: `1px solid ${feedbackOk ? '#a7f3d0' : '#fde68a'}`, borderRadius: 10, color: feedbackOk ? '#065f46' : '#92400e', fontSize: 14, fontWeight: 600, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {feedbackOk ? <IconCheck size={18} /> : <IconAlert size={18} />} {feedback}
         </div>
       )}
 

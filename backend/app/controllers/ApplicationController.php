@@ -176,7 +176,7 @@ class ApplicationController extends Controller
             $title = $titles[$status] ?? "Application Update: {$job['title']}";
             $bodyText = $msgs[$status] ?? "Your application status for \"{$job['title']}\" was updated to: " . strtoupper($status);
 
-            $this->application_model->create_notification(
+            $email = $this->application_model->create_notification(
                 (int) $app['worker_id'],
                 $notif_type,
                 $title,
@@ -185,6 +185,12 @@ class ApplicationController extends Controller
             );
         }
 
-        $this->api->respond(['success' => true]);
+        // Report the worker email outcome so the employer UI can show whether
+        // the Gmail notification actually went out (Brevo) or why it did not.
+        $this->api->respond([
+            'success' => true,
+            'status'  => $status,
+            'email'   => $email ?? ['success' => false, 'mode' => 'failed', 'to' => null, 'error' => 'Job not found.'],
+        ]);
     }
 }

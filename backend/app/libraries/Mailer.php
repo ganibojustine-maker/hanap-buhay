@@ -33,7 +33,7 @@ class Mailer
     {
         $to_email = trim($to_email);
         if (empty($to_email) || !filter_var($to_email, FILTER_VALIDATE_EMAIL)) {
-            return ['success' => false, 'error' => 'Invalid recipient email address.'];
+            return ['success' => false, 'mode' => 'failed', 'error' => 'Invalid recipient email address.'];
         }
 
         $api_key      = trim(self::get_env('BREVO_API_KEY', ''));
@@ -64,7 +64,7 @@ class Mailer
 
         // cURL POST to Brevo
         $ch = curl_init(self::BREVO_URL);
-        curl_setopt_array($ch, [
+        $curl_opts = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 15,
             CURLOPT_POST           => true,
@@ -74,7 +74,14 @@ class Mailer
                 'content-type: application/json',
                 'api-key: ' . $api_key,
             ],
-        ]);
+        ];
+        // Windows/Laragon PHP usually has no CA bundle configured (curl.cainfo empty),
+        // which makes every HTTPS call fail with "unable to get local issuer certificate".
+        $ca_bundle = self::find_ca_bundle();
+        if ($ca_bundle !== null) {
+            $curl_opts[CURLOPT_CAINFO] = $ca_bundle;
+        }
+        curl_setopt_array($ch, $curl_opts);
 
         $raw  = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -104,11 +111,27 @@ class Mailer
 
         // Error response from Brevo
         $brevo_error = $result['message'] ?? ($result['code'] ?? "HTTP {$code}");
-        error_log("[Mailer Error] Brevo API {$code}: {$brevo_error}");
-        self::log_email($to_email, $to_name, $subject, $html_body, "Brevo FAILED ({$code}): {$brevo_error}");
+        $brevo_code  = (string) ($result['code'] ?? '');
+        $hint = '';
+        if ($code === 401 || $brevo_code === 'unauthorized') {
+            $hint = ' (Check BREVO_API_KEY - it must be a Brevo v3 API key, not an SMTP key.)';
+        } elseif (stripos($brevo_error, 'sender') !== false || stripos($brevo_error, 'not valid') !== false) {
+            $hint = " (The sender {$from_address} is not verified in Brevo. Set MAIL_FROM_ADDRESS to an email you verified under Brevo > Senders & IP.)";
+        } elseif ($code === 402 || stripos($brevo_error, 'credit') !== false) {
+            $hint = ' (Brevo account has no sending credits left or is not yet activated.)';
+        }
+        error_log("[Mailer Error] Brevo API {$code}: {$brevo_error}{$hint}");
+        self::log_email($to_email, $to_name, $subject, $html_body, "Brevo FAILED ({$code}): {$brevo_error}{$hint}");
 
-        return ['success' => false, 'mode' => 'failed', 'error' => "Brevo: {$brevo_error}"];
+        return ['success' => false, 'mode' => 'failed', 'http_code' => $code, 'error' => "Brevo: {$brevo_error}{$hint}"];
     }
+
+    /**
+     * Notification types that are always emailed, even if the recipient turned
+     * off optional email alerts in Settings. These are transactional events the
+     * worker must not miss (e.g. being hired).
+     */
+    public const ALWAYS_EMAIL_TYPES = ['hired', 'for_interview', 'test'];
 
     /**
      * Send a notification email if the recipient has email notifications enabled.
@@ -124,12 +147,14 @@ class Mailer
     public static function send_notification(array $recipient, string $type, string $title, string $message, string $link = '', string $cta_label = 'View on HanapBuhay'): array
     {
         $prefs = $recipient['notification_prefs'] ?? null;
-        if (!empty($prefs)) {
+        if (!empty($prefs) && !in_array($type, self::ALWAYS_EMAIL_TYPES, true)) {
             $parsed = is_array($prefs) ? $prefs : json_decode($prefs, true);
             if (is_array($parsed) && isset($parsed['email']) && !$parsed['email']) {
                 return [
                     'success' => false,
+                    'mode'    => 'skipped',
                     'skipped' => true,
+                    'error'   => 'Recipient has disabled email notifications in Settings.',
                     'reason'  => 'Recipient has disabled email notifications in Settings.'
                 ];
             }
@@ -139,7 +164,7 @@ class Mailer
         $name  = $recipient['full_name'] ?? $recipient['username'] ?? 'HanapBuhay User';
 
         if (empty($email)) {
-            return ['success' => false, 'error' => 'Recipient has no email address.'];
+            return ['success' => false, 'mode' => 'failed', 'error' => 'Recipient has no email address.'];
         }
 
         $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
@@ -249,6 +274,36 @@ HTML;
 </body>
 </html>
 HTML;
+    }
+
+    /**
+     * Locate a CA bundle for cURL when PHP has none configured.
+     * Order: MAIL_CA_BUNDLE env → php.ini curl.cainfo/openssl.cafile (return null, PHP handles it)
+     *        → backend/certs/cacert.pem → Laragon's bundled cacert.pem.
+     */
+    private static function find_ca_bundle(): ?string
+    {
+        $override = trim(self::get_env('MAIL_CA_BUNDLE', ''));
+        if ($override !== '' && is_file($override)) {
+            return $override;
+        }
+
+        if (ini_get('curl.cainfo') || ini_get('openssl.cafile')) {
+            return null; // PHP already knows where its CA bundle is
+        }
+
+        $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR;
+        $candidates = [
+            $root . 'certs' . DIRECTORY_SEPARATOR . 'cacert.pem',
+            'C:\\laragon\\etc\\ssl\\cacert.pem',
+            '/etc/ssl/certs/ca-certificates.crt', // Debian/Ubuntu (Docker image)
+        ];
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+        return null;
     }
 
     /**
