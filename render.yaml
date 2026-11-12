@@ -49,7 +49,7 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM_ADDRESS
-        value: noreply@hanapbuhay.ph
+        value: ganibojustine@gmail.com
       - key: MAIL_FROM_NAME
         value: "HanapBuhay Oriental Mindoro"
 
