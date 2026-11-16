@@ -365,3 +365,30 @@
 p > svg, small > svg, li > svg, .pf-small svg, .pf-meta svg, .svc-meta svg, .svc-rate svg, .pf-pay svg, h2.pf-h > svg, .pf-vbadge svg, .chip svg, .svd-facts small svg { display: inline-block; vertical-align: -0.15em }
 .pf-compare td.pc-msg { min-width: 260px; max-width: 380px }
 .pf-compare .pc-act { display: flex; flex-wrap: wrap; gap: 6px; min-width: 170px; max-width: 230px }
+
+/* ── verification (one page per role) ── */
+.vf-hero { display: flex; gap: 16px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 16px }
+.vf-hero h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.02em }
+.vf-hero p { margin: 0; color: var(--muted); font-size: 14px }
+.vf-hero > div { flex: 1 }
+.vf-hero-ic { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: var(--navy-soft); color: var(--navy); flex: 0 0 auto }
+.vf-hero.green .vf-hero-ic { background: var(--green-l); color: var(--green) }
+.vf-hero.gold .vf-hero-ic { background: var(--gold-l); color: var(--amber) }
+.vf-hero.red .vf-hero-ic { background: var(--red-l); color: var(--red) }
+.vf-bar { height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; margin-bottom: 14px }
+.vf-bar i { display: block; height: 100%; background: var(--green); border-radius: 99px; transition: width .4s ease }
+.vf-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.vf-steps li { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: #fff }
+.vf-steps li.now { border-color: var(--navy); box-shadow: 0 0 0 3px var(--navy-soft) }
+.vf-steps li.done { background: var(--soft) }
+.vf-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 800; font-size: 13px; background: var(--soft); color: var(--muted); border: 2px solid var(--line) }
+.vf-steps li.now .vf-num { background: var(--navy); color: #fff; border-color: var(--navy) }
+.vf-steps li.done .vf-num { background: var(--green); color: #fff; border-color: var(--green) }
+.vf-body { flex: 1; min-width: 0 }
+.vf-body b { display: block; color: var(--ink); font-size: 14.5px }
+.vf-body small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px }
+.vf-list, .vf-tips { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 13.5px }
+.vf-list svg { color: var(--green); vertical-align: -2px; margin-right: 4px }
+.vf-tips li { padding-left: 14px; position: relative }
+.vf-tips li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--navy) }
+@media (max-width: 640px) { .vf-hero { flex-wrap: wrap } }

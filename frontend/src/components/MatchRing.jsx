@@ -3,10 +3,12 @@
  *
  * An SVG arc with rounded ends (crisp at any size, unlike a CSS conic gradient), the
  * number in the middle with a smaller "%", and the word "match" under it. The colour
- * says how good the fit is: green from 70, amber from 50, brand blue below — never
- * grey, so a low score still reads as a score and not as an empty placeholder.
+ * says how good the fit is, on the one scale in utils/match.js: green from 75, amber
+ * from 50, red below.
  */
-export const matchTone = s => (s >= 70 ? 'strong' : s >= 50 ? 'good' : 'low')
+import { matchKey } from '../utils/match.js'
+
+export const matchTone = matchKey
 
 export default function MatchRing({ score = 0, size = 76, label = 'match', className = '' }) {
   const pct = Math.max(0, Math.min(100, Math.round(Number(score) || 0)))

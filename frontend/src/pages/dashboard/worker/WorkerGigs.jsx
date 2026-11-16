@@ -14,6 +14,9 @@ import Dialog from '../../../components/Dialog.jsx'
 import UserAvatar from '../../../components/Avatar.jsx'
 import PhotoManager from '../../../components/PhotoManager.jsx'
 import ServiceCard from '../../../components/ServiceCard.jsx'
+import MatchLegend from '../../../components/MatchLegend.jsx'
+import { SkeletonCards } from '../../../components/Skeleton.jsx'
+import { matchChip, matchLevel } from '../../../utils/match.js'
 import { usePaged, Pager, ListTools, SORT } from '../../../components/Pager.jsx'
 import { IconHandshake, IconCheck, IconMsgCircle, IconFile, IconAlert, IconPlus, IconEdit, IconTrash, IconPin, IconSearch, IconEye, IconBell } from '../../../components/icons.jsx'
 import { CONTRACT, PROPOSAL, PAYMENT_STATUS } from '../../../utils/hiringStatus.js'
@@ -27,7 +30,7 @@ const TOWNS = ['Baco', 'Bansud', 'Bongabong', 'Bulalacao', 'Calapan City', 'Glor
   'Pola', 'Puerto Galera', 'Roxas', 'San Teodoro', 'Socorro', 'Victoria']
 const MSG = '/dashboard/worker/messages'
 const Verified = ({ on }) => (on ? <span className="pf-vbadge" title="Identity checked by our team"><IconCheck size={10} /> Verified</span> : null)
-const level = s => (s >= 75 ? ['green', 'Strong match'] : s >= 50 ? ['gold', 'Good match'] : ['red', 'Low match'])
+const level = s => [matchChip(s), matchLevel(s).label]
 const budget = g => [g.salary_min, g.salary_max].filter(Boolean).map(v => peso(v, { cents: false })).join('–')
 const BASIS = { fixed: 'for the job', day: 'per day', hour: 'per hour', month: 'per month' }
 
@@ -201,7 +204,8 @@ export function WorkerGigBoard({ call }) {
         <label className="pf-row" style={{ fontSize: 14 }}><input type="checkbox" checked={urgent} onChange={e => setUrgent(e.target.checked)} /> Urgent gigs only</label>
         <span className="pf-small">{data ? `${list.length} open gig${list.length === 1 ? '' : 's'}` : ''} · <Link to="/dashboard/gigs/services">List your own service</Link></span>
       </div>
-      {!data ? <BrandLoader compact label="Finding gigs…" /> : list.length === 0 ? (
+      {data && list.length > 0 && <MatchLegend />}
+      {!data ? <SkeletonCards count={6} label="Finding gigs" /> : list.length === 0 ? (
         <div className="panel pf-empty"><IconHandshake size={40} /><h2>No open gigs right now</h2>
           <p>{q || cat || town || urgent ? 'Try another word, kind of work or town.' : 'New gigs are posted every day. List your own service so clients can book you directly.'}</p>
           <Link to="/dashboard/gigs/services" className="btn btn-primary">List a service</Link></div>

@@ -264,3 +264,6 @@
 .ma-parts { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px }
 .ma-parts li { display: grid; gap: 4px; font-size: 13.5px }
 .ma-parts small { color: var(--muted); font-size: 12.5px }
+.ma.low .ma-hd { background: linear-gradient(90deg, #FEF2F2, #fff 70%); }
+.ma.low .ma-hd h2 { color: var(--red); }
+.ma.good .ma-hd h2 { color: #B45309; }

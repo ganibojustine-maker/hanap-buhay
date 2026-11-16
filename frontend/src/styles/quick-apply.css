@@ -26,6 +26,22 @@
   .qa-meta { flex-direction: column; gap: 2px }
   .qa-actions .btn { flex: 1 }
 }
-.qa-gap { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--amber-l); border: 1px solid rgba(217,119,6,.25); color: #92400e; font-size: 13.5px }
-.qa-gap p { margin: 4px 0 0 }
-.qa-gap a { color: var(--navy); font-weight: 700 }
+
+/* fit check (utils/match.js scale) */
+.qa-fit { border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.45; border: 1px solid; display: grid; gap: 8px }
+.qa-fit > svg, .qa-fit-hd > svg { flex-shrink: 0; margin-top: 2px }
+.qa-fit.strong { display: flex; gap: 8px; align-items: flex-start; background: var(--green-l); border-color: #A7F3D0; color: #065F46 }
+.qa-fit.good { background: #FFF8EB; border-color: #FCD9A0; color: #78350F }
+.qa-fit.low { background: #FEF2F2; border-color: #FECACA; color: #7F1D1D }
+.qa-fit-hd { display: flex; gap: 8px; align-items: flex-start }
+.qa-fit b { color: inherit }
+.qa-fit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.qa-fit-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(255,255,255,.75); border-radius: 8px; padding: 7px 10px }
+.qa-fit-name { font-weight: 700; color: var(--ink) }
+.qa-fit-name small { font-weight: 500; color: var(--muted) }
+.qa-fit-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--navy); white-space: nowrap; text-decoration: none }
+.qa-fit-link:hover { text-decoration: underline }
+.qa-fit-foot { margin: 0; font-size: 12.5px }
+.qa-fit-foot a { font-weight: 700; color: var(--navy) }
+.qa-fit-foot svg { vertical-align: -2px }
+.qa-fit-foot a svg, .qa-fit-link svg { display: inline-block; vertical-align: -2px }

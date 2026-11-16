@@ -59,3 +59,4 @@
 .ap-avail div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px; font-size: 13.5px }
 .ap-avail dt { font-weight: 700; color: var(--muted) }
 .ap-avail dd { margin: 0; color: var(--text) }
+.ap-match > b.low { background: var(--red-l); color: var(--red) }

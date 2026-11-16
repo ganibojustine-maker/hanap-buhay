@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { matchKey, matchLevel } from '../utils/match.js'
 import WorkPhotos from './WorkPhotos.jsx'
 import BrandLoader from './BrandLoader.jsx'
 import { IconX, IconMail, IconPhone, IconPin, IconShield, IconCheck, IconFile, IconEye, IconClock } from './icons.jsx'
@@ -136,9 +137,9 @@ export default function ApplicantProfile({ appId, call, onClose }) {
               <section className="ap-card">
                 <h3>Match for {data.application.job_title}</h3>
                 <div className="ap-match">
-                  <b className={m.score >= 75 ? 'strong' : m.score >= 50 ? 'good' : ''}>{m.score}%</b>
+                  <b className={matchKey(m.score)}>{m.score}%</b>
                   <div>
-                    <p>{m.level_label ? `${m.level_label} · ` : ''}{m.reasons.join(' · ')}</p>
+                    <p>{matchLevel(m.score).label} · {m.reasons.join(' · ')}</p>
                     <small>{(m.parts || []).map(p => `${p.label} ${p.points}/${p.max}`).join(' · ')}</small>
                   </div>
                 </div>

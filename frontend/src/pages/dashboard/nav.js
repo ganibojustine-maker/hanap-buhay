@@ -55,11 +55,15 @@ const PASSPORT_TABS = [
   { to: '/dashboard/resume',                label: 'Resume' },
 ]
 
-const WORKER_GIG_TABS = [
-  { to: '/dashboard/gigs',           label: 'Find gigs', exact: true },
-  { to: '/dashboard/gigs/proposals', label: 'My proposals' },
+// Gigs are three places, not one crowded tab strip: finding gigs, the gig work you have
+// (proposals sent and contracts running), and the services you sell
+const WORKER_GIG_FIND_TABS = [
+  { to: '/dashboard/gigs',     label: 'List', exact: true },
+  { to: '/dashboard/gigs/map', label: 'Map' },
+]
+const WORKER_GIG_WORK_TABS = [
+  { to: '/dashboard/gigs/proposals', label: 'Proposals' },
   { to: '/dashboard/gigs/contracts', label: 'Contracts' },
-  { to: '/dashboard/gigs/services',  label: 'My services' },
 ]
 
 const peopleTabs = role => [
@@ -100,37 +104,56 @@ const SUPPORT = { id: 'support', to: '/dashboard/support', icon: IconHelp, label
 const SETTINGS = { id: 'settings', to: '/dashboard/settings', icon: IconSettings, label: 'Settings', title: 'Account Settings', lede: 'What we email you about, your password, and your account.', foot: true }
 const VERIFY = lede => ({ id: 'verify', to: '/dashboard/verification', icon: IconBadge, label: 'Verification', title: 'Verification', lede, foot: true })
 
+/*
+ * The worker's sidebar, in groups (group = the small heading above the rows):
+ *   Dashboard
+ *   JOBS        Find jobs · My applications
+ *   GIGS        Find gigs · My gig work · My services
+ *   MY PROFILE  Skills Passport · Training
+ *   Messages
+ * Jobs and gigs never share a page: jobs are long-term work with an employer, gigs are
+ * short paid tasks for a client, and each has its own way to apply.
+ */
 export const WORKER_SECTIONS = [
   { id: 'home', to: '/dashboard', icon: IconHome, label: 'Dashboard', title: 'Dashboard' },
   {
-    id: 'find', to: '/dashboard/matches', icon: IconSpark, label: 'Find Jobs',
-    title: 'Find Jobs',
-    lede: 'Every open job in Oriental Mindoro, scored against your Skills Passport.',
+    id: 'find', group: 'Jobs', to: '/dashboard/matches', icon: IconSpark, label: 'Find jobs',
+    title: 'Find jobs',
+    lede: 'Jobs with employers across Oriental Mindoro, scored against your Skills Passport.',
     tabs: FIND_JOBS_TABS, paths: ['/dashboard/browse'],
   },
   {
-    id: 'applied', to: '/dashboard/applied', icon: IconBriefcase, label: 'Applications', title: 'My Applications',
-    lede: 'Every job you applied to, and where each one stands.',
+    id: 'applied', group: 'Jobs', to: '/dashboard/applied', icon: IconBriefcase, label: 'My applications', title: 'My applications',
+    lede: 'Every job you applied for, and where each one stands.',
     action: { to: '/dashboard/browse', label: 'Find more jobs', icon: 'search' },
   },
   {
-    id: 'gigs', to: '/dashboard/gigs', icon: IconHandshake, label: 'Gigs', title: 'Gigs',
-    lede: 'Short paid work from clients near you: send a proposal, do the work, get paid and reviewed.',
-    tabs: WORKER_GIG_TABS,
+    id: 'gigs', group: 'Gigs', to: '/dashboard/gigs', icon: IconHandshake, label: 'Find gigs', title: 'Find gigs',
+    lede: 'Short paid tasks from clients near you. Send your price, do the work, get paid and reviewed.',
+    tabs: WORKER_GIG_FIND_TABS,
   },
   {
-    id: 'passport', to: '/dashboard/passport', icon: IconShield, label: 'Skills Passport',
+    id: 'gigwork', group: 'Gigs', to: '/dashboard/gigs/proposals', icon: IconFile, label: 'My gig work', title: 'My gig work',
+    lede: 'Proposals you sent and the gigs you are working on.',
+    tabs: WORKER_GIG_WORK_TABS,
+  },
+  {
+    id: 'services', group: 'Gigs', to: '/dashboard/gigs/services', icon: IconCard, label: 'My services', title: 'My services',
+    lede: 'Services clients can book from you directly, with your photos and prices.',
+  },
+  {
+    id: 'passport', group: 'My profile', to: '/dashboard/passport', icon: IconShield, label: 'Skills Passport',
     title: 'Skills Passport',
-    lede: 'What employers see when you apply: your skills, the proof behind them, and your resume.',
+    lede: 'What employers and clients see: your skills, the proof behind them, and your resume.',
     tabs: PASSPORT_TABS, paths: ['/dashboard/resume'],
   },
   {
-    id: 'training', to: '/dashboard/training', icon: IconBook, label: 'Training', title: 'Training & Courses',
+    id: 'training', group: 'My profile', to: '/dashboard/training', icon: IconBook, label: 'Training', title: 'Training & courses',
     lede: 'Free TESDA courses in Oriental Mindoro. The ones that close your skill gaps come first.',
     action: { href: 'https://e-tesda.gov.ph/', label: 'Free online courses (e-TESDA)' },
   },
   { id: 'people', to: MESSAGES_PATH.worker, icon: IconMsgCircle, label: 'Messages', title: 'Messages', tabs: peopleTabs('worker') },
-  VERIFY('Get the Verified badge so employers and clients can trust your profile.'),
+  VERIFY('Get the Verified badge so employers and clients trust your profile.'),
   SUPPORT, SETTINGS,
 ]
 
@@ -264,6 +287,8 @@ export const accountLinks = (user) => (
  */
 const DETAIL_ROUTES = [
   /^\/dashboard\/gigs\/contracts\/\d+$/,
+  /^\/dashboard\/gigs\/services\/\d+$/,
+  /^\/dashboard\/talent\/services\/\d+$/,
   /^\/dashboard\/contracts\/\d+$/,
   /^\/dashboard\/gigs\/new$/,
   /^\/dashboard\/gigs\/\d+(\/edit)?$/,

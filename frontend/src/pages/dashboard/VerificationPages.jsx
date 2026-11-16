@@ -1,5 +1,7 @@
 /**
  * Verification, one page per role (backend VerificationController, docs/VERIFICATION.md).
+ * Each role reads its own title, reason, document and tips (ROLE_PAGE below); the steps come
+ * from the server and differ per role too.
  *
  * Hybrid: the system checks email, phone (a texted code), profile completeness, the file,
  * duplicate ID numbers and the name on the ID; an admin then looks at the document itself.
@@ -8,7 +10,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import BrandLoader from '../../components/BrandLoader.jsx'
+import { SkeletonCards } from '../../components/Skeleton.jsx'
 import BusinessVerification from '../../components/BusinessVerification.jsx'
 import { IconCheck, IconBadge, IconPhone, IconShield } from '../../components/icons.jsx'
 import { phDateTime, phPhone } from '../../utils/format.js'
@@ -98,6 +100,47 @@ function IdStep({ call, idTypes, user, onDone }) {
   )
 }
 
+/* What each role reads on its own verification page. The steps themselves come from the
+   server (VerificationController::status), which also differs per role. */
+const ID_TIPS = [
+  'Use a valid government ID: PhilSys National ID, driver’s license, UMID, passport, postal ID or voter’s ID.',
+  'Take the photo in good light with all four corners showing and nothing covering the text.',
+  'The name on the ID must match the name on your profile.',
+]
+const ROLE_PAGE = {
+  worker: {
+    title: 'Verify your worker account',
+    verifiedText: 'The Verified badge now shows on your applications, proposals and Skills Passport.',
+    intro: 'Employers and clients hire verified workers first. It takes about five minutes.',
+    docTitle: 'Send a government ID',
+    docHelp: 'A photo of your ID, and a selfie holding it if you can. Our team checks it within 1 to 2 working days.',
+    tips: ID_TIPS,
+    privacy: 'Only our verification team sees your ID. Employers and clients only see the Verified badge.',
+  },
+  hirer: {
+    title: 'Verify your client account',
+    verifiedText: 'The Verified client badge now shows on your gigs, proposals and messages.',
+    intro: 'Workers trust verified clients, and your gigs go live without waiting for review.',
+    docTitle: 'Send a government ID',
+    docHelp: 'A photo of your ID, and a selfie holding it if you can. Our team checks it within 1 to 2 working days.',
+    tips: ID_TIPS,
+    privacy: 'Only our verification team sees your ID. Workers only see the Verified client badge.',
+  },
+  employer: {
+    title: 'Verify your business',
+    verifiedText: 'The Verified business badge now shows on your job posts, and new posts go live right away.',
+    intro: 'A verified business posts jobs that go live right away and carry the Verified business badge.',
+    docTitle: 'Upload your business document',
+    docHelp: 'DTI, SEC or CDA registration, a Mayor’s permit or BIR Form 2303. Our team checks the name and number within 1 to 2 working days.',
+    tips: [
+      'The business name on the document must match your business profile.',
+      'A PDF or a clear photo of the whole page, up to 5 MB.',
+      'Permits must still be valid (not expired).',
+    ],
+    privacy: 'Only our verification team sees your documents. Workers only see the Verified business badge.',
+  },
+}
+
 function VerificationPage({ call, user, updateUser, role }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -107,66 +150,91 @@ function VerificationPage({ call, user, updateUser, role }) {
       .catch(e => { setError(e.message || 'We couldn’t load your verification. Please try again.'); setData({}) })
   }, [call]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [load])
-  if (!data) return <div className="page-inner"><BrandLoader compact label="Loading your verification…" /></div>
+  if (!data) return <div className="page-inner"><SkeletonCards count={3} kind="row" label="Loading your verification" /></div>
   if (error) return <div className="page-inner"><div className="pf-note bad">{error}</div></div>
+
+  const page = ROLE_PAGE[role] || ROLE_PAGE.worker
   const st = VERIFY_STATUS[data.status] || VERIFY_STATUS.unverified
   const items = data.checklist || []
+  const doneCount = items.filter(i => i.done).length
   const phoneDone = items.find(i => i.key === 'phone')?.done
   const emailDone = items.find(i => i.key === 'email')?.done
   const docOpen = ['unverified', 'rejected', 'resubmit'].includes(data.status)
+  const current = items.find(i => !i.done)?.key   // the step to do next is the one that opens
 
   return (
     <div className="page-inner">
       {flash && <div className="pf-note ok" role="status" style={{ marginBottom: 14 }}>{flash}</div>}
+      <section className={`vf-hero ${st.tone || 'none'}`}>
+        <span className="vf-hero-ic" aria-hidden="true"><IconBadge size={26} /></span>
+        <div style={{ minWidth: 0 }}>
+          <h2>{{ verified: 'Your account is verified', pending: 'We’re checking your document', rejected: 'Your document was not approved', resubmit: 'Please send your document again' }[data.status] || page.title}</h2>
+          <p>{data.status === 'verified' ? page.verifiedText : data.status === 'unverified' || !data.status ? page.intro : st.text}</p>
+        </div>
+        <span className={`chip ${st.tone}`} style={{ fontSize: 13 }}>{st.label}</span>
+      </section>
+      {data.request?.reason && ['rejected', 'resubmit'].includes(data.status) && (
+        <div className="pf-note warn" style={{ marginBottom: 14 }}><b>Message from our team:</b> {data.request.reason}</div>
+      )}
+
       <div className="pf-side">
         <div className="pf-stack">
           <section className="panel">
-            <div className="pf-between"><h2 className="pf-h">Your status</h2><span className={`chip ${st.tone}`} style={{ fontSize: 13 }}><IconBadge size={13} /> {st.label}</span></div>
-            <p className="pf-muted" style={{ margin: '6px 0 0' }}>{st.text}</p>
-            {data.request?.reason && ['rejected', 'resubmit'].includes(data.status) && <div className="pf-note warn" style={{ marginTop: 10 }}><b>Reason from our team:</b> {data.request.reason}</div>}
+            <div className="pf-between" style={{ marginBottom: 12 }}>
+              <h2 className="pf-h" style={{ margin: 0 }}>Steps</h2>
+              <span className="pf-small"><b>{doneCount}</b> of {items.length} done</span>
+            </div>
+            <div className="vf-bar" aria-hidden="true"><i style={{ width: `${items.length ? (doneCount / items.length) * 100 : 0}%` }} /></div>
+            <ol className="vf-steps">
+              {items.map((i, n) => {
+                const isDoc = i.key === 'document'
+                const label = isDoc ? page.docTitle : i.label
+                return (
+                  <li key={i.key} className={i.done ? 'done' : current === i.key ? 'now' : ''}>
+                    <span className="vf-num" aria-hidden="true">{i.done ? <IconCheck size={14} /> : n + 1}</span>
+                    <div className="vf-body">
+                      <b>{label}</b>
+                      <small>
+                        {i.done ? (i.key === 'phone' && data.phone ? `Confirmed: ${phPhone(data.phone)}` : 'Done')
+                          : isDoc ? page.docHelp : i.help}
+                      </small>
+                      {!i.done && i.key === 'phone' && <PhoneStep call={call} phone={data.phone} onDone={() => { setFlash('Your mobile number is confirmed.'); load() }} />}
+                      {!i.done && i.key === 'email' && <p className="pf-small" style={{ margin: '6px 0 0' }}>Can’t find the email? Check your spam folder, or open <Link to="/dashboard/settings">Settings</Link> to send it again.</p>}
+                      {!i.done && i.key === 'profile' && <Link to={role === 'worker' && /skill/i.test(i.help || '') ? '/dashboard/passport' : '/dashboard/profile'} className="btn btn-light btn-sm" style={{ marginTop: 8 }}>{role === 'employer' ? 'Complete business profile' : 'Complete my profile'}</Link>}
+                      {isDoc && !i.done && docOpen && (
+                        !(emailDone && phoneDone)
+                          ? <p className="pf-small" style={{ margin: '6px 0 0' }}>Confirm your email and mobile number first.</p>
+                          : role === 'employer'
+                            ? <div style={{ marginTop: 10 }}><BusinessVerification call={call} user={user} updateUser={updateUser} /></div>
+                            : <IdStep call={call} idTypes={data.id_types} user={user} onDone={() => { setFlash('Thanks! We’ll check your ID within 1 to 2 working days.'); load() }} />
+                      )}
+                      {isDoc && data.status === 'pending' && data.request && <p className="pf-small" style={{ margin: '6px 0 0' }}>Sent {phDateTime(data.request.created_at)}: {data.request.id_label} ending in {data.request.id_number?.slice(-4)}. We’re checking it.</p>}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
           </section>
-          <section className="panel">
-            <h2 className="pf-h">Steps</h2>
-            <ul className="pf-check">
-              {items.map(i => (
-                <li key={i.key} className={i.done ? 'done' : ''}>
-                  <span className="dot">{i.done ? <IconCheck size={13} /> : null}</span>
-                  <div style={{ flex: 1 }}>
-                    <b>{i.label}</b><small>{i.done ? (i.key === 'phone' && data.phone ? `Confirmed: ${phPhone(data.phone)}` : 'Done') : i.help}</small>
-                    {!i.done && i.key === 'phone' && <PhoneStep call={call} phone={data.phone} onDone={() => { setFlash('Your mobile number is confirmed.'); load() }} />}
-                    {!i.done && i.key === 'email' && <p className="pf-small" style={{ margin: '4px 0 0' }}>Can’t find the email? Open Settings to send it again.</p>}
-                    {!i.done && i.key === 'profile' && <Link to={role === 'worker' && /skill/i.test(i.help) ? '/dashboard/passport' : '/dashboard/profile'} className="btn btn-light btn-sm" style={{ marginTop: 6 }}>Complete it</Link>}
-                    {i.key === 'document' && !i.done && role !== 'employer' && docOpen && (emailDone && phoneDone
-                      ? <IdStep call={call} idTypes={data.id_types} user={user} onDone={() => { setFlash('Thanks! We’ll check your ID within 1 to 2 working days.'); load() }} />
-                      : <p className="pf-small" style={{ margin: '4px 0 0' }}>Confirm your email and mobile number first.</p>)}
-                    {i.key === 'document' && data.status === 'pending' && data.request && <p className="pf-small" style={{ margin: '4px 0 0' }}>Sent {phDateTime(data.request.created_at)}: {data.request.id_label} ending in {data.request.id_number?.slice(-4)}</p>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-          {role === 'employer' && (
-            <section className="panel">
-              <h2 className="pf-h">Business document</h2>
-              <p className="pf-sub">DTI, SEC, CDA, Mayor’s permit or BIR 2303. Our team checks the name and number against the document.</p>
-              <BusinessVerification call={call} user={user} updateUser={updateUser} />
-            </section>
-          )}
         </div>
         <aside className="pf-stack">
           <section className="panel">
             <h2 className="pf-h"><IconShield size={16} /> What you get</h2>
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6, fontSize: 14 }}>{(data.unlocks || []).map(u => <li key={u}>{u}</li>)}</ul>
+            <ul className="vf-list">{(data.unlocks || []).map(u => <li key={u}><IconCheck size={13} /> {u}</li>)}</ul>
           </section>
-          <section className="panel">
-            <h2 className="pf-h">History</h2>
-            {(data.history || []).length === 0 ? <p className="pf-muted">Nothing yet.</p> : (
+          {data.status !== 'verified' && <section className="panel">
+            <h2 className="pf-h">Before you send</h2>
+            <ul className="vf-tips">{page.tips.map(t => <li key={t}>{t}</li>)}</ul>
+            <p className="pf-small" style={{ margin: '10px 0 0' }}><IconShield size={12} /> {page.privacy} <Link to="/privacy">Privacy Policy</Link></p>
+          </section>}
+          {(data.history || []).length > 0 && (
+            <section className="panel">
+              <h2 className="pf-h">History</h2>
               <ol className="pf-timeline">{data.history.map((h, i) => (
                 <li key={i} className={h.action === 'approved' || h.action === 'phone_confirmed' ? 'good' : ['rejected', 'revoked'].includes(h.action) ? 'bad' : h.action === 'resubmission_requested' ? 'warn' : ''}>
                   <b>{ACTION_TEXT[h.action] || h.action}</b><small>{phDateTime(h.created_at)}</small>{h.reason && <p>{h.reason}</p>}</li>
               ))}</ol>
-            )}
-          </section>
+            </section>
+          )}
         </aside>
       </div>
     </div>

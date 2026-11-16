@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { matchKey, matchLevel } from '../utils/match.js'
 import { useAuth } from '../auth.jsx'
 import { Link } from 'react-router-dom'
 import { IconCheck, IconArrow, IconBolt } from './icons.jsx'
@@ -183,7 +184,7 @@ export function FeaturedJobCard({
           {Number(job.is_urgent) === 1 && <span className="jc-flag urgent">{tr('Urgent')}</span>}
           {featured && <span className="jc-flag feat">{tr('Featured')}</span>}
           {score != null && score > 0 && (
-            <span className={`jc-flag score ${score >= 75 ? 'strong' : score >= 50 ? 'good' : ''}`}>{score}{tr('% match')}</span>
+            <span className={`jc-flag score ${matchKey(score)}`} title={tr(matchLevel(score).label)}>{score}{tr('% match')}</span>
           )}
         </span>
       </Link>
@@ -237,8 +238,8 @@ export function FeaturedJobCard({
 
       {/* match level and the main gap, right on the card (not only in View details) */}
       {score != null && job.match && (
-        <p className={`jc-fit ${score >= 75 ? 'strong' : score >= 50 ? 'good' : 'low'}`}>
-          <b>{tr(job.match.level_label || (score >= 75 ? 'Strong match' : score >= 50 ? 'Good match' : 'Low match'))}</b>
+        <p className={`jc-fit ${matchKey(score)}`}>
+          <b>{tr(matchLevel(score).label)}</b>
           {(job.match.gaps || []).length > 0
             ? <span> · {tr('Missing')}: {job.match.gaps.slice(0, 2).map(g => g.name).join(', ')}{job.match.gaps.length > 2 ? ` +${job.match.gaps.length - 2}` : ''}</span>
             : <span> · {tr('You meet every requirement')}</span>}

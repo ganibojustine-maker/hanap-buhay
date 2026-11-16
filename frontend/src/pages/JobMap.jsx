@@ -92,14 +92,14 @@ const level = s => (s >= 75 ? 'Strong match' : s >= 50 ? 'Good match' : 'Low mat
  * map (a swipe-up sheet on phones), pins by type, one numbered circle per town when zoomed
  * out, and a small card with match score, pay and Apply / View on each pin.
  */
-export default function JobMap({ embedded = false, basePath = '/jobs' }) {
+export default function JobMap({ embedded = false, basePath = '/jobs', postType = '' }) {
   const nav = useNavigate()
   const { user, call } = useAuth()
   const isWorker = user?.account_type === 'worker' && user?.role !== 'admin'
   const [jobs, setJobs] = useState(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
-  const [type, setType] = useState('')
+  const [type, setType] = useState(postType)   // fixed to jobs or gigs when the map sits in that section
   const [cat, setCat] = useState('')
   const [town, setTown] = useState('')
   const [minMatch, setMinMatch] = useState(0)
@@ -285,7 +285,7 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
         )}
         <div className="jm2-filters" role="group" aria-label="Map filters">
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title or skill" aria-label="Search" style={{ flex: '1 1 200px' }} />
-          <select value={type} onChange={e => setType(e.target.value)} aria-label="Type"><option value="">Jobs and gigs</option><option value="job">Jobs</option><option value="gig">Gigs</option></select>
+          {!postType && <select value={type} onChange={e => setType(e.target.value)} aria-label="Type"><option value="">Jobs and gigs</option><option value="job">Jobs</option><option value="gig">Gigs</option></select>}
           <select value={cat} onChange={e => setCat(e.target.value)} aria-label="Kind of work"><option value="">Any kind of work</option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <select value={town} onChange={e => setTown(e.target.value)} aria-label="Town"><option value="">All towns</option>{TOWN_NAMES.map(t => <option key={t}>{t}</option>)}</select>
           {isWorker && <select value={minMatch} onChange={e => setMinMatch(Number(e.target.value))} aria-label="Match"><option value={0}>Any match</option><option value={50}>Good match or better</option><option value={75}>Strong match only</option></select>}
@@ -298,7 +298,7 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
           {me
             ? <button type="button" className="btn btn-sm jm2-near on" onClick={clearMe} title="Stop using my location"><IconPin size={13} /> {me.from === 'gps' ? 'Near me' : me.label} <IconX size={12} /></button>
             : <button type="button" className="btn btn-sm jm2-near" onClick={nearMe} disabled={locating}><IconPin size={13} /> {locating ? 'Finding you…' : 'Near me'}</button>}
-          {(q || type || cat || town || minMatch || radius) ? <button type="button" className="btn btn-light btn-sm" onClick={() => { setQ(''); setType(''); setCat(''); setTown(''); setMinMatch(0); setRadius(0) }}><IconX size={13} /> Clear</button> : null}
+          {(q || type !== postType || cat || town || minMatch || radius) ? <button type="button" className="btn btn-light btn-sm" onClick={() => { setQ(''); setType(postType); setCat(''); setTown(''); setMinMatch(0); setRadius(0) }}><IconX size={13} /> Clear</button> : null}
         </div>
         {error && <div className="pf-note bad" role="alert" style={{ marginBottom: 10 }}>{error}</div>}
         {geoNote && <div className="pf-note info" role="status" style={{ marginBottom: 10 }}>{geoNote}</div>}

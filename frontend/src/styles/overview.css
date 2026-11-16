@@ -171,6 +171,7 @@
 .ov-pipe li.reviewed em { background: var(--blue); }
 .ov-pipe li.shortlisted em { background: var(--green); }
 .ov-pipe li.for_interview em { background: #7c3aed; }
+.ov-pipe li.offer em { background: var(--gold); }
 .ov-pipe li.hired em { background: var(--navy); }
 .ov-pipe b { text-align: right; color: var(--ink); }
 

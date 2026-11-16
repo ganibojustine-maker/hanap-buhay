@@ -8,6 +8,8 @@
  * one links straight to the TESDA course that teaches it, with the schools in Oriental
  * Mindoro that offer it.
  */
+import { matchKey, matchLevel } from '../../utils/match.js'
+import QuickApplyModal from '../../components/QuickApplyModal.jsx'
 import { useCallback, useEffect, useState } from 'react'
 import BrandLoader from '../../components/BrandLoader.jsx'
 import MatchRing from '../../components/MatchRing.jsx'
@@ -33,7 +35,6 @@ import { typeLabel } from './JobSearch.jsx'
 import '../../styles/public.css'
 import '../../styles/jobview.css'
 
-const tone = s => (s >= 75 ? 'strong' : s >= 50 ? 'good' : 'low')
 
 export function StarRow({ value = 0, size = 14 }) {
   return (
@@ -53,7 +54,7 @@ export function StarRow({ value = 0, size = 14 }) {
    plainly whether you have it. A missing skill carries its own way to learn it, right
    on that line; there is no separate gap panel to read and reconcile with the list.
 */
-const VERDICT = s => (s >= 75 ? ['strong', 'Strong match'] : s >= 50 ? ['good', 'Good match'] : ['low', 'Low match'])
+const VERDICT = s => [matchKey(s), matchLevel(s).label]
 
 export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }) {
   const [upload, setUpload] = useState(false)
@@ -83,7 +84,7 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
         <MatchRing score={m.score} size={84} />
         <div>
           <p className="ma-kicker">How you match</p>
-          <h2 id="ma-h">{m.level_label || verdict}</h2>
+          <h2 id="ma-h">{verdict}</h2>
           <p className="ma-sum">{m.matched.length + m.missing.length > 0 ? `You have ${m.matched.length} of ${m.matched.length + m.missing.length} requirements.` : 'The employer did not list specific skills.'}{where ? ` The job is ${where}.` : ''}</p>
         </div>
       </header>
@@ -132,34 +133,6 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
   )
 }
 
-/** The notice shown when the score is low at the moment of applying. The worker decides. */
-export function LowMatchNotice({ match, onApplyAnyway, onClose, busy, training = '/dashboard/training' }) {
-  const gaps = match?.gaps || []
-  return (
-    <div className="jv-modal" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="jv-modal-in" role="dialog" aria-modal="true" aria-labelledby="lm-h">
-        <h2 id="lm-h">This job asks for things your profile doesn’t show yet</h2>
-        <p className="jv-modal-sub">Your match is <b>{match?.score}%</b> ({match?.level_label}). You can still apply. Employers may pick applicants who meet more of the requirements.</p>
-        <ul className="ma-list" style={{ margin: '10px 0' }}>
-          {gaps.slice(0, 5).map(g => {
-            const course = g.kind === 'skill' || g.kind === 'certificate' ? coursesForSkill(g.name, 1)[0] : null
-            return (
-              <li key={g.name} className="missing"><span className="ma-ic"><IconX size={13} /></span>
-                <div className="ma-main"><b>{g.name}</b></div>
-                <span className="ma-state">{course ? <EnrollLink course={course} className="ma-learn">Find training</EnrollLink> : g.kind === 'experience' || g.kind === 'education' ? <Link to="/dashboard/profile" className="ma-learn">Update profile</Link> : null}</span></li>
-            )
-          })}
-        </ul>
-        <p className="pf-small">Would you like training programs to fill these gaps? Free TESDA courses are listed in Training.</p>
-        <div className="jv-modal-actions">
-          <Link to={training} className="btn btn-light">See training</Link>
-          <button className="btn btn-primary" disabled={busy} onClick={onApplyAnyway}>{busy ? <span className="spin" /> : 'Apply anyway'}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ─ Employer reviews ─────────────────────────────────────── */
 function EmployerReviews({ employerId, company }) {
   const [data, setData] = useState(null)
@@ -200,16 +173,11 @@ export default function JobView({ embedded = false, basePath = '/jobs' }) {
   const [loading, setLoading] = useState(true)
   const [applied, setApplied] = useState(false)
   const [showApply, setShowApply] = useState(false)
-  const [note, setNote] = useState('')
-  const [applying, setApplying] = useState(false)
-  const [error, setError] = useState('')
   const [done, setDone] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportMsg, setReportMsg] = useState('')
   const [reportBusy, setReportBusy] = useState(false)
-  const [lowMatch, setLowMatch] = useState(null)   // the server's match, when it asks first
-  const [missing, setMissing] = useState(null)     // profile fields still needed to apply
   const [proposal, setProposal] = useState(false)
 
   const load = useCallback(() => {
@@ -222,19 +190,10 @@ export default function JobView({ embedded = false, basePath = '/jobs' }) {
 
   useEffect(() => { load() }, [load])
 
-  async function apply(acknowledge = false) {
-    if (!user) return nav('/login', { state: { from: `/jobs/${id}` } })
-    setApplying(true); setError('')
-    try {
-      await call('/applications', { method: 'POST', body: { job_id: Number(id), cover_note: note, acknowledge_gap: acknowledge } })
-      setApplied(true); setDone('Application sent. The employer was told by email.')
-      setShowApply(false); setLowMatch(null)
-    } catch (e) {
-      if (e?.status === 401) { setError('Your session expired. Please sign in again.'); nav('/login', { state: { from: `/jobs/${id}` } }) }
-      else if (e?.data?.code === 'low_match') { setShowApply(false); setLowMatch(e.data.match) }
-      else if (e?.data?.code === 'profile_incomplete') { setShowApply(false); setMissing(e.data.missing || []) }
-      else setError(e.message || 'We couldn’t send your application. Please try again.')
-    } finally { setApplying(false) }
+  // the shared apply dialog (QuickApplyModal) shows the fit check, then sends through here
+  async function apply(note, acknowledge = false) {
+    await call('/applications', { method: 'POST', body: { job_id: Number(id), cover_note: note, acknowledge_gap: acknowledge } })
+    setApplied(true); setShowApply(false); setDone('Application sent. The employer was told by email.')
   }
   // Apply / Send proposal, decided by who is looking and what kind of post it is
   function startApply() {
@@ -458,7 +417,6 @@ export default function JobView({ embedded = false, basePath = '/jobs' }) {
               ? 'Track the reply under Applications.'
               : ended ? 'It no longer takes applications. Similar open posts are listed below.'
               : isGig ? 'Send the client your price and how many days you need.' : 'Your Skills Passport is shared with the employer automatically.'}</p>
-            {error && <p className="jv-err">{error}</p>}
             {applied
               ? <Link to="/dashboard/applied" className="btn btn-primary btn-block">Track my application</Link>
               : isOwner
@@ -523,49 +481,10 @@ export default function JobView({ embedded = false, basePath = '/jobs' }) {
         </aside>
       </div>
 
-      {lowMatch && <LowMatchNotice match={lowMatch} busy={applying} onClose={() => setLowMatch(null)} onApplyAnyway={() => apply(true)}
-        training={basePath.startsWith('/dashboard') ? '/dashboard/training' : '/training'} />}
-      {missing && (
-        <div className="jv-modal" onClick={e => { if (e.target === e.currentTarget) setMissing(null) }}>
-          <div className="jv-modal-in" role="dialog" aria-modal="true" aria-labelledby="mi-h">
-            <h2 id="mi-h">Complete your profile to apply</h2>
-            <p className="jv-modal-sub">Employers need these to consider you, and they make your match score accurate.</p>
-            <ul className="pf-check" style={{ margin: '10px 0' }}>{missing.map(m => <li key={m.field}><span className="dot" /><div><b>{m.label}</b></div><Link to={m.where} className="btn btn-light btn-sm">Add it</Link></li>)}</ul>
-            <div className="jv-modal-actions"><button className="btn btn-light" onClick={() => setMissing(null)}>Close</button></div>
-          </div>
-        </div>
-      )}
       {proposal && <ProposalDialog gig={j} call={call} onClose={() => setProposal(false)} onSent={() => { setProposal(false); setApplied(true); setDone('Proposal sent. We’ll tell you when the client answers.') }} />}
-      {/* apply modal */}
       {showApply && (
-        <div className="jv-modal" onClick={e => { if (e.target === e.currentTarget) setShowApply(false) }}>
-          <div className="jv-modal-in" role="dialog" aria-modal="true" aria-labelledby="jv-apply-h">
-            <h2 id="jv-apply-h">Apply for {j.title}</h2>
-            <p className="jv-modal-sub">at {company} · {j.location}</p>
-
-            {j.match && (
-              <div className={`jv-modal-match ${tone(j.match.score)}`}>
-                <b>{j.match.score}% · {j.match.level_label}</b>
-                <span>{j.match.reasons.join(' · ')}</span>
-              </div>
-            )}
-
-            <div className="field">
-              <span>Message to the employer <em>Optional</em></span>
-              <div className="in no-icon">
-                <textarea value={note} onChange={e => setNote(e.target.value)} style={{ minHeight: 130 }}
-                  placeholder={`Hello! I am interested in the ${j.title} role.${j.match?.matched?.length ? ` I have experience in ${j.match.matched.slice(0, 3).join(', ')}.` : ''}`} />
-              </div>
-            </div>
-            {error && <p className="jv-err">{error}</p>}
-            <div className="jv-modal-actions">
-              <button className="btn btn-light" onClick={() => setShowApply(false)}>Cancel</button>
-              <button className="btn btn-primary" disabled={applying} onClick={() => apply(false)}>
-                {applying ? <span className="spin" /> : <><IconSend size={16} /> Send application</>}
-              </button>
-            </div>
-          </div>
-        </div>
+        <QuickApplyModal job={j} user={user} skills={j.match?.matched || []}
+          onClose={() => setShowApply(false)} onSubmit={apply} />
       )}
     </div>
   )

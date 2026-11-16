@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react'
+import { Fragment, useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react'
 import { Link, useLocation, Routes, Route, Navigate } from 'react-router-dom'
 import Dialog from '../components/Dialog.jsx'
 import { useAuth } from '../auth.jsx'
@@ -13,7 +13,7 @@ import { days } from './dashboard/shared.jsx'
 import InstallApp from '../components/InstallApp.jsx'
 import PageErrorBoundary from '../components/PageErrorBoundary.jsx'
 import '../styles/social.css'
-import { sectionsFor, headerFor, tabIsActive, profileMeta, accountLinks, MESSAGES_PATH, PLAN_PATH, roleOf } from './dashboard/nav.js'
+import { sectionsFor, sectionFor, headerFor, tabIsActive, profileMeta, accountLinks, MESSAGES_PATH, PLAN_PATH, roleOf } from './dashboard/nav.js'
 import '../styles/platform.css'
 
 // Each role's pages are a separate download, fetched the first time they are opened:
@@ -119,11 +119,12 @@ function Sidebar({ user, logout, open, onClose, badges = {} }) {
   const sections = sectionsFor(user)
   const main = sections.filter(x => !x.foot)
   const foot = sections.filter(x => x.foot)
+  // one entry lit at a time: the section that owns the longest matching route
+  const current = sectionFor(sections, pathname)
 
   const Row = ({ item }) => {
     const n = item.badge ? badges[item.badge] || 0 : 0
-    const owned = [item.to, ...(item.tabs || []).map(t => t.to), ...(item.paths || [])]
-    const active = owned.some(r => pathname === r || (r !== '/dashboard' && pathname.startsWith(r + '/')))
+    const active = current === item
     const Ic = item.icon
     return (
       <Link to={item.to} className={active ? 'active' : ''} onClick={onClose} aria-current={active ? 'page' : undefined}>
@@ -144,7 +145,12 @@ function Sidebar({ user, logout, open, onClose, badges = {} }) {
 
 
       <nav className="sidebar-nav" aria-label={tr('Dashboard navigation')}>
-        {main.map(item => <Row key={item.id} item={item} />)}
+        {main.map((item, i) => (
+          <Fragment key={item.id}>
+            {item.group && item.group !== main[i - 1]?.group && <span className="nav-group">{tr(item.group)}</span>}
+            <Row item={item} />
+          </Fragment>
+        ))}
       </nav>
 
       <div className="sidebar-footer">
@@ -997,7 +1003,7 @@ export default function Dashboard() {
               what people actually see. */}
           <Route path="browse"      element={<JobSearch embedded basePath="/dashboard/browse" />} />
           <Route path="browse/:id"  element={<JobView  embedded basePath="/dashboard/browse" />} />
-          <Route path="map"         element={<JobMapPage embedded basePath="/dashboard/browse" />} />
+          <Route path="map"         element={<JobMapPage embedded basePath="/dashboard/browse" postType={role === 'worker' ? 'job' : ''} />} />
           <Route path="training"    element={<TrainingBrowser embedded heading={false} />} />
 
           {/* People: following, connections and the profile behind every name */}
@@ -1024,6 +1030,7 @@ export default function Dashboard() {
               <Route path="saved"    element={<SavedJobs call={call} user={user} />} />
               <Route path="worker/messages" element={<WorkerMessages key={user.id} call={call} user={user} />} />
               <Route path="gigs"              element={<WorkerGigBoard call={call} user={user} />} />
+              <Route path="gigs/map"          element={<JobMapPage embedded basePath="/dashboard/browse" postType="gig" />} />
               <Route path="gigs/proposals"    element={<WorkerProposals call={call} />} />
               <Route path="gigs/contracts"    element={<WorkerContracts call={call} />} />
               <Route path="gigs/contracts/:id" element={<WorkerContract call={call} />} />

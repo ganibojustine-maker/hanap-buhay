@@ -1,4 +1,5 @@
 // Dashboard worker pages (split out of Dashboard.jsx so each role downloads only its own code).
+import { matchKey } from '../../utils/match.js'
 import { FreelanceStrip } from './worker/WorkerGigs.jsx'
 import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useRef, useState, useCallback } from 'react'
@@ -9,7 +10,7 @@ import { peso, phDate, phDateTime } from '../../utils/format.js'
 import '../../styles/platform.css'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../api.js'
-import { IconUser, IconBriefcase, IconShield, IconFile, IconPin, IconMail, IconCheck, IconSpark, IconSearch, IconPlus, IconX, IconClock, IconArrow, IconCalendar, IconStar, IconPhone, IconWrench, IconBookmark, IconEye } from '../../components/icons.jsx'
+import { IconHandshake, IconUser, IconBriefcase, IconShield, IconFile, IconPin, IconMail, IconCheck, IconSpark, IconSearch, IconPlus, IconX, IconClock, IconArrow, IconCalendar, IconStar, IconPhone, IconWrench, IconBookmark, IconEye } from '../../components/icons.jsx'
 import { TOWNS } from '../../components/art.jsx'
 import ImageCropModal from '../../components/ImageCropModal.jsx'
 import { getJobImage, getCourseImage } from '../../utils/jobImages.js'
@@ -19,9 +20,11 @@ import WorkGallery from '../../components/WorkGallery.jsx'
 import ReputationStrip from '../../components/ReputationStrip.jsx'
 import { SKILL_LEVELS, SKILL_SOURCES, byId } from '../../utils/skillMeta.js'
 import QuickApplyModal from '../../components/QuickApplyModal.jsx'
+import MatchLegend from '../../components/MatchLegend.jsx'
+import { SkeletonCards } from '../../components/Skeleton.jsx'
 import '../../styles/overview.css'
 import '../../styles/worker.css'
-import { coursesForSkill, TESDA_COURSES } from '../../utils/tesdaCourses.js'
+import { coursesForSkill } from '../../utils/tesdaCourses.js'
 import { greet, days, ApplicationTracker } from './shared.jsx'
 import { AvailabilityPanel, SharePassport, NextSteps, RateEmployer } from './WorkerTools.jsx'
 import { tr } from '../../lang/dash.js'
@@ -31,25 +34,27 @@ import Dialog from '../../components/Dialog.jsx'
 export { SavedJobs } from './WorkerTools.jsx'
 
 /* ─ Worker Overview ───────────────────────────────────────
-   Laid out like the home screen of any job app people already use:
-     1. who you are and how ready your profile is
-     2. anything waiting on you (only when there is something)
-     3. jobs recommended for you            — best matches from your passport
-     4. featured jobs near your town        — promoted posts, never repeating 3
-     5. courses picked for you              — TESDA courses for the skills you lack
-     6. your recent applications
-   Each block shows different things; nothing on this page repeats another block.
+   One screen, in the order a worker needs it:
+     1. hello, a job search, and how ready the profile is
+     2. what needs you now (jobs and gigs together, only when there is something)
+     3. four numbers, each one a door: job matches · applications · proposals · gigs in progress
+     4. Jobs for you   (long-term work with an employer)
+        Gigs for you   (short paid tasks for a client)  — never mixed
+     5. your applications, and courses only when the best jobs show a skill gap
 */
 export function WorkerOverview({ user, call }) {
-  const [loaded, setLoaded]     = useState(false)
-  const [matches, setMatches]   = useState([])
-  const [summary, setSummary]   = useState({})
-  const [gaps, setGaps]         = useState([])
-  const [featured, setFeatured] = useState([])
-  const [apps, setApps]         = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [matches, setMatches] = useState([])
+  const [summary, setSummary] = useState({})
+  const [gaps, setGaps] = useState([])
+  const [gigs, setGigs] = useState([])
+  const [apps, setApps] = useState([])
+  const [proposals, setProposals] = useState([])
+  const [contracts, setContracts] = useState([])
+  const [jobInvites, setJobInvites] = useState([])
+  const [gigInvites, setGigInvites] = useState([])
   const [passport, setPassport] = useState({ score: 0, skills_count: 0 })
   const [appliedIds, setAppliedIds] = useState(new Set())
-  const [invites, setInvites] = useState([])
   const [applying, setApplying] = useState(null)
   const [applyJob, setApplyJob] = useState(null)
   const savedJobs = useSavedJobs()
@@ -65,12 +70,15 @@ export function WorkerOverview({ user, call }) {
         setAppliedIds(new Set(arr.map(a => Number(a.job_id))))
       }),
       call('/jobs/matches').then(r => {
-        setMatches((r.jobs || []).filter(j => !j.applied))
+        setMatches((r.jobs || []).filter(j => !j.applied && j.post_type !== 'gig'))
         setGaps(r.gaps || [])
         setSummary(r.summary || {})
       }),
-      call('/jobs/featured?limit=12').then(r => setFeatured(r.jobs || [])),
-      call('/invites/mine').then(r => setInvites(r.invites || [])),
+      call('/jobs?post_type=gig&sort=match&limit=12').then(r => setGigs(r.jobs || [])),
+      call('/proposals/mine').then(r => setProposals(r.proposals || [])),
+      call('/contracts').then(r => setContracts(r.contracts || [])),
+      call('/invites/mine').then(r => setJobInvites(r.invites || [])),
+      call('/gigs/invites').then(r => setGigInvites((r.invites || []).filter(i => !i.proposal_status))),
     ]).finally(() => setLoaded(true))
   }, [call])
 
@@ -86,58 +94,50 @@ export function WorkerOverview({ user, call }) {
     }
   }
 
-  // recommended = best matches; featured = promoted posts that are NOT already recommended
-  const recommended = matches.filter(j => !appliedIds.has(Number(j.id))).slice(0, 3)
-  const shown = new Set(recommended.map(j => Number(j.id)))
-  const featuredRow = featured.filter(j => !shown.has(Number(j.id)) && !appliedIds.has(Number(j.id))).slice(0, 6)
+  const proposed = new Set(proposals.filter(p => p.status !== 'withdrawn').map(p => Number(p.gig_id)))
+  const jobsForYou = matches.filter(j => !appliedIds.has(Number(j.id))).slice(0, 2)
+  const gigsForYou = gigs.filter(g => !proposed.has(Number(g.id))).slice(0, 2)
 
-  // courses for the skills the best jobs ask for; popular local courses when there are no gaps yet
-  const myTown = TOWNS.includes(user?.location) ? user.location : ''
+  // courses only for the skills the best jobs ask for (no filler when there is no gap)
   const courseIds = new Set()
   const courses = []
   for (const g of gaps) for (const c of coursesForSkill(g.skill, 1)) {
-    if (!courseIds.has(c.id) && courses.length < 4) { courseIds.add(c.id); courses.push({ ...c, why: g.skill }) }
-  }
-  if (courses.length < 4) {
-    const local = [...TESDA_COURSES].sort((a, b) => (b.towns?.[myTown] || 0) - (a.towns?.[myTown] || 0) || (b.schools || 0) - (a.schools || 0))
-    for (const c of local) { if (courses.length >= 4) break; if (!courseIds.has(c.id)) { courseIds.add(c.id); courses.push(c) } }
+    if (!courseIds.has(c.id) && courses.length < 3) { courseIds.add(c.id); courses.push({ ...c, why: g.skill }) }
   }
 
-  // what is waiting on this person, only from real records
+  // what needs this person now, from real records only, most urgent first
+  const when = v => new Date(String(v).replace(' ', 'T')).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   const todo = []
+  const booking = contracts.find(c => c.status === 'offered')
+  if (booking) todo.push({ tone: 'go', icon: IconBriefcase, to: `/dashboard/gigs/contracts/${booking.id}`, cta: tr('Answer'), text: tr('{who} wants to book you: {gig}', { who: booking.client_name, gig: booking.title }) })
+  const changes = contracts.find(c => c.status === 'revision_requested')
+  if (changes) todo.push({ tone: 'warn', icon: IconWrench, to: `/dashboard/gigs/contracts/${changes.id}`, cta: tr('Open'), text: tr('The client asked for changes: {gig}', { gig: changes.title }) })
+  const paid = contracts.find(c => c.payment_status === 'sent')
+  if (paid) todo.push({ tone: 'go', icon: IconCheck, to: `/dashboard/gigs/contracts/${paid.id}`, cta: tr('Confirm'), text: tr('The client says they paid you for {gig}. Confirm when you receive it.', { gig: paid.title }) })
   const interview = apps.find(a => a.status === 'for_interview' && a.interview_date)
-  if (interview) todo.push({ tone: 'go', icon: IconCalendar, to: '/dashboard/applied', cta: tr('View'),
-    text: tr('Interview for {job} on {when}', { job: interview.job_title || tr('a job'),
-      when: new Date(String(interview.interview_date).replace(' ', 'T')).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }) })
-  const invite = invites[0]
-  if (invite) todo.push({ tone: 'go', icon: IconSpark, to: `/dashboard/browse/${invite.job_id}`, cta: tr('See job'),
-    text: invites.length === 1
-      ? tr('{who} invited you to apply: {job}', { who: invite.company || invite.employer_name, job: invite.title })
-      : tr('{n} employers invited you to apply, starting with {job}', { n: invites.length, job: invite.title }) })
-  const hired = apps.find(a => a.status === 'hired')
-  if (hired) todo.push({ tone: 'go', icon: IconStar, to: '/dashboard/reviews', cta: tr('Rate'), text: tr('You were hired for {job}. Rate the employer.', { job: hired.job_title || tr('a job') }) })
-  const shortlisted = apps.filter(a => a.status === 'shortlisted').length
-  if (shortlisted) todo.push({ tone: 'ok', icon: IconCheck, to: '/dashboard/applied', cta: tr('Open'), text: shortlisted === 1 ? tr('1 employer shortlisted you.') : tr('{n} employers shortlisted you.', { n: shortlisted }) })
-  if (loaded && !user?.location) todo.push({ tone: 'warn', icon: IconPin, to: '/dashboard/profile', cta: tr('Add town'), text: tr('Add your town so jobs near you come first.') })
+  if (interview) todo.push({ tone: 'go', icon: IconCalendar, to: '/dashboard/applied', cta: tr('View'), text: tr('Interview for {job} on {when}', { job: interview.job_title || tr('a job'), when: when(interview.interview_date) }) })
+  const offer = apps.find(a => a.status === 'offer')
+  if (offer) todo.push({ tone: 'go', icon: IconStar, to: '/dashboard/applied', cta: tr('Answer'), text: tr('You have a job offer for {job}.', { job: offer.job_title || tr('a job') }) })
+  if (jobInvites[0]) todo.push({ tone: 'ok', icon: IconSpark, to: `/dashboard/browse/${jobInvites[0].job_id}`, cta: tr('See job'), text: tr('{who} invited you to apply: {job}', { who: jobInvites[0].company || jobInvites[0].employer_name, job: jobInvites[0].title }) })
+  if (gigInvites[0]) todo.push({ tone: 'ok', icon: IconSpark, to: '/dashboard/gigs', cta: tr('See gig'), text: tr('{who} invited you to send a proposal: {gig}', { who: gigInvites[0].client_name, gig: gigInvites[0].title }) })
+  if (loaded && !user?.location) todo.push({ tone: 'warn', icon: IconPin, to: '/dashboard/profile', cta: tr('Add town'), text: tr('Add your town so work near you comes first.') })
 
   const first = user.full_name?.split(' ')[0] || tr('there')
-  const activeApps = apps.filter(a => !['hired', 'rejected'].includes(a.status)).length
   const town = summary.town || user?.location
+  const activeApps = apps.filter(a => !['hired', 'rejected'].includes(a.status)).length
+  const waiting = proposals.filter(p => ['submitted', 'shortlisted'].includes(p.status)).length
+  const running = contracts.filter(c => ['active', 'delivered', 'revision_requested'].includes(c.status)).length
 
-  // application pipeline, from real records
   const stage = st => apps.filter(a => a.status === st).length
   const pipeline = [
-    { key: 'pending',       label: tr('Sent'),        n: stage('pending') },
-    { key: 'reviewed',      label: tr('Viewed'),      n: stage('reviewed') },
-    { key: 'shortlisted',   label: tr('Shortlisted'), n: stage('shortlisted') },
-    { key: 'for_interview', label: tr('Interview'),   n: stage('for_interview') },
-    { key: 'hired',         label: tr('Hired'),       n: stage('hired') },
+    { key: 'pending', label: tr('Sent'), n: stage('pending') + stage('reviewed') },
+    { key: 'shortlisted', label: tr('Shortlisted'), n: stage('shortlisted') },
+    { key: 'for_interview', label: tr('Interview'), n: stage('for_interview') + stage('interviewed') },
+    { key: 'offer', label: tr('Job offer'), n: stage('offer') },
+    { key: 'hired', label: tr('Hired'), n: stage('hired') },
   ]
   const pipeMax = Math.max(1, ...pipeline.map(x => x.n))
-  const interviews = apps.filter(a => a.status === 'for_interview')
-  const nextInterview = interviews.map(a => a.interview_date).filter(Boolean).sort()[0]
 
-  // what still lifts the profile, in the order employers notice it
   const steps = [
     { done: !!user?.location, text: tr('Add your town'), to: '/dashboard/profile' },
     { done: !!user?.phone, text: tr('Add a phone number'), to: '/dashboard/profile' },
@@ -152,7 +152,7 @@ export function WorkerOverview({ user, call }) {
     nav(`/dashboard/browse${q ? `?q=${encodeURIComponent(q)}` : ''}`)
   }
 
-  if (!loaded) return <div className="page-inner"><BrandLoader compact label={tr('Loading your dashboard…')} /></div>
+  if (!loaded) return <div className="page-inner"><SkeletonCards count={3} label={tr('Loading your dashboard')} /></div>
 
   return (
     <div className="page-inner ov">
@@ -161,64 +161,32 @@ export function WorkerOverview({ user, call }) {
           onClose={() => setApplyJob(null)} onSubmit={submitQuickApply} />
       )}
 
-      {/* 1 — hello, quick search, profile strength */}
+      {/* 1 — hello, search, profile strength */}
       <section className="ov-hero">
         <div className="ov-hero-copy">
           <h1>{greet()}, {first}</h1>
-          <p>{town ? tr('Here is what is open around {town} today.', { town }) : tr('Here is what is open in Oriental Mindoro today.')}</p>
+          <p>{town ? tr('Here is the work open around {town} today.', { town }) : tr('Here is the work open in Oriental Mindoro today.')}</p>
           <form className="ov-find" onSubmit={goSearch} role="search">
             <IconSearch size={18} />
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tr('Search jobs, skills or companies')} aria-label={tr('Search jobs')} />
             <button type="submit" className="btn btn-primary">{tr('Search')}</button>
           </form>
         </div>
-        <Link to={nextStep?.to || (passport.score < 80 ? '/dashboard/passport/certificates' : '/dashboard/passport')} className="ov-strength" aria-label={tr('Profile strength {n}%', { n: passport.score })}>
+        <Link to={nextStep?.to || '/dashboard/passport'} className="ov-strength" aria-label={tr('Profile strength {n}%', { n: passport.score })}>
           <div className="ring ring-gold" style={{ '--p': passport.score, width: 64, height: 64 }}>
             <span style={{ width: 50, height: 50, fontSize: 15 }}>{passport.score}%</span>
           </div>
           <div>
             <b>{tr('Profile strength')}</b>
-            <small>{nextStep ? <>{tr('Next')}: {nextStep.text}</>
-              : passport.score < 80 ? <>{tr('Next')}: {tr('Upload a certificate')}</>
-              : tr('Employers see a complete profile')}</small>
+            <small>{nextStep ? <>{tr('Next')}: {nextStep.text}</> : passport.score < 80 ? <>{tr('Next')}: {tr('Upload a certificate')}</> : tr('Employers see a complete profile')}</small>
           </div>
         </Link>
       </section>
 
-      {/* 2 — the overview: four numbers, each one a door */}
-      <section className="ov-stats" aria-label={tr('Overview')}>
-        <Link to="/dashboard/matches" className="ov-stat blue">
-          <span className="ov-stat-ic"><IconSpark size={20} /></span>
-          <b>{summary.total ?? matches.length}</b>
-          <span className="ov-stat-l">{tr('Job matches')}</span>
-          <small>{summary.strong ? tr('{n} strong', { n: summary.strong }) : summary.nearby ? tr('{n} within 30 km', { n: summary.nearby }) : tr('Based on your skills')}</small>
-        </Link>
-        <Link to="/dashboard/applied" className="ov-stat gold">
-          <span className="ov-stat-ic"><IconBriefcase size={20} /></span>
-          <b>{activeApps}</b>
-          <span className="ov-stat-l">{tr('Active applications')}</span>
-          <small>{apps.length ? tr('{n} sent in total', { n: apps.length }) : tr('None sent yet')}</small>
-        </Link>
-        <Link to="/dashboard/applied" className="ov-stat violet">
-          <span className="ov-stat-ic"><IconCalendar size={20} /></span>
-          <b>{interviews.length}</b>
-          <span className="ov-stat-l">{tr('Interviews')}</span>
-          <small>{nextInterview
-            ? tr('Next on {when}', { when: new Date(String(nextInterview).replace(' ', 'T')).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) })
-            : tr('None scheduled')}</small>
-        </Link>
-        <Link to="/dashboard/saved" className="ov-stat green">
-          <span className="ov-stat-ic"><IconBookmark size={20} /></span>
-          <b>{savedJobs.saved.size}</b>
-          <span className="ov-stat-l">{tr('Saved jobs')}</span>
-          <small>{savedJobs.saved.size ? tr('Ready to apply') : tr('Tap the bookmark on a job')}</small>
-        </Link>
-      </section>
-
-      {/* 3 — waiting on you */}
+      {/* 2 — what needs you now */}
       {todo.length > 0 && (
-        <section className="ov-todo">
-          {todo.slice(0, 3).map((t, i) => {
+        <section className="ov-todo" aria-label={tr('Needs your attention')}>
+          {todo.slice(0, 4).map((t, i) => {
             const Ic = t.icon
             return (
               <div key={i} className={`ov-todo-item ${t.tone}`}>
@@ -231,23 +199,52 @@ export function WorkerOverview({ user, call }) {
         </section>
       )}
 
+      {/* 3 — four numbers, each one a door */}
+      <section className="ov-stats" aria-label={tr('Overview')}>
+        <Link to="/dashboard/matches" className="ov-stat blue">
+          <span className="ov-stat-ic"><IconSpark size={20} /></span>
+          <b>{summary.total ?? matches.length}</b>
+          <span className="ov-stat-l">{tr('Job matches')}</span>
+          <small>{summary.strong ? (summary.strong === 1 ? tr('1 strong match') : tr('{n} strong matches', { n: summary.strong })) : tr('Based on your skills')}</small>
+        </Link>
+        <Link to="/dashboard/applied" className="ov-stat gold">
+          <span className="ov-stat-ic"><IconBriefcase size={20} /></span>
+          <b>{activeApps}</b>
+          <span className="ov-stat-l">{tr('Job applications')}</span>
+          <small>{apps.length ? tr('{n} sent in total', { n: apps.length }) : tr('None sent yet')}</small>
+        </Link>
+        <Link to="/dashboard/gigs/proposals" className="ov-stat violet">
+          <span className="ov-stat-ic"><IconFile size={20} /></span>
+          <b>{waiting}</b>
+          <span className="ov-stat-l">{tr('Gig proposals waiting')}</span>
+          <small>{proposals.length ? tr('{n} sent in total', { n: proposals.length }) : tr('None sent yet')}</small>
+        </Link>
+        <Link to="/dashboard/gigs/contracts" className="ov-stat green">
+          <span className="ov-stat-ic"><IconHandshake size={20} /></span>
+          <b>{running}</b>
+          <span className="ov-stat-l">{tr('Gigs in progress')}</span>
+          <small>{contracts.filter(c => c.status === 'completed').length ? tr('{n} completed', { n: contracts.filter(c => c.status === 'completed').length }) : tr('None yet')}</small>
+        </Link>
+      </section>
+
       <div className="ov-main">
         <div className="ov-col">
-          {/* 4 — recommended */}
+          {/* 4a — jobs */}
           <section className="ov-block">
             <div className="ov-block-hd">
-              <div><h2>{tr('Recommended for you')}</h2><p>{tr('Best matches for your skills and town')}</p></div>
-              <Link to="/dashboard/matches" className="ov-more">{tr('See all')} <IconArrow size={13} /></Link>
+              <div><h2>{tr('Jobs for you')}</h2><p>{tr('Long-term work with an employer, best match first')}</p></div>
+              <Link to="/dashboard/matches" className="ov-more">{tr('All job matches')} <IconArrow size={13} /></Link>
             </div>
-            {recommended.length === 0
+            {jobsForYou.length > 0 && <MatchLegend />}
+            {jobsForYou.length === 0
               ? <div className="ov-empty-card">
-                  <p>{passport.skills_count === 0 ? tr('Add your skills and we will recommend jobs that fit.') : tr('No new matches right now.')}</p>
+                  <p>{passport.skills_count === 0 ? tr('Add your skills and we will recommend jobs that fit.') : tr('No new job matches right now.')}</p>
                   <Link to={passport.skills_count === 0 ? '/dashboard/passport' : '/dashboard/browse'} className="btn btn-navy btn-sm">
                     {passport.skills_count === 0 ? tr('Add skills') : tr('Search jobs')}
                   </Link>
                 </div>
               : <div className="ov-cards">
-                  {recommended.slice(0, 2).map(job => (
+                  {jobsForYou.map(job => (
                     <FeaturedJobCard key={job.id} job={job} detailsTo={`/dashboard/browse/${job.id}`}
                       applied={appliedIds.has(Number(job.id))} busy={applying === job.id} onApply={setApplyJob}
                       saved={savedJobs.isSaved(job.id)} onToggleSave={savedJobs.toggle} />
@@ -255,33 +252,32 @@ export function WorkerOverview({ user, call }) {
                 </div>}
           </section>
 
-          {/* 5 — featured near you */}
-          {featuredRow.length > 0 && (
-            <section className="ov-block">
-              <div className="ov-block-hd">
-                <div><h2>{town ? tr('Featured near {town}', { town }) : tr('Featured jobs')}</h2><p>{tr('Employers hiring now')}</p></div>
-                <Link to="/dashboard/browse" className="ov-more">{tr('Browse jobs')} <IconArrow size={13} /></Link>
-              </div>
-              <div className="ov-rail">
-                {featuredRow.map(job => (
-                  <FeaturedJobCard key={job.id} job={job} detailsTo={`/dashboard/browse/${job.id}`}
-                    applied={appliedIds.has(Number(job.id))} busy={applying === job.id} onApply={setApplyJob}
-                    saved={savedJobs.isSaved(job.id)} onToggleSave={savedJobs.toggle} />
-                ))}
-              </div>
-            </section>
-          )}
+          {/* 4b — gigs */}
+          <section className="ov-block">
+            <div className="ov-block-hd">
+              <div><h2>{tr('Gigs for you')}</h2><p>{tr('Short paid tasks from clients near you')}</p></div>
+              <Link to="/dashboard/gigs" className="ov-more">{tr('All gigs')} <IconArrow size={13} /></Link>
+            </div>
+            {gigsForYou.length === 0
+              ? <div className="ov-empty-card">
+                  <p>{tr('No new gigs right now. List a service so clients can book you directly.')}</p>
+                  <Link to="/dashboard/gigs/services" className="btn btn-navy btn-sm">{tr('List a service')}</Link>
+                </div>
+              : <div className="ov-cards">
+                  {gigsForYou.map(g => <FeaturedJobCard key={g.id} job={g} detailsTo={`/dashboard/browse/${g.id}`} />)}
+                </div>}
+          </section>
         </div>
 
         <aside className="ov-col">
-          {/* 6 — where your applications are */}
+          {/* 5 — applications */}
           <section className="ov-panel">
             <div className="ov-panel-hd">
-              <h2>{tr('Your applications')}</h2>
+              <h2>{tr('My applications')}</h2>
               <Link to="/dashboard/applied" className="ov-more">{tr('See all')} <IconArrow size={13} /></Link>
             </div>
             {apps.length === 0
-              ? <p className="ov-empty">{tr('You have not applied for anything yet.')} <Link to="/dashboard/browse">{tr('Find a job')}</Link></p>
+              ? <p className="ov-empty">{tr('You have not applied for a job yet.')} <Link to="/dashboard/browse">{tr('Find a job')}</Link></p>
               : <>
                   <ul className="ov-pipe">
                     {pipeline.map(x => (
@@ -300,31 +296,26 @@ export function WorkerOverview({ user, call }) {
                           <b>{a.job_title || tr('Job application')}</b>
                           <small>{[a.company || a.employer_name, days(a.created_at)].filter(Boolean).join(' · ')}</small>
                         </span>
-                        <span className={`app-status ${a.status}`}>{tr(String(a.status).replace('_', ' '))}</span>
+                        <span className={`app-status ${a.status}`}>{tr(STATUS[a.status]?.label || String(a.status).replace('_', ' '))}</span>
                       </li>
                     ))}
                   </ul>
                 </>}
           </section>
 
-          {/* 7 — courses */}
+          {/* 6 — courses, only for real gaps */}
           {courses.length > 0 && (
             <section className="ov-panel">
               <div className="ov-panel-hd">
-                <h2>{tr('Courses picked for you')}</h2>
-                <Link to="/dashboard/training" className="ov-more">{tr('All')} <IconArrow size={13} /></Link>
+                <h2>{tr('Close your skill gaps')}</h2>
+                <Link to="/dashboard/training" className="ov-more">{tr('All courses')} <IconArrow size={13} /></Link>
               </div>
               <ul className="ov-courselist">
-                {courses.slice(0, 3).map(c => (
+                {courses.map(c => (
                   <li key={c.id}>
                     <Link to="/dashboard/training">
                       <img src={getCourseImage(c)} alt="" loading="lazy" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />
-                      <span>
-                        <b>{c.title}</b>
-                        <small>{c.why ? tr('Jobs ask for {skill}', { skill: c.why })
-                          : myTown && c.towns?.[myTown] ? tr('{n} schools in {town}', { n: c.towns[myTown], town: myTown })
-                          : tr('{n} schools in the province', { n: c.schools || 0 })}</small>
-                      </span>
+                      <span><b>{c.title}</b><small>{tr('Jobs for you ask for {skill}', { skill: c.why })}</small></span>
                     </Link>
                   </li>
                 ))}
@@ -1477,9 +1468,9 @@ export function JobMatches({ call, user }) {
     }
   }
 
-  const all = data?.jobs || []
+  const all = (data?.jobs || []).filter(j => j.post_type !== 'gig')   // gigs are matched on the Gigs page
   const near = all.filter(j => j.match.distance_km !== null && j.match.distance_km <= 30)
-  const strong = all.filter(j => j.match.score >= 70)
+  const strong = all.filter(j => matchKey(j.match.score) === 'strong')
   const featured = all.filter(j => Number(j.is_featured) === 1)
   const list = filter === 'strong' ? strong : filter === 'near' ? near : filter === 'featured' ? featured : all
   const summary = data?.summary || {}
@@ -1512,7 +1503,7 @@ export function JobMatches({ call, user }) {
         </div>
       )}
 
-      {!data && !error && <BrandLoader compact label={tr('Finding your matches…')} />}
+      {!data && !error && <SkeletonCards count={6} label={tr('Finding your matches')} />}
 
       {data && (
         <>
@@ -1533,6 +1524,7 @@ export function JobMatches({ call, user }) {
             </div>
             {summary.town && <span className="mc-sort">{tr('near {town}', { town: summary.town })}</span>}
           </div>
+          {list.length > 0 && <MatchLegend />}
           {list.length > 0 && <ListTools pg={pg} noun={tr('job')} plural={tr('jobs')} perPageOptions={[12, 24, 48]} />}
 
           {list.length === 0 ? (
