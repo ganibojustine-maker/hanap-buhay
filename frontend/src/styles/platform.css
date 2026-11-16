@@ -207,3 +207,161 @@
   .pf-card { padding: 14px }
   .pf-table th:nth-child(n+4), .pf-table td:nth-child(n+4) { display: none }
 }
+
+/* ── photo manager (posting forms) ───────────────────── */
+.phm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px }
+.phm-item { position: relative; margin: 0; aspect-ratio: 4 / 3; border-radius: var(--r-md); overflow: hidden; background: var(--navy-soft); border: 1px solid var(--line) }
+.phm-item img { width: 100%; height: 100%; object-fit: cover; display: block }
+.phm-cover { position: absolute; left: 6px; top: 6px; background: var(--navy); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px }
+.phm-x { position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(255,255,255,.95); color: var(--red); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-xs) }
+.phm-add { aspect-ratio: 4 / 3; border: 1.5px dashed var(--line); border-radius: var(--r-md); background: var(--soft); color: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer }
+.phm-add:hover { border-color: var(--navy); background: var(--navy-soft) }
+.phm-add small { color: var(--muted); font-weight: 500; font-size: 11.5px }
+
+/* ── gallery (job page, service page) ────────────────── */
+.gal { display: grid; gap: 8px }
+.gal-main { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: var(--r-lg); overflow: hidden; background: var(--navy-soft); cursor: zoom-in }
+.gal-main img { width: 100%; height: 100%; object-fit: cover; display: block }
+.gal-count { position: absolute; right: 10px; bottom: 10px; background: rgba(13,27,62,.8); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px }
+.gal-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px }
+.gal-thumb { flex: 0 0 76px; height: 56px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: var(--navy-soft) }
+.gal-thumb.on { border-color: var(--gold) }
+.gal-thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
+.gal-box { position: fixed; inset: 0; z-index: 3000; background: rgba(5,10,25,.92); display: grid; place-items: center; padding: 20px }
+.gal-box img { max-width: 100%; max-height: 86vh; border-radius: 10px; object-fit: contain }
+.gal-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; cursor: pointer }
+.gal-btn:hover { background: rgba(255,255,255,.26) }
+.gal-btn.x { top: 16px; right: 16px }
+.gal-btn.prev { left: 16px; top: 50% }
+.gal-btn.next { right: 16px; top: 50% }
+.gal-count.big { bottom: 18px; right: 50%; transform: translateX(50%) }
+.jv-gallery { margin: -22px -24px 18px }
+.jv-gallery .gal-main { border-radius: var(--r-xl) var(--r-xl) 0 0 }
+.jv-gallery .gal-thumbs { padding: 0 24px }
+@media (max-width: 600px) { .jv-gallery { margin: -18px -18px 14px } .jv-gallery .gal-thumbs { padding: 0 18px } }
+
+/* ── service cards and the service page ──────────────── */
+.svc { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-xs); min-width: 0 }
+.svc:hover { border-color: var(--navy); box-shadow: var(--shadow-sm) }
+.svc-cover { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--navy-soft); overflow: hidden }
+.svc-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s ease }
+.svc:hover .svc-cover img { transform: scale(1.04) }
+.svc-n, .svc-paused { position: absolute; bottom: 8px; right: 8px; background: rgba(13,27,62,.8); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px }
+.svc-paused { left: 8px; right: auto; top: 8px; bottom: auto; background: var(--amber) }
+.svc-body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; flex: 1 }
+.svc-who { display: flex; align-items: center; gap: 8px; min-width: 0 }
+.svc-name { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.svc h3 { font-size: 15px; margin: 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.svc h3 a { color: var(--ink); text-decoration: none }
+.svc h3 a:hover { color: var(--navy); text-decoration: underline }
+.svc-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; font-size: 12.5px; color: var(--muted) }
+.svc-rate { color: var(--ink) }
+.svc-rate svg { color: var(--gold); vertical-align: -1px }
+.svc-new { color: var(--green); font-weight: 700 }
+.svc-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.svc-price { font-weight: 800; color: var(--ink); font-size: 16px }
+.svc-price small { font-weight: 500; color: var(--muted); font-size: 11.5px }
+.svc-stars span { color: var(--line); font-size: 14px }
+.svc-stars span.on { color: var(--gold) }
+.svd { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; margin-top: 10px; align-items: start }
+.svd-side { position: sticky; top: 16px }
+.svd-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px }
+.svd-facts > div { display: flex; gap: 8px; align-items: flex-start; background: var(--soft); border-radius: var(--r-md); padding: 10px; font-size: 13.5px; font-weight: 600; color: var(--ink) }
+.svd-facts small { display: block; color: var(--muted); font-weight: 500; font-size: 11.5px }
+.svd-facts svg { color: var(--navy); margin-top: 2px; flex: 0 0 auto }
+.svd-h3 { font-size: 14px; margin: 16px 0 4px }
+.svd-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1.5px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 12px }
+.svd-tabs button { border: 0; background: #fff; padding: 9px 4px; font: inherit; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer }
+.svd-tabs button + button { border-left: 1.5px solid var(--line) }
+.svd-tabs button.on { background: var(--navy); color: #fff }
+.svd-price { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -.02em }
+.svd-price small { font-size: 13px; font-weight: 500; color: var(--muted) }
+.svd-inc { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; font-size: 13.5px }
+.svd-inc svg { color: var(--green); vertical-align: -1px }
+.svd-reviews { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px }
+.svd-reviews li { border-bottom: 1px solid var(--line); padding-bottom: 12px }
+.svd-reviews li:last-child { border-bottom: 0; padding-bottom: 0 }
+.svd-reviews p { margin: 6px 0 0; font-size: 14px }
+.svc-pk-edit { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px }
+.svc-pk-col { border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px; display: grid; gap: 4px; background: var(--soft) }
+.svc-pk-col > .in input { font-weight: 800 }
+@media (max-width: 980px) { .svd { grid-template-columns: minmax(0, 1fr) } .svd-side { position: static } }
+@media (max-width: 640px) { .svc-pk-edit, .svd-facts { grid-template-columns: minmax(0, 1fr) } }
+
+/* ── proposals: attached work photos ─────────────────── */
+.pp-work { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px }
+.pp-work-item { position: relative; padding: 0; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; cursor: pointer; font: inherit; text-align: left }
+.pp-work-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block }
+.pp-work-item small { display: block; padding: 3px 6px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pp-work-item.on { border-color: var(--navy) }
+.pp-tick { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center }
+.pp-proof { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap }
+.pp-proof img { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block }
+
+/* ── gig board extras ─────────────────────────────────── */
+.pf-cover .pf-score { position: absolute; right: 12px; bottom: 12px; box-shadow: var(--shadow-xs) }
+.gig-inv-list { display: grid; gap: 10px }
+.gig-inv { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px; background: var(--gold-l) }
+.gig-inv img { width: 64px; height: 48px; object-fit: cover; border-radius: 8px; display: block }
+.gig-inv b { color: var(--ink); font-size: 14.5px }
+.gig-invites .pf-h svg { color: var(--amber); vertical-align: -2px }
+.cg-card { display: flex; gap: 14px; align-items: flex-start }
+.cg-thumb { position: relative; flex: 0 0 120px; height: 90px; border-radius: var(--r-md); overflow: hidden; background: var(--navy-soft); display: block }
+.cg-thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
+.cg-thumb span { position: absolute; inset: auto 0 0 0; background: rgba(13,27,62,.75); color: #fff; font-size: 11px; font-weight: 700; text-align: center; padding: 3px }
+@media (max-width: 640px) {
+  .gig-inv { grid-template-columns: 56px minmax(0, 1fr) }
+  .gig-inv .pf-actions { grid-column: 1 / -1 }
+  .cg-card { flex-direction: column }
+  .cg-thumb { width: 100%; flex: none; height: 140px }
+}
+
+/* ── job map: near me, photos, distance ──────────────── */
+.jm2-item.has-img { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: start }
+.jm2-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; display: block; background: var(--navy-soft) }
+.jm2-item-tx { min-width: 0; display: block }
+.jm2-km { color: #0369A1; font-weight: 700 }
+.jm2-near { border: 1.5px solid #0284C7; background: #F0F9FF; color: #0369A1; font-weight: 700 }
+.jm2-near.on { background: #0284C7; color: #fff }
+.jm2-locate { position: absolute; z-index: 500; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; background: #0284C7; color: #fff; font: inherit; font-weight: 700; font-size: 13px; padding: 9px 14px; box-shadow: var(--shadow-sm); cursor: pointer }
+.jm2-locate:disabled { opacity: .7 }
+.jm2-me { position: relative; width: 22px; height: 22px }
+.jm2-me::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; background: rgba(2,132,199,.3); animation: jm2pulse 1.8s ease-out infinite }
+.jm2-me i { position: absolute; inset: 0; border-radius: 50%; background: #0284C7; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3) }
+@keyframes jm2pulse { from { transform: scale(.5); opacity: 1 } to { transform: scale(1.6); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .jm2-me::before { animation: none } }
+.jm2-pop-img { position: relative; height: 110px; margin: -2px -2px 8px; border-radius: 8px; overflow: hidden; background: var(--navy-soft) }
+.jm2-pop-img img { width: 100%; height: 100%; object-fit: cover; display: block }
+.jm2-pop-img .pf-type { position: absolute; left: 8px; top: 8px; background: #fff }
+.jm2-pop .pf-actions { flex-wrap: wrap }
+.fl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px }
+.fl-stats a { display: block; background: var(--soft); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; text-decoration: none; color: inherit }
+.fl-stats a:hover { border-color: var(--navy) }
+.fl-stats b { display: block; font-size: 22px; color: var(--ink) }
+.fl-stats span { font-size: 12.5px; color: var(--muted) }
+@media (max-width: 640px) { .fl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+
+/* ── lists: count + sort above, page numbers below (components/Pager.jsx) ── */
+.lt { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; scroll-margin-top: 80px }
+.lt-count { font-size: 13.5px; color: var(--muted) }
+.lt-count b { color: var(--ink) }
+.lt-ctrl { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.lt-ctrl label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); font-weight: 600 }
+.lt-ctrl select { height: 34px; border: 1.5px solid var(--line); border-radius: 9px; padding: 0 28px 0 10px; font: inherit; font-size: 13px; color: var(--ink); background-color: #fff; cursor: pointer; max-width: 210px }
+.lt-ctrl select:focus { outline: 2px solid var(--gold); outline-offset: 1px }
+.pgr { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin: 16px 0 4px; padding-top: 12px; border-top: 1px solid var(--line) }
+.pgr-info { font-size: 13px; color: var(--muted) }
+.pgr-info b { color: var(--ink) }
+.pgr-btns { display: inline-flex; gap: 4px; flex-wrap: wrap }
+.pgr-btns button { min-width: 36px; height: 36px; padding: 0 8px; border: 1.5px solid var(--line); background: #fff; border-radius: 9px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink); cursor: pointer }
+.pgr-btns button:hover:not(:disabled) { border-color: var(--navy); color: var(--navy) }
+.pgr-btns button.on { background: var(--navy); border-color: var(--navy); color: #fff }
+.pgr-btns button:disabled { opacity: .4; cursor: default }
+.pgr-btns button:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px }
+.pgr-gap { min-width: 22px; display: inline-grid; place-items: center; color: var(--muted) }
+@media (max-width: 560px) { .pgr { justify-content: center } .pgr-info { width: 100%; text-align: center } .lt-ctrl select { max-width: 160px } }
+
+/* icons inside a line of text stay on that line (base.css makes every svg a block) */
+p > svg, small > svg, li > svg, .pf-small svg, .pf-meta svg, .svc-meta svg, .svc-rate svg, .pf-pay svg, h2.pf-h > svg, .pf-vbadge svg, .chip svg, .svd-facts small svg { display: inline-block; vertical-align: -0.15em }
+.pf-compare td.pc-msg { min-width: 260px; max-width: 380px }
+.pf-compare .pc-act { display: flex; flex-wrap: wrap; gap: 6px; min-width: 170px; max-width: 230px }

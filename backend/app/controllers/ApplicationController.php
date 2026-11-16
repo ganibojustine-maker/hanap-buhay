@@ -17,7 +17,6 @@ class ApplicationController extends Controller
         $this->call->model('Skill_model', 'skill_model');
         $this->call->library('schema_info');
         $this->call->library('availability');
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Hiring_status.php';
     }
 
     // Worker: apply to a job
@@ -514,7 +513,6 @@ class ApplicationController extends Controller
                 $this->db->table('applications')->where('id', (int) $id)->update(['interview_reminded_at' => null]);
             }
             if ($worker && $isNew && in_array($status, ['hired', 'for_interview', 'offer'], true)) {
-                require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Sms.php';
                 $t = mb_substr($job['title'], 0, 40);
                 $c = mb_substr($company, 0, 35);
                 if ($status === 'hired') $sms = "hanapbuhay: {$c} hired you for {$t}. Open the app for the next steps.";

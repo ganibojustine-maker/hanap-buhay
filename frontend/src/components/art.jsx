@@ -69,14 +69,14 @@ export const CAST = {
 
 /* ── Filipino avatar real photos ───────────────────────── */
 const WHO_PHOTOS = {
-  rey: '/images/avatar.jpg',        // Filipino skilled worker (Juan)
-  ana: '/images/maria.jpg',         // Filipino employer/recruiter (Maria)
-  ben: '/images/service_crew.jpg',  // Filipino client/service crew
-  jun: '/images/mechanic.jpg',       // Filipino technical specialist
+  rey: '/images/avatar.webp',        // Filipino skilled worker (Juan)
+  ana: '/images/maria.webp',         // Filipino employer/recruiter (Maria)
+  ben: '/images/service_crew.webp',  // Filipino client/service crew
+  jun: '/images/mechanic.webp',       // Filipino technical specialist
 }
 
 export function Avatar({ who = 'rey', className = '', style = {} }) {
-  const photo = WHO_PHOTOS[who] || '/images/avatar.jpg'
+  const photo = WHO_PHOTOS[who] || '/images/avatar.webp'
   return (
     <div className={`face ${className}`} style={{ borderRadius: 'inherit', overflow: 'hidden', width: '100%', height: '100%', position: 'relative', background: 'var(--navy-soft)', ...style }}>
       <img

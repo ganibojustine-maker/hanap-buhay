@@ -59,10 +59,17 @@ services:
         sync: false
       - key: CRON_SECRET
         sync: false
+      - key: PAYMONGO_METHODS
+        value: card,gcash,paymaya,grab_pay,qrph
+      - key: FIREBASE_DATABASE_URL
+        sync: false
       # pending database migrations run when the container starts (backend/docker-start.sh)
       - key: RUN_MIGRATIONS
         value: "true"
       - key: TRUST_PROXY
+        value: "true"
+      # keep the database connection open between requests (no TLS handshake each time)
+      - key: DB_PERSISTENT
         value: "true"
       - key: MAIL_FROM_ADDRESS
         value: ganibojustine@gmail.com
@@ -81,6 +88,22 @@ services:
         source: /*
         destination: /index.html
     headers:
+      # Security headers on every page (Unit 6: X-Frame-Options, nosniff, Referrer-Policy, HTTPS only)
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(self), camera=(self), microphone=(), payment=(), usb=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
       # Service worker and manifest must always be re-checked so app updates reach phones
       - path: /sw.js
         name: Cache-Control

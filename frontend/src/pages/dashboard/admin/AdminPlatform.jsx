@@ -13,6 +13,7 @@ import { CATEGORIES } from '../../../utils/categories.js'
 import { peso, phDate, phDateTime } from '../../../utils/format.js'
 import { AdminVerification as BusinessAndCertificates } from '../AdminPages.jsx'
 import '../../../styles/platform.css'
+import { usePaged, Pager, ListTools, SORT } from '../../../components/Pager.jsx'
 
 function useLoad(call, path) {
   const [data, setData] = useState(null)
@@ -63,6 +64,12 @@ export function AdminPosts({ call }) {
     all,
   }
   const list = groups[tab].filter(j => !q || [j.title, j.employer_name, j.location].join(' ').toLowerCase().includes(q.toLowerCase()))
+  const pg = usePaged(list, { sorts: {
+    new: ['Newest first', SORT.date('created_at')],
+    old: ['Oldest first (waiting longest)', (a, b) => -SORT.date('created_at')(a, b)],
+    title: ['Title (A–Z)', SORT.text('title')],
+    poster: ['Poster (A–Z)', SORT.text('employer_name')],
+  } })
 
   return (
     <div className="page-inner">
@@ -79,8 +86,10 @@ export function AdminPosts({ call }) {
       {!data ? <BrandLoader compact label="Loading posts…" /> : list.length === 0 ? (
         <div className="panel pf-empty"><IconCheck size={36} /><h2>{tab === 'pending' ? 'Nothing waiting for review' : 'No posts here'}</h2><p>{tab === 'pending' ? 'New posts from unverified accounts will appear here.' : 'Try another filter.'}</p></div>
       ) : (
+        <>
+        <ListTools pg={pg} noun="post" />
         <div className="pf-list">
-          {list.map(j => (
+          {pg.items.map(j => (
             <article key={j.id} className="pf-card">
               <div className="pf-between">
                 <h3><span className={`pf-type ${j.post_type === 'gig' ? 'gig' : 'job'}`}>{j.post_type === 'gig' ? 'Gig' : 'Job'}</span> {j.title}</h3>
@@ -101,6 +110,8 @@ export function AdminPosts({ call }) {
             </article>
           ))}
         </div>
+        <Pager pg={pg} />
+        </>
       )}
     </div>
   )
@@ -210,6 +221,7 @@ export function AdminDisputes({ call }) {
   }
   const ask = (d, resolution, title) => setDlg({ title, label: 'Resolve', field: 'Decision (both people will see this)', run: n => resolve(d, resolution, n) })
   const list = data?.disputes || []
+  const dpg = usePaged(list, { sorts: { new: ['Newest first', SORT.date('created_at')], old: ['Oldest first', (a, b) => -SORT.date('created_at')(a, b)] } })
   return (
     <div className="page-inner">
       {dlg && <ReasonDialog conf={dlg} onClose={() => setDlg(null)} busy={busy} />}
@@ -221,7 +233,7 @@ export function AdminDisputes({ call }) {
       {!data ? <BrandLoader compact label="Loading disputes…" /> : list.length === 0 ? (
         <div className="panel pf-empty"><IconCheck size={36} /><h2>{status === 'open' ? 'No open disputes' : 'No resolved disputes yet'}</h2><p>When a worker or client reports a problem on a contract, it appears here.</p></div>
       ) : (
-        <div className="pf-list">{list.map(d => (
+        <><ListTools pg={dpg} noun="dispute" /><div className="pf-list">{dpg.items.map(d => (
           <article key={d.id} className="pf-card">
             <div className="pf-between"><h3>{d.title}</h3><span className={`chip ${d.status === 'open' ? 'red' : 'green'}`}>{d.status === 'open' ? 'Open' : `Resolved: ${{ complete: 'marked complete', cancel: 'cancelled', resume: 'continued' }[d.resolution] || d.resolution}`}</span></div>
             <p className="pf-meta">Client {d.client_name} · Worker {d.worker_name} · {peso(d.agreed_amount)} · {PAYMENT_STATUS[d.payment_status]} · Opened by {d.opened_by_name} {phDateTime(d.created_at)}</p>
@@ -237,7 +249,7 @@ export function AdminDisputes({ call }) {
               </div>
             )}
           </article>
-        ))}</div>
+        ))}</div><Pager pg={dpg} /></>
       )}
     </div>
   )
@@ -248,6 +260,11 @@ export function AdminGigContracts({ call }) {
   const [status, setStatus] = useState('')
   const [data, error] = useLoad(call, `/admin/contracts${status ? `?status=${status}` : ''}`)
   const c = data?.counts || {}
+  const pg = usePaged(data?.contracts || [], { perPage: 20, sorts: {
+    new: ['Newest first', SORT.date('started_at')],
+    amount: ['Highest price', SORT.num('agreed_amount')],
+    title: ['Title (A–Z)', SORT.text('title')],
+  } })
   return (
     <div className="page-inner">
       {error && <div className="pf-note bad" style={{ marginBottom: 14 }}>{error}</div>}
@@ -261,11 +278,13 @@ export function AdminGigContracts({ call }) {
       </div>
       {!data ? <BrandLoader compact label="Loading contracts…" /> : (data.contracts || []).length === 0 ? <div className="panel pf-empty"><p>No contracts here.</p></div> : (
         <section className="panel" style={{ overflowX: 'auto' }}>
+          <ListTools pg={pg} noun="contract" perPageOptions={[20, 50, 100]} />
           <table className="pf-table"><thead><tr><th>Contract</th><th>Client</th><th>Worker</th><th>Price</th><th>Status</th><th>Payment</th></tr></thead>
-            <tbody>{data.contracts.map(k => (
+            <tbody>{pg.items.map(k => (
               <tr key={k.id}><td><b>{k.title}</b><div className="pf-small">#{k.id} · started {phDate(k.started_at)}</div></td><td>{k.client_name}</td><td>{k.worker_name}</td>
                 <td>{peso(k.agreed_amount)}</td><td><span className={`chip ${CONTRACT[k.status]?.tone || ''}`}>{CONTRACT[k.status]?.label}</span></td><td className="pf-small">{PAYMENT_STATUS[k.payment_status]}</td></tr>
             ))}</tbody></table>
+          <Pager pg={pg} />
         </section>
       )}
     </div>
@@ -277,6 +296,11 @@ export function AdminHiringMonitor({ call }) {
   const [status, setStatus] = useState('')
   const [data, error] = useLoad(call, `/admin/applications${status ? `?status=${status}` : ''}`)
   const c = data?.counts || {}
+  const pg = usePaged(data?.applications || [], { perPage: 20, sorts: {
+    wait: ['Waiting longest', SORT.num('days_in_step')],
+    match: ['Highest match', SORT.num('match_score')],
+    new: ['Newest first', SORT.date('created_at')],
+  } })
   return (
     <div className="page-inner">
       {error && <div className="pf-note bad" style={{ marginBottom: 14 }}>{error}</div>}
@@ -287,12 +311,14 @@ export function AdminHiringMonitor({ call }) {
       </div>
       {!data ? <BrandLoader compact label="Loading applications…" /> : (data.applications || []).length === 0 ? <div className="panel pf-empty"><p>No applications at this step.</p></div> : (
         <section className="panel" style={{ overflowX: 'auto' }}>
+          <ListTools pg={pg} noun="application" perPageOptions={[20, 50, 100]} />
           <table className="pf-table"><thead><tr><th>Applicant</th><th>Job</th><th>Employer</th><th>Step</th><th>Match</th><th>In this step</th></tr></thead>
-            <tbody>{data.applications.map(a => (
+            <tbody>{pg.items.map(a => (
               <tr key={a.id}><td>{a.worker_name}</td><td><Link to={`/dashboard/browse/${a.job_id}`}>{a.job_title}</Link></td><td>{a.employer_name}</td>
                 <td><span className={`chip ${statusTone(a.status)}`}>{statusLabel(a.status)}</span>{a.status === 'for_interview' && a.interview_date && <div className="pf-small">{phDateTime(a.interview_date)}</div>}</td>
                 <td>{a.match_score}%</td><td className="pf-small">{a.days_in_step} day{Number(a.days_in_step) === 1 ? '' : 's'}</td></tr>
             ))}</tbody></table>
+          <Pager pg={pg} />
         </section>
       )}
     </div>
@@ -325,6 +351,11 @@ export function AdminPaymentsPage({ call }) {
   }
   const s = data?.summary || {}
   const counts = s.counts || {}
+  const payPg = usePaged(data?.payments || [], { perPage: 20, sorts: {
+    new: ['Newest first', (a, b) => String(b.paid_at || b.created_at || '').localeCompare(String(a.paid_at || a.created_at || ''))],
+    old: ['Oldest first', (a, b) => String(a.paid_at || a.created_at || '').localeCompare(String(b.paid_at || b.created_at || ''))],
+    amount: ['Highest amount', SORT.num('amount')],
+  } })
   return (
     <div className="page-inner pf-stack">
       {dlg && <ReasonDialog conf={dlg} onClose={() => setDlg(null)} busy={busy} />}
@@ -358,9 +389,10 @@ export function AdminPaymentsPage({ call }) {
         </div>
         {!data ? <BrandLoader compact label="Loading payments…" /> : (data.payments || []).length === 0 ? <p className="pf-muted">No payments match.</p> : (
           <div style={{ overflowX: 'auto' }}>
+            <ListTools pg={payPg} noun="payment" perPageOptions={[20, 50, 100]} />
             <table className="pf-table">
               <thead><tr><th>Date</th><th>Account</th><th>Plan</th><th>Amount</th><th>Status</th><th>Method</th><th></th></tr></thead>
-              <tbody>{data.payments.map(p => (
+              <tbody>{payPg.items.map(p => (
                 <tr key={p.id}>
                   <td>{phDateTime(p.paid_at || p.created_at)}<div className="pf-small">{p.reference}{p.receipt_no ? ` · ${p.receipt_no}` : ''}</div></td>
                   <td>{p.full_name}<div className="pf-small">{p.email} · {p.account_type === 'hirer' ? 'Client' : 'Employer'}</div></td>
@@ -374,6 +406,7 @@ export function AdminPaymentsPage({ call }) {
                 </tr>
               ))}</tbody>
             </table>
+            <Pager pg={payPg} />
           </div>
         )}
       </section>

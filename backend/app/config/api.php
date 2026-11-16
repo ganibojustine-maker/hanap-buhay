@@ -54,7 +54,7 @@ $config['api_helper_enabled'] = TRUE;
 | Used for Payload Token Expiration
 |
 */
-$config['payload_token_expiration'] = 900;
+$config['payload_token_expiration'] = 3600;   // 1 hour; the refresh token keeps people signed in
 
 
 /*
@@ -65,7 +65,7 @@ $config['payload_token_expiration'] = 900;
 | Used for Refresh Token Expiration
 |
 */
-$config['refresh_token_expiration'] = 604800;
+$config['refresh_token_expiration'] = 2592000; // 30 days
 
 /*
 |--------------------------------------------------------------------------
@@ -122,18 +122,6 @@ $config['refresh_token_key'] = getenv('REFRESH_TOKEN_KEY') ?: '';
 |
 */
 $config['jwt_verify_user'] = TRUE;
-
-/*
-|--------------------------------------------------------------------------
-| Token Expirations (in seconds)
-|--------------------------------------------------------------------------
-|
-| Access token (payload): 86400 (24 hours)
-| Refresh token: 2592000 (30 days)
-|
-*/
-$config['payload_token_expiration'] = 3600; // 1 hour; refresh tokens keep users signed in
-$config['refresh_token_expiration'] = 2592000;
 
 /*
 |--------------------------------------------------------------------------

@@ -11,9 +11,10 @@ import { PublicNav } from '../components/PublicShell.jsx'
 import BrandLoader from '../components/BrandLoader.jsx'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { IconX, IconPin } from '../components/icons.jsx'
+import { IconX, IconPin, IconMap } from '../components/icons.jsx'
 import { fmtSalary } from '../components/JobCard.jsx'
 import { CATEGORIES } from '../utils/categories.js'
+import { getJobImage } from '../utils/jobImages.js'
 import '../styles/platform.css'
 
 /* The 15 municipalities: town centre and what each is known for */
@@ -73,6 +74,15 @@ function spot(town, i, n) {
 }
 
 /* post text goes into the popup HTML, so it is escaped first */
+/** Straight-line distance in km between two [lat, lng] points. */
+export function kmBetween([a1, o1], [a2, o2]) {
+  const r = Math.PI / 180, dLat = (a2 - a1) * r, dLng = (o2 - o1) * r
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin(dLng / 2) ** 2
+  return 6371 * 2 * Math.asin(Math.sqrt(h))
+}
+const kmText = km => (km == null ? '' : km < 1 ? 'Less than 1 km away' : `${km < 10 ? km.toFixed(1) : Math.round(km)} km away`)
+const directions = (to, from) => `https://www.google.com/maps/dir/?api=1&destination=${to[0]},${to[1]}${from ? `&origin=${from[0]},${from[1]}` : ''}`
+
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 const level = s => (s >= 75 ? 'Strong match' : s >= 50 ? 'Good match' : 'Low match')
 
@@ -96,6 +106,13 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
   const [activeId, setActiveId] = useState(null)
   const [sheet, setSheet] = useState(true)
   const [zoom, setZoom] = useState(9)
+  // "Near me": the phone's location (or the town in their profile when location is off)
+  const [me, setMe] = useState(null)          // { pos: [lat, lng], acc, from: 'gps' | 'town', label }
+  const [locating, setLocating] = useState(false)
+  const [geoNote, setGeoNote] = useState('')
+  const [radius, setRadius] = useState(0)
+  const [sort, setSort] = useState('')
+  const meLayer = useRef(null)
   const mapEl = useRef(null)
   const mapRef = useRef(null)
   const layerRef = useRef(null)
@@ -116,18 +133,26 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
   const placed = useMemo(() => {
     const byTown = {}
     for (const j of jobs || []) { const t = townOf(j.location); if (t) (byTown[t] ||= []).push(j) }
-    return Object.entries(byTown).flatMap(([t, list]) => list.map((j, i) => ({ ...j, town: t, pos: spot(t, i, list.length) })))
-  }, [jobs])
+    return Object.entries(byTown).flatMap(([t, list]) => list.map((j, i) => {
+      const pos = spot(t, i, list.length)
+      return { ...j, town: t, pos, km: me ? kmBetween(me.pos, pos) : null }
+    }))
+  }, [jobs, me])
+  const order = sort || (me ? 'near' : isWorker ? 'match' : 'new')
 
   const shown = useMemo(() => placed.filter(j => {
     if (type && (j.post_type || 'job') !== type) return false
     if (cat && j.category !== cat) return false
     if (town && j.town !== town) return false
     if (minMatch && Number(j.match?.score ?? 0) < minMatch) return false
+    if (radius && me && j.km > radius) return false
     if (q) { const t = `${j.title} ${j.company} ${j.employer_name} ${j.skills_needed}`.toLowerCase(); if (!t.includes(q.toLowerCase())) return false }
     return true
-  }).sort((a, b) => (isWorker ? Number(b.match?.score ?? 0) - Number(a.match?.score ?? 0) : 0) || String(b.created_at).localeCompare(String(a.created_at))),
-  [placed, type, cat, town, minMatch, q, isWorker])
+  }).sort((a, b) => (order === 'near' && me ? a.km - b.km : 0)
+      || (order === 'match' ? Number(b.match?.score ?? 0) - Number(a.match?.score ?? 0) : 0)
+      || (order === 'pay' ? Number(b.salary_max || b.salary_min || 0) - Number(a.salary_max || a.salary_min || 0) : 0)
+      || String(b.created_at).localeCompare(String(a.created_at))),
+  [placed, type, cat, town, minMatch, q, radius, me, order])
 
   /* the map, held inside the province, opening on all 15 towns */
   useEffect(() => {
@@ -147,6 +172,7 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
       e.popup.getElement()?.querySelectorAll('a[data-spa]').forEach(a => { a.onclick = ev => { ev.preventDefault(); nav(a.getAttribute('href')) } })
     })
     layerRef.current = L.layerGroup().addTo(map)
+    meLayer.current = L.layerGroup().addTo(map)
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -158,13 +184,16 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
     const m = j.match
     const act = !user ? 'Sign in to apply' : isWorker ? (isGig ? 'Send proposal' : 'Apply') : 'View'
     return `<div class="jm2-pop">
-      <span class="pf-type ${isGig ? 'gig' : 'job'}">${isGig ? 'Gig' : 'Job'}</span>
+      <div class="jm2-pop-img"><img src="${esc(getJobImage(j))}" alt="" loading="lazy" onerror="this.style.display='none'" />
+        <span class="pf-type ${isGig ? 'gig' : 'job'}">${isGig ? 'Gig' : 'Job'}</span></div>
       <b>${esc(j.title)}</b>
       <div class="pf-small">${esc(j.company || j.employer_name || '')}${Number(j.employer_verified) === 1 ? ' · ✓ Verified' : ''}</div>
       <div class="pf-small">${esc([j.barangay, j.town].filter(Boolean).join(', '))} · ${esc(TYPE_LABEL[j.job_type] || '')}</div>
+      ${j.km != null ? `<div class="pf-small jm2-km">${esc(kmText(j.km))}</div>` : ''}
       <div style="font-weight:700;margin-top:4px">${esc(pay)}</div>
       ${m ? `<div class="pf-small" style="margin-top:2px"><b>${m.score}%</b> · ${esc(m.level_label || level(m.score))}${(m.gaps || []).length ? ` · Missing: ${esc(m.gaps.slice(0, 2).map(g => g.name).join(', '))}` : ''}</div>` : ''}
-      <div class="pf-actions"><a data-spa class="btn btn-primary btn-sm" href="${detailTo(j)}">${act}</a><a data-spa class="btn btn-light btn-sm" href="${detailTo(j)}">View details</a></div>
+      <div class="pf-actions"><a data-spa class="btn btn-primary btn-sm" href="${detailTo(j)}">${act}</a><a data-spa class="btn btn-light btn-sm" href="${detailTo(j)}">Details</a>
+        <a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${directions(j.pos, me?.from === 'gps' ? me.pos : null)}">Directions</a></div>
     </div>`
   }
 
@@ -191,6 +220,40 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
       markers.current[j.id] = mk
     }
   }, [shown, zoom]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const map = mapRef.current, layer = meLayer.current
+    if (!map || !layer) return
+    layer.clearLayers()
+    if (!me) return
+    if (me.from === 'gps' && me.acc) L.circle(me.pos, { radius: Math.min(me.acc, 3000), color: '#0284C7', weight: 1, fillOpacity: 0.08, interactive: false }).addTo(layer)
+    if (radius) L.circle(me.pos, { radius: radius * 1000, color: '#0D1B3E', weight: 1.5, dashArray: '6 6', fillOpacity: 0.03, interactive: false }).addTo(layer)
+    const icon = L.divIcon({ className: '', html: '<div class="jm2-me"><i></i></div>', iconSize: [22, 22], iconAnchor: [11, 11] })
+    L.marker(me.pos, { icon, keyboard: false, zIndexOffset: 1000, title: me.label }).bindTooltip(me.label, { direction: 'top', offset: [0, -10] }).addTo(layer)
+  }, [me, radius])
+
+  function nearMe() {
+    setGeoNote('')
+    const useTown = why => {
+      const t = townOf(user?.location)
+      if (t) { setMe({ pos: LGUS[t].coords, from: 'town', label: `Your town: ${t}` }); setGeoNote(`${why} Showing distances from ${t}, the town in your profile.`); mapRef.current?.flyTo(LGUS[t].coords, 11, { duration: 0.7 }) }
+      else setGeoNote(`${why} Choose a town above instead.`)
+    }
+    if (!navigator.geolocation) { useTown('This browser cannot share your location.'); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(p => {
+      setLocating(false)
+      const pos = [p.coords.latitude, p.coords.longitude]
+      if (!PROVINCE.pad(0.1).contains(pos)) { useTown('You seem to be outside Oriental Mindoro right now.'); return }
+      setMe({ pos, acc: p.coords.accuracy, from: 'gps', label: 'You are here' })
+      setTown('')
+      mapRef.current?.flyTo(pos, 12, { duration: 0.8 })
+    }, e => {
+      setLocating(false)
+      useTown(e.code === 1 ? 'Location is turned off for this site.' : 'We couldn’t find your location.')
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 })
+  }
+  function clearMe() { setMe(null); setRadius(0); setGeoNote(''); if (sort === 'near') setSort('') }
 
   // a town filter moves the map there
   useEffect(() => {
@@ -226,15 +289,25 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
           <select value={cat} onChange={e => setCat(e.target.value)} aria-label="Kind of work"><option value="">Any kind of work</option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <select value={town} onChange={e => setTown(e.target.value)} aria-label="Town"><option value="">All towns</option>{TOWN_NAMES.map(t => <option key={t}>{t}</option>)}</select>
           {isWorker && <select value={minMatch} onChange={e => setMinMatch(Number(e.target.value))} aria-label="Match"><option value={0}>Any match</option><option value={50}>Good match or better</option><option value={75}>Strong match only</option></select>}
-          {(q || type || cat || town || minMatch) ? <button type="button" className="btn btn-light btn-sm" onClick={() => { setQ(''); setType(''); setCat(''); setTown(''); setMinMatch(0) }}><IconX size={13} /> Clear</button> : null}
+          <select value={order} onChange={e => setSort(e.target.value)} aria-label="Sort">
+            {me && <option value="near">Closest first</option>}
+            {isWorker && <option value="match">Best match first</option>}
+            <option value="new">Newest first</option><option value="pay">Highest pay</option>
+          </select>
+          {me && <select value={radius} onChange={e => setRadius(Number(e.target.value))} aria-label="Distance"><option value={0}>Any distance</option>{[5, 10, 25, 50].map(k => <option key={k} value={k}>Within {k} km</option>)}</select>}
+          {me
+            ? <button type="button" className="btn btn-sm jm2-near on" onClick={clearMe} title="Stop using my location"><IconPin size={13} /> {me.from === 'gps' ? 'Near me' : me.label} <IconX size={12} /></button>
+            : <button type="button" className="btn btn-sm jm2-near" onClick={nearMe} disabled={locating}><IconPin size={13} /> {locating ? 'Finding you…' : 'Near me'}</button>}
+          {(q || type || cat || town || minMatch || radius) ? <button type="button" className="btn btn-light btn-sm" onClick={() => { setQ(''); setType(''); setCat(''); setTown(''); setMinMatch(0); setRadius(0) }}><IconX size={13} /> Clear</button> : null}
         </div>
         {error && <div className="pf-note bad" role="alert" style={{ marginBottom: 10 }}>{error}</div>}
+        {geoNote && <div className="pf-note info" role="status" style={{ marginBottom: 10 }}>{geoNote}</div>}
         <div className={`jm2${embedded ? '' : ' public'}`}>
           <aside className={`jm2-list${sheet ? '' : ' collapsed'}`} aria-label="Posts on the map">
             <button type="button" className="jm2-handle" aria-label={sheet ? 'Hide the list' : 'Show the list'} onClick={() => setSheet(s => !s)} />
             <div className="jm2-list-hd pf-between">
               <b>{jobs ? `${shown.length} post${shown.length === 1 ? '' : 's'}${town ? ` in ${town}` : ''}` : 'Loading…'}</b>
-              <span className="pf-small">{isWorker ? 'Best match first' : 'Newest first'}</span>
+              <span className="pf-small">{{ near: 'Closest first', match: 'Best match first', pay: 'Highest pay', new: 'Newest first' }[order]}</span>
             </div>
             <div className="jm2-scroll">
               {!jobs ? <BrandLoader compact label="Loading posts…" />
@@ -244,22 +317,29 @@ export default function JobMap({ embedded = false, basePath = '/jobs' }) {
                     <p style={{ fontSize: 13.5 }}>{jobs.length ? 'Try another town, type or kind of work.' : 'There are no open posts yet. Check back soon.'}</p>
                   </div>
                 ) : shown.map(j => (
-                  <button key={j.id} type="button" className={`jm2-item${activeId === j.id ? ' on' : ''}`} onClick={() => focus(j)}>
-                    <span className="pf-between"><span className={`pf-type ${j.post_type === 'gig' ? 'gig' : 'job'}`}>{j.post_type === 'gig' ? 'Gig' : 'Job'}</span>
-                      {j.match && <span className={`chip ${j.match.score >= 75 ? 'green' : j.match.score >= 50 ? 'gold' : 'red'}`}>{j.match.score}%</span>}</span>
-                    <b style={{ marginTop: 4 }}>{j.title}</b>
-                    <small>{[j.company || j.employer_name, [j.barangay, j.town].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</small>
-                    <small style={{ display: 'block', color: 'var(--ink)', fontWeight: 600 }}>{(j.salary_min || j.salary_max) ? fmtSalary(j.salary_min, j.salary_max) : 'Pay to discuss'}</small>
+                  <button key={j.id} type="button" className={`jm2-item has-img${activeId === j.id ? ' on' : ''}`} onClick={() => focus(j)}>
+                    <img className="jm2-thumb" src={getJobImage(j)} alt="" loading="lazy" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />
+                    <span className="jm2-item-tx">
+                      <span className="pf-between"><span className={`pf-type ${j.post_type === 'gig' ? 'gig' : 'job'}`}>{j.post_type === 'gig' ? 'Gig' : 'Job'}</span>
+                        {j.match && <span className={`chip ${j.match.score >= 75 ? 'green' : j.match.score >= 50 ? 'gold' : 'red'}`}>{j.match.score}%</span>}</span>
+                      <b style={{ marginTop: 4 }}>{j.title}</b>
+                      <small>{[j.company || j.employer_name, [j.barangay, j.town].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</small>
+                      <small style={{ display: 'block', color: 'var(--ink)', fontWeight: 600 }}>{(j.salary_min || j.salary_max) ? fmtSalary(j.salary_min, j.salary_max) : 'Pay to discuss'}{j.km != null && <span className="jm2-km"> · {kmText(j.km)}</span>}</small>
+                    </span>
                   </button>
                 ))}
             </div>
           </aside>
           <div className="jm2-map">
             <div ref={mapEl} style={{ position: 'absolute', inset: 0 }} role="application" aria-label="Map of Oriental Mindoro with job posts" />
+            {!me && (
+              <button type="button" className="jm2-locate" onClick={nearMe} disabled={locating} title="Show posts near me" aria-label="Show posts near me"><IconMap size={16} /> {locating ? 'Finding you…' : 'Near me'}</button>
+            )}
             <div className="jm2-legend" aria-hidden="true">
               <span><i style={{ background: 'var(--navy)' }} />Job</span>
               <span><i style={{ background: 'var(--gold)' }} />Gig</span>
               <span><i style={{ background: 'rgba(13,27,62,.9)', border: '2px solid var(--gold)' }} />Several posts (tap to zoom)</span>
+              {me && <span><i style={{ background: '#0284C7', border: '2px solid #fff' }} />{me.from === 'gps' ? 'You' : 'Your town'}</span>}
             </div>
           </div>
         </div>

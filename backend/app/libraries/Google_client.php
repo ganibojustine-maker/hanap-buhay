@@ -17,7 +17,7 @@ class Google_client
      */
     public function get_client_id(): string
     {
-        return (string) (config_item('google_client_id') ?? (getenv('GOOGLE_CLIENT_ID') ?: ''));
+        return (string) config_item('google_client_id');
     }
 
     /**
@@ -55,7 +55,7 @@ class Google_client
      */
     public function http_get(string $url, array $headers = []): ?array
     {
-        $env = function_exists('config_item') ? config_item('environment') : (getenv('APP_ENV') ?: 'production');
+        $env = (string) config_item('environment');
         $verifySsl = $env !== 'development';
 
         if (!function_exists('curl_init')) {

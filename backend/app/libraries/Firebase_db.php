@@ -25,17 +25,11 @@ class Firebase_db
     private static ?string $token = null;
     private static int $tokenExp = 0;
 
-    private static function env(string $key): string
-    {
-        $v = getenv($key);
-        if ($v === false || $v === '') $v = $_ENV[$key] ?? $_SERVER[$key] ?? '';
-        return trim((string) $v);
-    }
 
     public static function database_url(): string
     {
-        $url = self::env('FIREBASE_DATABASE_URL') ?: self::env('VITE_FIREBASE_DATABASE_URL');
-        if ($url === '' && preg_match('/@([a-z0-9-]+)\.iam\.gserviceaccount\.com$/', self::env('FIREBASE_CLIENT_EMAIL'), $m)) {
+        $url = (string) config_item('firebase_database_url');
+        if ($url === '' && preg_match('/@([a-z0-9-]+)\.iam\.gserviceaccount\.com$/', (string) config_item('firebase_client_email'), $m)) {
             $url = "https://{$m[1]}-default-rtdb.firebaseio.com"; // the default database of the project
         }
         return rtrim($url, '/');
@@ -43,7 +37,7 @@ class Firebase_db
 
     public static function is_configured(): bool
     {
-        return self::env('FIREBASE_CLIENT_EMAIL') !== '' && self::env('FIREBASE_PRIVATE_KEY') !== '' && self::database_url() !== '';
+        return (string) config_item('firebase_client_email') !== '' && (string) config_item('firebase_private_key') !== '' && self::database_url() !== '';
     }
 
     private static function b64url(string $raw): string
@@ -85,7 +79,7 @@ class Firebase_db
 
     private static function cache_file(): string
     {
-        return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'hb-firebase-' . md5(self::env('FIREBASE_CLIENT_EMAIL') . self::database_url()) . '.json';
+        return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'hb-firebase-' . md5((string) config_item('firebase_client_email') . self::database_url()) . '.json';
     }
 
     /** OAuth access token for the service account, cached (memory + temp file) until 5 minutes before it expires. */
@@ -103,10 +97,10 @@ class Firebase_db
             }
         }
 
-        $email = self::env('FIREBASE_CLIENT_EMAIL');
-        $key = @openssl_pkey_get_private(str_replace('\\n', "\n", self::env('FIREBASE_PRIVATE_KEY')));
+        $email = (string) config_item('firebase_client_email');
+        $key = @openssl_pkey_get_private(str_replace('\\n', "\n", (string) config_item('firebase_private_key')));
         if (!$key) throw new Firebase_db_error('FIREBASE_PRIVATE_KEY could not be read.');
-        $uri = self::env('FIREBASE_TOKEN_URI') ?: self::TOKEN_URI;
+        $uri = (string) config_item('firebase_token_uri') ?: self::TOKEN_URI;
         $unsigned = self::b64url(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])) . '.'
             . self::b64url(json_encode(['iss' => $email, 'scope' => self::SCOPE, 'aud' => $uri, 'iat' => $now, 'exp' => $now + 3600]));
         if (!openssl_sign($unsigned, $sig, $key, OPENSSL_ALGO_SHA256)) throw new Firebase_db_error('Could not sign the Firebase token request.');

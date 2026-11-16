@@ -211,7 +211,6 @@ class AuthController extends Controller
         }
         $phone = trim((string) ($b['phone'] ?? ''));
         if ($phone !== '') {
-            require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Sms.php';
             $phone = \Sms::normalize($phone);
             if (!$phone) $this->api->respond_error('Enter a Philippine mobile number, like 0917 123 4567.', 422);
         }
@@ -353,7 +352,6 @@ class AuthController extends Controller
             $this->api->respond_error('Choose a town in Oriental Mindoro.', 422);
         }
         if (array_key_exists('phone', $data) && $data['phone'] !== '') {
-            require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Sms.php';
             $norm = \Sms::normalize($data['phone']);
             if (!$norm) $this->api->respond_error('Enter a Philippine mobile number, like 0917 123 4567.', 422);
             if ($norm !== \Sms::normalize($user['phone'] ?? '') && $this->schema_info->has_column('users', 'phone_verified_at')) $data['phone_verified_at'] = null; // a new number must be confirmed again
@@ -670,7 +668,7 @@ class AuthController extends Controller
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $frontend = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+        $frontend = (string) config_item('frontend_url');
         \Mailer::send_notification(
             $user,
             'email_verify',
@@ -745,7 +743,7 @@ class AuthController extends Controller
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $frontend = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+        $frontend = (string) config_item('frontend_url');
         \Mailer::send_notification(
             $user,
             'password_reset',
@@ -816,7 +814,7 @@ class AuthController extends Controller
         $this->db->raw('DELETE FROM refresh_tokens WHERE user_id = ?', [$uid]);
 
         try {
-            $frontend = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+            $frontend = (string) config_item('frontend_url');
             \Mailer::send_notification(
                 $user,
                 'password_changed',

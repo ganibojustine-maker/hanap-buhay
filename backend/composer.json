@@ -9,8 +9,7 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
-        "nesbot/carbon": "^3.15"
+        "php": ">=8.0"
     },
     "autoload": {
         "classmap": [

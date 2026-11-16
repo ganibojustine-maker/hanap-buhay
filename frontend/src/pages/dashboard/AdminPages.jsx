@@ -1,9 +1,10 @@
 // Dashboard admin pages (split out of Dashboard.jsx so each role downloads only its own code).
+import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useState, useCallback } from 'react'
 import { statusLabel, statusTone } from '../../utils/hiringStatus.js'
 import BrandLoader from '../../components/BrandLoader.jsx'
 import { Link } from 'react-router-dom'
-import { IconUser, IconBriefcase, IconShield, IconFile, IconUsers, IconPin, IconMail, IconCheck, IconSpark, IconMsgCircle, IconSearch, IconTrend, IconX, IconClock, IconCalendar, IconBuilding, IconEdit, IconPhone, IconWrench, IconAlert, IconEye } from '../../components/icons.jsx'
+import { IconUser, IconBriefcase, IconShield, IconUsers, IconPin, IconMail, IconCheck, IconMsgCircle, IconSearch, IconTrend, IconX, IconClock, IconCalendar, IconBuilding, IconEdit, IconPhone, IconWrench, IconAlert, IconEye } from '../../components/icons.jsx'
 import { fmt, days } from './shared.jsx'
 import CertificateReview from '../../components/CertificateReview.jsx'
 import BusinessReview from '../../components/BusinessReview.jsx'
@@ -62,6 +63,7 @@ export function AdminReports({ call }) {
     ? { cls: 'gold', label: 'Open' }
     : s === 'reviewed' ? { cls: 'green', label: 'Reviewed' } : { cls: 'gray', label: 'Dismissed' }
 
+  const pg = usePaged(rows, { sorts: { new: ['Newest first', SORT.date('created_at')], old: ['Oldest first', (a, b) => -SORT.date('created_at')(a, b)] } })
   return (
     <div className="page-inner">
 
@@ -93,8 +95,10 @@ export function AdminReports({ call }) {
           <p style={{ color: 'var(--muted)', fontSize: 14, margin: 0 }}>Nothing waiting in this list.</p>
         </div>
       ) : (
+        <>
+        <ListTools pg={pg} noun="report" />
         <div style={{ display: 'grid', gap: 12 }}>
-          {rows.map(r => {
+          {pg.items.map(r => {
             const chip = statusChip(r.status)
             const removed = r.job_status === 'archived'
             return (
@@ -135,6 +139,8 @@ export function AdminReports({ call }) {
             )
           })}
         </div>
+        <Pager pg={pg} />
+        </>
       )}
 
       {/* Ratings in both directions are moderated on their own page, which also
@@ -202,7 +208,7 @@ export function AdminProfile({ user, call, updateUser }) {
           </div>
           <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--line)', textAlign: 'left', fontSize: 12, color: 'var(--muted)' }}>
             <p>Member since</p>
-            <p style={{ fontWeight: 700, color: 'var(--navy-d)', marginTop: 2 }}>{user.created_at ? new Date(user.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long' }) : '—'}</p>
+            <p style={{ fontWeight: 700, color: 'var(--navy-d)', marginTop: 2 }}>{user.created_at ? new Date(String(user.created_at).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'long' }) : '—'}</p>
           </div>
         </div>
 
@@ -269,7 +275,7 @@ export function AdminUsers({ call }) {
       const q = search.trim() ? `&q=${encodeURIComponent(search.trim())}` : ''
       const rf = roleFilter !== 'all' ? `&role=${roleFilter}` : ''
       const sf = statusFilter !== 'all' ? `&status=${statusFilter}` : ''
-      const res = await call(`/admin/users?limit=200${q}${rf}${sf}`)
+      const res = await call(`/admin/users?limit=500${q}${rf}${sf}`)
       setUsers(res?.users || [])
     } catch (e) {
       console.error(e)
@@ -301,6 +307,12 @@ export function AdminUsers({ call }) {
 
   const activeCount   = users.filter(u => Number(u.is_active) === 1).length
   const inactiveCount = users.filter(u => Number(u.is_active) === 0).length
+  const pg = usePaged(users, { perPage: 20, sorts: {
+    new: ['Newest first', SORT.date('created_at')],
+    old: ['Oldest first', (a, b) => -SORT.date('created_at')(a, b)],
+    name: ['Name (A–Z)', SORT.text('full_name')],
+    town: ['Town (A–Z)', SORT.text('location')],
+  } })
 
   return (
     <div className="page-inner" style={{ position: 'relative' }}>
@@ -308,7 +320,7 @@ export function AdminUsers({ call }) {
       {selected && (
         <>
           <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.35)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 380, background: '#fff', zIndex: 201, boxShadow: '-8px 0 40px rgba(0,0,0,.15)', display: 'flex', flexDirection: 'column', animation: 'slideInRight .25s ease' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 380, maxWidth: '100vw', background: '#fff', zIndex: 201, boxShadow: '-8px 0 40px rgba(0,0,0,.15)', display: 'flex', flexDirection: 'column', animation: 'slideInRight .25s ease' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--navy-d)' }}>Account Details</h2>
               <button onClick={() => setSelected(null)} style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--muted)', padding: 4 }}><IconX size={20} /></button>
@@ -337,8 +349,8 @@ export function AdminUsers({ call }) {
                   { icon: IconPhone, label: 'Phone', val: selected.phone || 'Not set' },
                   { icon: IconPin, label: 'Location', val: selected.location || 'Not set' },
                   { icon: IconUser, label: 'Account Type', val: selected.account_type ? selected.account_type.charAt(0).toUpperCase() + selected.account_type.slice(1) : '—' },
-                  { icon: IconCalendar, label: 'Registered', val: selected.created_at ? new Date(selected.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
-                  { icon: IconClock, label: 'Last Updated', val: selected.updated_at ? new Date(selected.updated_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+                  { icon: IconCalendar, label: 'Registered', val: selected.created_at ? new Date(String(selected.created_at).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+                  { icon: IconClock, label: 'Last Updated', val: selected.updated_at ? new Date(String(selected.updated_at).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
                 ].map(({ icon: Ic, label, val }, i) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < 5 ? '1px solid var(--line)' : 'none', background: i % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--navy-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--navy)', flexShrink: 0 }}>
@@ -382,7 +394,6 @@ export function AdminUsers({ call }) {
 
       {/* Page header */}
 
-
       {/* Status tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 16, background: '#f1f5f9', borderRadius: 10, padding: 4, alignSelf: 'flex-start', width: 'fit-content' }}>
         {[
@@ -410,7 +421,7 @@ export function AdminUsers({ call }) {
             style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[{ id: 'all', label: 'All Roles' }, { id: 'worker', label: 'Workers' }, { id: 'employer', label: 'Employers' }, { id: 'admin', label: 'Admins' }].map(f => (
+          {[{ id: 'all', label: 'All Roles' }, { id: 'worker', label: 'Workers' }, { id: 'employer', label: 'Employers' }, { id: 'hirer', label: 'Clients' }, { id: 'admin', label: 'Admins' }].map(f => (
             <button key={f.id} onClick={() => setRoleFilter(f.id)}
               className={`btn btn-xs ${roleFilter === f.id ? 'btn-navy' : 'btn-light'}`}
               style={{ fontWeight: 600, padding: '6px 12px' }}>{f.label}</button>
@@ -430,6 +441,7 @@ export function AdminUsers({ call }) {
           </div>
         ) : (
           <div className="table-wrap">
+            <div style={{ padding: '12px 16px 0' }}><ListTools pg={pg} noun="user" perPageOptions={[20, 50, 100]}>{users.length >= 500 && <span className="pf-small"> · showing the newest 500, search to narrow</span>}</ListTools></div>
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
@@ -442,7 +454,7 @@ export function AdminUsers({ call }) {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => {
+                {pg.items.map(u => {
                   const isActive = Number(u.is_active) === 1
                   return (
                     <tr key={u.id} style={{ cursor: 'pointer' }} onClick={() => setSelected(u)}>
@@ -468,7 +480,7 @@ export function AdminUsers({ call }) {
                         </span>
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--muted)' }}>
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString('en-PH') : '—'}
+                        {u.created_at ? new Date(String(u.created_at).replace(' ', 'T')).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                       </td>
                       <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -490,122 +502,7 @@ export function AdminUsers({ call }) {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/* ─ Admin Job Moderation page ───────────────────────────── */
-export function AdminJobs({ call }) {
-  const [jobs, setJobs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-
-  const loadJobs = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await call('/admin/jobs')
-      setJobs(res?.jobs || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
-  }, [call])
-
-  useEffect(() => { loadJobs() }, [loadJobs])
-
-  const filtered = jobs.filter(j => {
-    const matchSearch = !search.trim() || 
-      j.title?.toLowerCase().includes(search.toLowerCase()) ||
-      j.employer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      j.location?.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'all' || j.status === statusFilter
-    return matchSearch && matchStatus
-  })
-
-  return (
-    <div className="page-inner">
-
-
-      <div className="panel" style={{ padding: 16, marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
-          type="text"
-          placeholder="Search job title, employer, or municipality…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 240, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: 13, outline: 'none' }}
-        />
-        <div style={{ display: 'flex', gap: 6 }}>
-          {['all', 'active', 'archived'].map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`btn btn-xs ${statusFilter === s ? 'btn-navy' : 'btn-light'}`}
-              style={{ fontWeight: 600, textTransform: 'capitalize', padding: '6px 12px' }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
-        {loading ? (
-          <BrandLoader compact label="Loading job postings…" />
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
-            <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center', color: 'var(--muted)' }}><IconBriefcase size={32} /></div>
-            <p style={{ fontSize: 14 }}>No job posts found.</p>
-          </div>
-        ) : (
-          <div className="table-wrap">
-            <table style={{ margin: 0 }}>
-              <thead>
-                <tr>
-                  <th>Job Title</th>
-                  <th>Employer / Business</th>
-                  <th>Location</th>
-                  <th>Salary Range</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(j => (
-                  <tr key={j.id}>
-                    <td>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy-d)' }}>{j.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>Views: {j.views || 0}</div>
-                    </td>
-                    <td style={{ fontSize: 13 }}>{j.employer_name || 'Employer'}</td>
-                    <td style={{ fontSize: 13 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <IconPin size={13} /> {j.location || 'Oriental Mindoro'}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: 13, fontWeight: 600 }}>{fmt(j.salary_min, j.salary_max)}</td>
-                    <td style={{ fontSize: 12, textTransform: 'capitalize' }}>{j.type || 'Full-time'}</td>
-                    <td>
-                      <span className={`status-badge ${j.status === 'active' ? 'active' : 'archived'}`}>
-                        ● {j.status}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: 12, color: 'var(--muted)' }}>{days(j.created_at)}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to={`/dashboard/browse/${j.id}`} target="_blank" className="btn btn-light btn-xs" style={{ textDecoration: 'none' }}>
-                        ↗ View Public Post
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ padding: '0 16px 12px' }}><Pager pg={pg} /></div>
           </div>
         )}
       </div>
@@ -1076,7 +973,7 @@ export function AdminVerification({ call }) {
                           <IconCalendar size={14} color="var(--navy)" />
                           <span style={{ color: 'var(--muted)' }}>Registered:</span>
                           <span style={{ color: 'var(--navy-d)', fontWeight: 500 }}>
-                            {target.created_at ? new Date(target.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                            {target.created_at ? new Date(String(target.created_at).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                           </span>
                         </div>
                       </div>
@@ -1268,179 +1165,3 @@ export function AdminVerification({ call }) {
   )
 }
 
-/* ─ Admin Payments & Revenue page ───────────────────────── */
-export function AdminPayments({ call }) {
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
-  const [filter, setFilter]   = useState('all') // 'all' | 'active' | 'pending' | 'paymongo'
-
-  useEffect(() => {
-    setLoading(true)
-    call('/admin/payments')
-      .then(res => setData(res))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [call])
-
-  const payments   = data?.payments || []
-  const summary    = data?.summary  || {}
-
-  const q = search.trim().toLowerCase()
-  const filtered = payments.filter(p => {
-    if (filter === 'active'   && p.status !== 'active')    return false
-    if (filter === 'pending'  && p.status !== 'pending')   return false
-    if (filter === 'paymongo' && !String(p.payment_method || '').includes('paymongo') && !String(p.payment_reference || '').startsWith('cs_')) return false
-    if (q) {
-      const haystack = `${p.full_name} ${p.email} ${p.plan_name} ${p.payment_reference}`.toLowerCase()
-      if (!haystack.includes(q)) return false
-    }
-    return true
-  })
-
-  const statusColor  = { active: '#16a34a', pending: '#d97706', cancelled: '#dc2626', expired: '#6b7280' }
-  const methodBadge  = (m) => {
-    if (!m) return <span className="chip" style={{ background: '#f1f5f9', color: '#475569', fontSize: 11 }}>—</span>
-    if (m.includes('gcash'))   return <span className="chip green"  style={{ fontSize: 11 }}>GCash</span>
-    if (m.includes('maya'))    return <span className="chip navy"   style={{ fontSize: 11 }}>Maya</span>
-    if (m.includes('card'))    return <span className="chip gold"   style={{ fontSize: 11 }}>Card</span>
-    if (m.includes('paymongo'))return <span className="chip green"  style={{ fontSize: 11 }}>PayMongo</span>
-    if (m === 'free')          return <span className="chip"        style={{ background: '#f8fafc', color: '#64748b', fontSize: 11 }}>Free</span>
-    return <span className="chip" style={{ fontSize: 11 }}>{m}</span>
-  }
-
-  return (
-    <div className="page-inner">
-      {/* Header */}
-      <div className="section-title" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              Powered by PayMongo · BSP Licensed
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="dash-stats" style={{ marginBottom: 24, gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
-        {[
-          { icon: IconSpark,     bg: '#ecfdf5', color: '#059669', val: loading ? '…' : `₱${Number(summary.total_revenue   || 0).toLocaleString()}`, label: 'Total Revenue',      sub: 'All time' },
-          { icon: IconSpark,     bg: '#eff6ff', color: '#2563eb', val: loading ? '…' : `₱${Number(summary.month_revenue  || 0).toLocaleString()}`, label: 'This Month',         sub: new Date().toLocaleString('default',{month:'long'}) },
-          { icon: IconFile,      bg: '#faf5ff', color: '#7c3aed', val: loading ? '…' : summary.total_transactions || 0,                             label: 'Total Transactions', sub: 'All plans' },
-          { icon: IconUsers,     bg: '#fffbeb', color: '#d97706', val: loading ? '…' : summary.active_subscribers || 0,                             label: 'Active Subscribers', sub: 'Currently subscribed' },
-          { icon: IconCheck,     bg: '#f0fdf4', color: '#16a34a', val: loading ? '…' : summary.paymongo_count    || 0,                              label: 'PayMongo Payments',  sub: 'Real gateway' },
-        ].map(({ icon: Ic, bg, color, val, label, sub }) => (
-          <div key={label} className="dstat">
-            <div className="dstat-icon" style={{ background: bg, color }}><Ic size={22} /></div>
-            <div>
-              <div className="dstat-val">{val}</div>
-              <div className="dstat-label">{label}</div>
-              {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{sub}</div>}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filter + Search */}
-      <div className="panel" style={{ padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[
-            { id: 'all',      label: `All (${payments.length})` },
-            { id: 'active',   label: `Active (${payments.filter(p=>p.status==='active').length})` },
-            { id: 'pending',  label: `Pending (${payments.filter(p=>p.status==='pending').length})` },
-            { id: 'paymongo', label: `PayMongo (${summary.paymongo_count || 0})` },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`btn btn-xs ${filter === f.id ? 'btn-navy' : 'btn-light'}`}
-              style={{ fontWeight: 600, fontSize: 12, padding: '6px 14px' }}>
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ position: 'relative', width: 280, maxWidth: '100%' }}>
-          <IconSearch size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-          <input type="text" placeholder="Search by name, email, plan…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="input" style={{ paddingLeft: 34, height: 36, fontSize: 13, width: '100%' }} />
-        </div>
-      </div>
-
-      {/* Payments Table */}
-      <div className="panel">
-        {loading ? (
-          <BrandLoader compact label="Loading…" />
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'var(--muted)' }}>
-            <IconSpark size={40} style={{ opacity: 0.2, marginBottom: 12 }} />
-            <p style={{ fontSize: 15, fontWeight: 600 }}>No payments found.</p>
-            <p style={{ fontSize: 13 }}>Try adjusting the filter or search term.</p>
-          </div>
-        ) : (
-          <div className="table-wrap">
-            <table style={{ margin: 0 }}>
-              <thead>
-                <tr>
-                  <th>Subscriber</th>
-                  <th>Plan</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Reference / Session</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p, i) => (
-                  <tr key={i}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        <div className="avatar" style={{ width: 32, height: 32, overflow: 'hidden', flexShrink: 0 }}>
-                          <img src={p.picture || avatarDataUrl(p)} alt={p.full_name} />
-                          <span style={{ fontSize: 12 }}>{(p.full_name || p.email || '?')[0].toUpperCase()}</span>
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 12 }}>{p.full_name || '—'}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="chip navy" style={{ fontSize: 11 }}>{p.plan_name || '—'}</span>
-                    </td>
-                    <td style={{ fontWeight: 700, fontSize: 14, color: '#059669' }}>
-                      {Number(p.amount) > 0 ? `₱${Number(p.amount).toLocaleString()}` : <span style={{ color: 'var(--muted)', fontWeight: 400 }}>Free</span>}
-                    </td>
-                    <td>{methodBadge(p.payment_method)}</td>
-                    <td>
-                      <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--muted)', wordBreak: 'break-all', maxWidth: 200, display: 'inline-block' }}>
-                        {p.payment_reference
-                          ? (String(p.payment_reference).startsWith('cs_')
-                              ? <><span className="chip green" style={{ fontSize: 10, marginRight: 4 }}>PayMongo</span>{String(p.payment_reference).slice(0, 20)}…</>
-                              : String(p.payment_reference).slice(0, 24))
-                          : '—'}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{
-                        display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                        background: statusColor[p.status] ? statusColor[p.status] + '20' : '#f1f5f9',
-                        color: statusColor[p.status] || '#475569'
-                      }}>
-                        {(p.status || '—').toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                      {p.created_at ? new Date(p.created_at).toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' }) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}

@@ -36,9 +36,9 @@ class Mailer
             return ['success' => false, 'mode' => 'failed', 'error' => 'Invalid recipient email address.'];
         }
 
-        $api_key      = trim(self::get_env('BREVO_API_KEY', ''));
-        $from_address = trim(self::get_env('MAIL_FROM_ADDRESS', 'noreply@hanapbuhay.ph'));
-        $from_name    = trim(self::get_env('MAIL_FROM_NAME', 'hanapbuhay Oriental Mindoro'));
+        $api_key      = (string) config_item('brevo_api_key');
+        $from_address = (string) config_item('mail_from_address');
+        $from_name    = (string) config_item('mail_from_name');
 
         // Fallback to log mode when no API key is set
         if (empty($api_key)) {
@@ -186,7 +186,7 @@ class Mailer
             return ['success' => false, 'mode' => 'failed', 'error' => 'Recipient has no email address.'];
         }
 
-        $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+        $frontend_url = (string) config_item('frontend_url');
         $full_link = '';
         if (!empty($link)) {
             $full_link = str_starts_with($link, 'http') ? $link : ($frontend_url . '/' . ltrim($link, '/'));
@@ -231,7 +231,7 @@ class Mailer
         $safe_cta = htmlspecialchars($cta_label, ENT_QUOTES, 'UTF-8');
         $year = date('Y');
 
-        $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+        $frontend_url = (string) config_item('frontend_url');
         $settings_url = htmlspecialchars($frontend_url . '/dashboard/settings', ENT_QUOTES, 'UTF-8');
 
         $button_html = '';
@@ -308,7 +308,7 @@ HTML;
      */
     private static function find_ca_bundle(): ?string
     {
-        $override = trim(self::get_env('MAIL_CA_BUNDLE', ''));
+        $override = (string) config_item('mail_ca_bundle');
         if ($override !== '' && is_file($override)) {
             return $override;
         }
@@ -355,39 +355,4 @@ HTML;
         @file_put_contents($log_file, $entry, FILE_APPEND | LOCK_EX);
     }
 
-    /**
-     * Safely read an environment variable with fallbacks to $_ENV, $_SERVER, and direct .env file.
-     */
-    private static function get_env(string $key, string $default = ''): string
-    {
-        $val = getenv($key);
-        if ($val !== false && $val !== '') return trim((string) $val);
-
-        if (isset($_ENV[$key]) && $_ENV[$key] !== '') return trim((string) $_ENV[$key]);
-        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return trim((string) $_SERVER[$key]);
-
-        static $cached_env = null;
-        if ($cached_env === null) {
-            $cached_env = [];
-            $env_file = defined('ROOT_DIR') ? ROOT_DIR . '.env' : dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . '.env';
-            if (file_exists($env_file)) {
-                $lines = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                if (is_array($lines)) {
-                    foreach ($lines as $line) {
-                        $line = trim($line);
-                        if ($line === '' || $line[0] === '#' || !str_contains($line, '=')) continue;
-                        [$k, $v] = explode('=', $line, 2);
-                        $k = trim($k);
-                        $v = trim($v);
-                        if (strlen($v) >= 2 && in_array($v[0], ['"', "'"], true) && $v[-1] === $v[0]) {
-                            $v = substr($v, 1, -1);
-                        }
-                        $cached_env[$k] = $v;
-                    }
-                }
-            }
-        }
-
-        return (string) ($cached_env[$key] ?? $default);
-    }
 }

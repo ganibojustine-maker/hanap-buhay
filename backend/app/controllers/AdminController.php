@@ -357,7 +357,6 @@ class AdminController extends Controller
         $admin = $this->require_admin();
         $reason = mb_substr(trim((string) ($data['reason'] ?? '')), 0, 500) ?: null;
         if ($new_verified === 0 && !$reason) $this->api->respond_error('Write the reason for removing the badge. The person will see it.', 422);
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Verification_log.php';
         \Verification_log::record((int) $id, null, $new_verified ? 'approved' : 'revoked', $user['verification_status'] ?? null,
             $new_verified ? 'verified' : 'unverified', $reason ?? 'Verified directly by an administrator', (int) $admin['id']);
 
@@ -509,7 +508,6 @@ class AdminController extends Controller
         $payload = $this->api->require_jwt();
         $uid = (int) $payload['sub'];
         // due interview reminders ride on this poll (does real work at most every 10 minutes)
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Reminders.php';
         try { \Reminders::run(); } catch (\Throwable $e) { error_log('[Reminders] ' . $e->getMessage()); }
         $rows = $this->application_model->get_user_notifications($uid, 30);
 
@@ -535,54 +533,6 @@ class AdminController extends Controller
         $this->api->respond(['success' => true]);
     }
 
-    // GET /api/admin/payments
-    public function payments()
-    {
-        $this->api->require_method('GET');
-        $this->require_admin();
-
-        $rows = $this->db->table('subscriptions s')
-            ->select('s.*, u.full_name, u.email, u.phone, u.picture, u.role, u.account_type AS user_account_type')
-            ->join('users u', 'u.id = s.user_id', 'LEFT')
-            ->order_by('s.created_at DESC')
-            ->get_all();
-
-        $rows = $rows ?: [];
-
-        $total_revenue = 0;
-        $total_active = 0;
-        $paymongo_count = 0;
-        $month_revenue = 0;
-        $current_month = date('Y-m');
-
-        foreach ($rows as $r) {
-            $price = (float) ($r['price'] ?? 0);
-            if ($r['status'] === 'active' || $r['status'] === 'paid' || $r['status'] === 'superseded') {
-                $total_revenue += $price;
-                if (str_starts_with($r['created_at'], $current_month)) {
-                    $month_revenue += $price;
-                }
-            }
-            if ($r['status'] === 'active') {
-                $total_active++;
-            }
-            if (str_contains(strtolower($r['payment_method'] ?? ''), 'paymongo') || str_contains(strtolower($r['payment_reference'] ?? ''), 'cs_')) {
-                $paymongo_count++;
-            }
-        }
-
-        $this->api->respond([
-            'success'  => true,
-            'summary'  => [
-                'total_revenue'         => $total_revenue,
-                'month_revenue'         => $month_revenue,
-                'total_transactions'    => count($rows),
-                'active_subscriptions'  => $total_active,
-                'paymongo_transactions' => $paymongo_count,
-            ],
-            'payments' => $rows
-        ]);
-    }
 
     /**
      * GET /api/admin/applications?status= — monitor every job application across employers:

@@ -15,22 +15,3 @@ export function useInView(opts = { threshold: 0.2 }) {
   }, [])
   return [ref, seen]
 }
-
-// Animates 0 -> value once `run` is true.
-export function useCountUp(value, run, ms = 1200) {
-  const [n, setN] = useState(0)
-  useEffect(() => {
-    if (!run) return
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setN(value); return }
-    let raf, t0
-    const tick = (t) => {
-      t0 ??= t
-      const p = Math.min(1, (t - t0) / ms)
-      setN(Math.round(value * (1 - Math.pow(1 - p, 3))))
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [value, run, ms])
-  return n
-}

@@ -227,6 +227,7 @@ class TalentController extends Controller
             'total'   => $total,
             'page'    => $page,
             'pages'   => max(1, (int) ceil($total / self::PER_PAGE)),
+            'per_page' => self::PER_PAGE,
             'credits' => ['left' => $left, 'unlimited' => $unlimited],
             'enabled' => $this->ready(),
             'job'     => $job ? ['id' => (int) $job['id'], 'title' => $job['title']] : null,

@@ -11,6 +11,7 @@
  *
  * All job numbers are live. Copy lives in i18n.jsx (`lh.*`, `lp.*`), English and Filipino.
  */
+import { recall, remember } from '../utils/lastSeen.js'
 import { useEffect, useState } from 'react'
 import BrowsePosts from '../components/BrowsePosts.jsx'
 import { Link, useLocation } from 'react-router-dom'
@@ -315,15 +316,16 @@ function Cta() {
 
 export default function Landing() {
   const { hash } = useLocation()
-  const [live, setLive] = useState(null)
-  const [towns, setTowns] = useState(null)
+  // what this device saw last time shows at once; the fresh answer replaces it (utils/lastSeen.js)
+  const [live, setLive] = useState(() => recall('landing_live'))
+  const [towns, setTowns] = useState(() => recall('landing_towns'))
   useEffect(() => {
     let alive = true
     api('/jobs?limit=50&sort=recent')
-      .then(r => { if (alive) setLive({ total: Number(r.total || 0), jobs: r.jobs || [] }) })
-      .catch(() => { if (alive) setLive({ total: null, jobs: [] }) })
+      .then(r => { const v = { total: Number(r.total || 0), jobs: r.jobs || [] }; remember('landing_live', v); if (alive) setLive(v) })
+      .catch(() => { if (alive) setLive(prev => prev || { total: null, jobs: [] }) })
     api('/jobs/towns')
-      .then(r => { if (alive) setTowns({ towns: r.towns || {}, total: Number(r.total || 0) }) })
+      .then(r => { const v = { towns: r.towns || {}, total: Number(r.total || 0) }; remember('landing_towns', v); if (alive) setTowns(v) })
       .catch(() => {})
     return () => { alive = false }
   }, [])

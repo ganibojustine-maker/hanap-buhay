@@ -13,6 +13,7 @@
  * plan (once per worker; free on unlimited plans), or straight away when the worker has
  * already applied to one of your jobs.
  */
+import { Pager } from '../../../components/Pager.jsx'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import UserAvatar from '../../../components/Avatar.jsx'
@@ -20,12 +21,14 @@ import BrandLoader from '../../../components/BrandLoader.jsx'
 import Dialog from '../../../components/Dialog.jsx'
 import WorkPhotos from '../../../components/WorkPhotos.jsx'
 import MatchRing from '../../../components/MatchRing.jsx'
+import ServiceCard from '../../../components/ServiceCard.jsx'
 import {
   IconSearch, IconPin, IconShield, IconBookmark, IconPhone, IconMail, IconLock, IconCheck,
   IconMsgCircle, IconSend, IconStar, IconBriefcase, IconArrow, IconBook, IconUsers,
 } from '../../../components/icons.jsx'
 import { TOWNS } from '../../../components/art.jsx'
 import '../../../styles/talent.css'
+import '../../../styles/platform.css'
 
 const TYPES = [['', 'Any work type'], ['full-time', 'Full-time'], ['part-time', 'Part-time'], ['contractual', 'Contractual'], ['freelance', 'Freelance'], ['gig', 'Gig / Raket']]
 const TYPE_LABEL = Object.fromEntries(TYPES)
@@ -205,11 +208,7 @@ export function ClientFindWorkers({ call }) {
               </div>
             )}
             {data.pages > 1 && (
-              <nav className="tl-pager" aria-label="Pages">
-                <button type="button" className="btn btn-light btn-sm" disabled={page <= 1 || busy} onClick={() => load(page - 1)}>← Prev</button>
-                <span>Page {page} of {data.pages}</span>
-                <button type="button" className="btn btn-light btn-sm" disabled={page >= data.pages || busy} onClick={() => load(page + 1)}>Next →</button>
-              </nav>
+              <Pager pg={{ page, pages: data.pages, total: data.total || 0, perPage: data.per_page || 20, setPage: n => { if (!busy) { load(n); window.scrollTo({ top: 0, behavior: 'smooth' }) } } }} label="Worker search pages" />
             )}
           </>
         )}
@@ -270,6 +269,8 @@ export function ClientTalentProfile({ call }) {
   const [message, setMessage] = useState('')
   const [note, setNote] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
+  const [services, setServices] = useState([])
+  useEffect(() => { call(`/services?worker=${id}`).then(r => setServices(r.services || [])).catch(() => setServices([])) }, [call, id])
 
   const load = useCallback(() => {
     setError('')
@@ -312,11 +313,12 @@ export function ClientTalentProfile({ call }) {
     if (!jobId) return
     setBusy(true)
     try {
-      await call(`/talent/${id}/invite`, { method: 'POST', body: { job_id: Number(jobId), message } })
+      // a client's posts are gigs: the worker is asked for a proposal, and sees it on their Gigs page
+      await call(`/gigs/${jobId}/invite`, { method: 'POST', body: { worker_id: Number(id), message } })
       const title = data.jobs.find(j => String(j.id) === jobId)?.title
       setData(d => ({ ...d, jobs: d.jobs.map(j => String(j.id) === jobId ? { ...j, invited: true } : j) }))
       setMessage('')
-      setDialog({ tone: 'success', title: 'Invitation sent', body: <p>{data.worker.full_name} was told about <b>{title}</b> in the app and by email. You will see them in Applicants when they apply.</p>,
+      setDialog({ tone: 'success', title: 'Invitation sent', body: <p>{data.worker.full_name} was told about <b>{title}</b> in the app and by email. Their proposal will show in Proposals.</p>,
         actions: [{ label: 'Done', primary: true, onClick: close }] })
     } catch (err) { fail('Invitation not sent', err) } finally { setBusy(false) }
   }
@@ -396,6 +398,16 @@ export function ClientTalentProfile({ call }) {
             </section>
           )}
 
+          {services.length > 0 && (
+            <section className="panel">
+              <h2 className="tp-h">Services you can book ({services.length})</h2>
+              <p className="tp-muted" style={{ marginTop: 0 }}>Fixed-price services {w.full_name} offers. Book one directly, no need to post a gig.</p>
+              <div className="pf-post-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+                {services.map(s => <ServiceCard key={s.id} s={s} to={`/dashboard/talent/services/${s.id}`} showWorker={false} />)}
+              </div>
+            </section>
+          )}
+
           <WorkPhotos items={w.work} title="Work photos" note="Photos the worker took of their own work. hanapbuhay does not check them." />
 
           {(w.experience?.length > 0 || w.education?.length > 0) && (
@@ -452,7 +464,8 @@ export function ClientTalentProfile({ call }) {
           </section>
 
           <section className="panel tp-box">
-            <h3>Invite to apply</h3>
+            <h3>Invite to a gig</h3>
+            <p className="tp-muted" style={{ marginTop: 0 }}>Ask {w.full_name} to send you a price for one of your open gigs.</p>
             {data.jobs.length === 0 ? (
               <>
                 <p className="tp-muted">You have no open gigs to invite them to.</p>
@@ -466,7 +479,7 @@ export function ClientTalentProfile({ call }) {
                   {openJobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
                 </select>
                 <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={500} rows={3}
-                  placeholder="A short note (optional), e.g. “We need a welder in Calapan for 3 months.”" />
+                  placeholder="A short note (optional), e.g. “Can you come this Saturday? Two units, Brgy. Lalud.”" />
                 <button type="submit" className="btn btn-navy tp-wide" disabled={busy || !jobId || data.enabled === false}><IconSend size={14} /> Send invitation</button>
               </form>
             )}

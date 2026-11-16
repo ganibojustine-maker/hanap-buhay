@@ -64,7 +64,18 @@ $config['version']                 = '4.7.0';
 | -------------------------------------------------------------------
 | Values: development and production
 */
-$config['environment'] = getenv('APP_ENV') ?: 'development';
+$config['environment'] = getenv('APP_ENV') ?: 'production';   // secure by default: errors are only shown when APP_ENV=development
+
+/*
+|--------------------------------------------------------------------------
+| Platform settings (from the environment)
+|--------------------------------------------------------------------------
+| frontend_url  where links in emails and payment returns point (the React site)
+| cron_secret   the ?key= the scheduled reminder/payment check must send
+*/
+$config['app_name']     = trim((string) getenv('APP_NAME')) ?: 'hanapbuhay';
+$config['frontend_url'] = rtrim(trim((string) getenv('APP_FRONTEND_URL')) ?: 'http://localhost:5173', '/');
+$config['cron_secret']  = trim((string) getenv('CRON_SECRET'));
 
 /*
 |--------------------------------------------------------------------------

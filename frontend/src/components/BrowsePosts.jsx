@@ -13,6 +13,7 @@ import Dialog from './Dialog.jsx'
 import { IconPin, IconCheck, IconSearch, IconBriefcase, IconArrow } from './icons.jsx'
 import { CATEGORIES } from '../utils/categories.js'
 import { getJobImage } from '../utils/jobImages.js'
+import { recall, remember } from '../utils/lastSeen.js'
 import { peso, phDate } from '../utils/format.js'
 import '../styles/platform.css'
 
@@ -36,7 +37,8 @@ export default function BrowsePosts() {
   const [town, setTown] = useState('')
   const [cat, setCat] = useState('')
   const [page, setPage] = useState(1)
-  const [data, setData] = useState(null)     // { jobs, total, failed }
+  // the plain first page (no filters) shows what this device saw last time while it loads
+  const [data, setData] = useState(() => recall('browse_first'))   // { jobs, total, failed }
   const [loadingMore, setLoadingMore] = useState(false)
   const [note, setNote] = useState('')
   const [gate, setGate] = useState(null)     // the post a signed-out visitor tried to open
@@ -51,12 +53,13 @@ export default function BrowsePosts() {
       if (page > 1) setLoadingMore(true)
       api(`/jobs?${qs}`)
         .then(r => {
+          if (page === 1 && !q && !type && !town && !cat) remember('browse_first', { jobs: r.jobs || [], total: r.total || 0 })
           if (!alive) return
           setData(prev => page > 1 && prev && !prev.failed
             ? { ...r, jobs: [...prev.jobs, ...(r.jobs || []).filter(j => !prev.jobs.some(p => p.id === j.id))] }
             : r)
         })
-        .catch(() => { if (alive && page === 1) setData({ jobs: [], total: 0, failed: true }) })
+        .catch(() => { if (alive && page === 1) setData(prev => (prev?.jobs?.length && !q && !type && !town && !cat ? prev : { jobs: [], total: 0, failed: true })) })
         .finally(() => { if (alive) setLoadingMore(false) })
     }, q && page === 1 ? 300 : 0)
     return () => { alive = false; clearTimeout(t) }

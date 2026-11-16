@@ -194,13 +194,13 @@ class SocialController extends Controller
         // 2. people I have a hiring history with, in either direction
         if ($isWorker) {
             $add($this->db->raw(
-                "SELECT DISTINCT {$cols} FROM applications a JOIN jobs j ON j.id = a.job_id JOIN users u ON u.id = j.employer_id
-                 WHERE a.worker_id = ? AND u.is_active = 1 ORDER BY a.created_at DESC LIMIT 20", [$uid]
+                "SELECT {$cols} FROM applications a JOIN jobs j ON j.id = a.job_id JOIN users u ON u.id = j.employer_id
+                 WHERE a.worker_id = ? AND u.is_active = 1 GROUP BY u.id ORDER BY MAX(a.created_at) DESC LIMIT 20", [$uid]
             )->fetchAll(PDO::FETCH_ASSOC) ?: [], 'You applied here');
         } else {
             $add($this->db->raw(
-                "SELECT DISTINCT {$cols} FROM applications a JOIN jobs j ON j.id = a.job_id JOIN users u ON u.id = a.worker_id
-                 WHERE j.employer_id = ? AND a.status <> 'withdrawn' AND u.is_active = 1 ORDER BY a.created_at DESC LIMIT 25", [$uid]
+                "SELECT {$cols} FROM applications a JOIN jobs j ON j.id = a.job_id JOIN users u ON u.id = a.worker_id
+                 WHERE j.employer_id = ? AND a.status <> 'withdrawn' AND u.is_active = 1 GROUP BY u.id ORDER BY MAX(a.created_at) DESC LIMIT 25", [$uid]
             )->fetchAll(PDO::FETCH_ASSOC) ?: [], 'Applied to your job');
         }
 

@@ -1,4 +1,6 @@
 // Dashboard worker pages (split out of Dashboard.jsx so each role downloads only its own code).
+import { FreelanceStrip } from './worker/WorkerGigs.jsx'
+import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { barangaysOf } from '../../data/barangays.js'
 import { EDUCATION } from '../../utils/categories.js'
@@ -7,8 +9,8 @@ import { peso, phDate, phDateTime } from '../../utils/format.js'
 import '../../styles/platform.css'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../api.js'
-import { IconUser, IconBriefcase, IconShield, IconFile, IconBook, IconPin, IconMail, IconCheck, IconSpark, IconSearch, IconPlus, IconX, IconClock, IconArrow, IconCalendar, IconStar, IconPhone, IconWrench, IconBookmark, IconEye } from '../../components/icons.jsx'
-import { TYPES, TOWNS } from '../../components/art.jsx'
+import { IconUser, IconBriefcase, IconShield, IconFile, IconPin, IconMail, IconCheck, IconSpark, IconSearch, IconPlus, IconX, IconClock, IconArrow, IconCalendar, IconStar, IconPhone, IconWrench, IconBookmark, IconEye } from '../../components/icons.jsx'
+import { TOWNS } from '../../components/art.jsx'
 import ImageCropModal from '../../components/ImageCropModal.jsx'
 import { getJobImage, getCourseImage } from '../../utils/jobImages.js'
 import { FeaturedJobCard, useSavedJobs } from '../../components/JobCard.jsx'
@@ -701,6 +703,12 @@ export function MyApplications({ call }) {
     if (filter === 'for_interview') return a.status === 'for_interview' || a.status === 'interviewed'
     return a.status === filter
   })
+  const pg = usePaged(filtered, { sorts: {
+    new: ['Newest first', SORT.date('created_at')],
+    old: ['Oldest first', (a, b) => -SORT.date('created_at')(a, b)],
+    match: ['Highest match', SORT.num('match_score')],
+    title: ['Job title (A–Z)', SORT.text('job_title')],
+  } })
 
   return (
     <div className="page-inner">
@@ -750,8 +758,10 @@ export function MyApplications({ call }) {
               </p>
               <Link to="/dashboard/browse" className="btn btn-navy">{tr("Browse Jobs")} <IconArrow /></Link>
             </div>
-          : <div style={{ display: 'grid', gap: 14 }}>
-              {filtered.map(a => (
+          : <>
+            <ListTools pg={pg} noun={tr('application')} plural={tr('applications')} />
+            <div style={{ display: 'grid', gap: 14 }}>
+              {pg.items.map(a => (
                 <div key={a.id} className="panel" style={{ borderLeft: a.status === 'for_interview' ? '4px solid #7c3aed' : a.status === 'hired' ? '4px solid #10b981' : a.status === 'shortlisted' ? '4px solid #3b82f6' : a.status === 'rejected' ? '4px solid #ef4444' : a.status === 'withdrawn' ? '4px solid #cbd5e1' : '4px solid #f59e0b', opacity: a.status === 'withdrawn' ? 0.8 : 1 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                     <Link to={`/dashboard/browse/${a.job_id}`} className="ap-thumb" aria-hidden="true" tabIndex={-1}>
@@ -819,6 +829,8 @@ export function MyApplications({ call }) {
                 </div>
               ))}
             </div>
+            <Pager pg={pg} />
+          </>
       }
     </div>
   )
@@ -1066,6 +1078,7 @@ export function WorkerProfile({ user, call, tokens, updateUser }) {
 
       {/* the other half of a profile: what employers and other workers see about you */}
       <ReputationStrip call={call} user={user} />
+      <FreelanceStrip call={call} user={user} />
 
       {/* ─── Resume Upload Banner ──────────────────────────────── */}
       <div className="panel rise" style={{
@@ -1414,7 +1427,6 @@ export function WorkerProfile({ user, call, tokens, updateUser }) {
   )
 }
 
-
 /* ─ One match: the job, its photo, and the skills behind the score ─
    No training links here: closing a gap is a decision made on the job's own page,
    where the match analysis explains it. A list is for choosing which job to open. */
@@ -1471,6 +1483,13 @@ export function JobMatches({ call, user }) {
   const featured = all.filter(j => Number(j.is_featured) === 1)
   const list = filter === 'strong' ? strong : filter === 'near' ? near : filter === 'featured' ? featured : all
   const summary = data?.summary || {}
+  const pay = j => Number(j.salary_max || j.salary_min || 0)
+  const pg = usePaged(list, { perPage: 12, sorts: {
+    match: [tr('Best match first'), (a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0)],
+    near: [tr('Nearest first'), (a, b) => (a.match?.distance_km ?? 9999) - (b.match?.distance_km ?? 9999)],
+    pay: [tr('Highest pay'), (a, b) => pay(b) - pay(a)],
+    new: [tr('Newest first'), SORT.date('created_at')],
+  } })
 
   const FILTERS = [
     ['all', tr('All'), all.length],
@@ -1512,8 +1531,9 @@ export function JobMatches({ call, user }) {
                 </button>
               ))}
             </div>
-            <span className="mc-sort">{tr('Best match first')}{summary.town ? ` · ${tr('near {town}', { town: summary.town })}` : ''}</span>
+            {summary.town && <span className="mc-sort">{tr('near {town}', { town: summary.town })}</span>}
           </div>
+          {list.length > 0 && <ListTools pg={pg} noun={tr('job')} plural={tr('jobs')} perPageOptions={[12, 24, 48]} />}
 
           {list.length === 0 ? (
             <div className="panel" style={{ textAlign: 'center', padding: '40px 16px' }}>
@@ -1521,8 +1541,9 @@ export function JobMatches({ call, user }) {
               <Link to="/dashboard/browse" className="btn btn-navy">{tr("Search all jobs")}</Link>
             </div>
           ) : (
+            <>
             <div className="jc-grid">
-              {list.map(j => (
+              {pg.items.map(j => (
                 <FeaturedJobCard key={j.id} job={j} detailsTo={`/dashboard/browse/${j.id}`}
                   saved={saved.isSaved(j.id)} onToggleSave={saved.toggle}
                   onApply={setApplyJob} busy={applying === j.id}
@@ -1531,6 +1552,8 @@ export function JobMatches({ call, user }) {
                 </FeaturedJobCard>
               ))}
             </div>
+            <Pager pg={pg} />
+            </>
           )}
         </>
       )}

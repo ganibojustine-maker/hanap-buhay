@@ -1,21 +1,30 @@
-// Dashboard messages pages (split out of Dashboard.jsx so each role downloads only its own code).
+/**
+ * ChatPage: the chat screen every role uses (Firebase Realtime Database).
+ *
+ * Each role still has its own page and route (WorkerMessages, EmployerMessages,
+ * ClientMessages, AdminMessages in this folder): they pass the help text for that role,
+ * and the dashboard mounts them with key={user.id}, so signing out and in as someone
+ * else never shows the last person's chats.
+ *
+ *   texts = { start, empty, pick }   the three sentences that differ per role
+ */
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { IconMsgCircle, IconX, IconEdit, IconSend, IconSearch, IconUsers, IconBack, IconCheck } from '../../components/icons.jsx'
-import BrandLoader from '../../components/BrandLoader.jsx'
-import UserAvatar from '../../components/Avatar.jsx'
-import { db, firebaseConfigured, ensureFirebaseAuth } from '../../firebase.js'
+import { IconMsgCircle, IconX, IconEdit, IconSend, IconSearch, IconUsers, IconBack, IconCheck } from '../../../components/icons.jsx'
+import BrandLoader from '../../../components/BrandLoader.jsx'
+import UserAvatar from '../../../components/Avatar.jsx'
+import { db, firebaseConfigured, ensureFirebaseAuth } from '../../../firebase.js'
 import { ref as dbRef, push, onValue, query, orderByChild, limitToLast, set, update, increment } from 'firebase/database'
-import { tr } from '../../lang/dash.js'
+import { tr } from '../../../lang/dash.js'
 
 /* ─ Messages page ───────────────────────────────────────── */
 // Helper: stable thread key from two user IDs (always same order)
-export function threadKey(a, b) { return [Number(a), Number(b)].sort((x,y) => x-y).join('_') }
+function threadKey(a, b) { return [Number(a), Number(b)].sort((x,y) => x-y).join('_') }
 
 const ROLE_LABEL = { worker: 'Worker', employer: 'Employer', hirer: 'Client' }
 
-export function Messages({ call, user }) {
+export default function ChatPage({ call, user, texts }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const toUserId = searchParams.get('to') || searchParams.get('userId')
   const [rawThreads, setRawThreads] = useState([])
@@ -260,7 +269,7 @@ export function Messages({ call, user }) {
                     <div className="msg-blank">
                       <IconMsgCircle size={36} />
                       <p className="msg-blank-h">{tr('No conversations yet')}</p>
-                      <p className="msg-blank-p">{tr('Message employers you applied to, workers who applied to you, or anyone you are connected with.')}</p>
+                      <p className="msg-blank-p">{tr(texts.start)}</p>
                       {contacts.length > 0 && (
                         <div className="msg-blank-list">
                           {contacts.slice(0, 5).map(c => (
@@ -318,7 +327,7 @@ export function Messages({ call, user }) {
                     <div className="msg-blank">
                       <IconUsers size={34} />
                       <p className="msg-blank-h">{search.trim() ? tr('No one found') : tr('No suggestions yet')}</p>
-                      <p className="msg-blank-p">{search.trim() ? tr('Check the spelling, or search by town.') : tr('Apply to jobs or follow people, and they will show up here.')}</p>
+                      <p className="msg-blank-p">{search.trim() ? tr('Check the spelling, or search by town.') : tr(texts.empty)}</p>
                     </div>
                   )
                   : groups.map(g => (
@@ -347,7 +356,7 @@ export function Messages({ call, user }) {
             <div className="msg-empty">
               <span className="msg-empty-ic"><IconMsgCircle size={30} /></span>
               <h3>{tr('Your messages')}</h3>
-              <p>{tr('Pick a conversation, or start a new one with an employer, a worker, or someone you are connected with.')}</p>
+              <p>{tr(texts.pick)}</p>
               <button type="button" className="btn btn-primary" onClick={() => setSearching(true)}>
                 <IconEdit size={14} /> {tr('New message')}
               </button>

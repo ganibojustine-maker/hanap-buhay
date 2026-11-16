@@ -12,6 +12,7 @@
  * plan (once per worker; free on unlimited plans), or straight away when the worker has
  * already applied to one of your jobs.
  */
+import { Pager } from '../../components/Pager.jsx'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import UserAvatar from '../../components/Avatar.jsx'
@@ -204,11 +205,7 @@ export function FindWorkers({ call }) {
               </div>
             )}
             {data.pages > 1 && (
-              <nav className="tl-pager" aria-label="Pages">
-                <button type="button" className="btn btn-light btn-sm" disabled={page <= 1 || busy} onClick={() => load(page - 1)}>← Prev</button>
-                <span>Page {page} of {data.pages}</span>
-                <button type="button" className="btn btn-light btn-sm" disabled={page >= data.pages || busy} onClick={() => load(page + 1)}>Next →</button>
-              </nav>
+              <Pager pg={{ page, pages: data.pages, total: data.total || 0, perPage: data.per_page || 20, setPage: n => { if (!busy) { load(n); window.scrollTo({ top: 0, behavior: 'smooth' }) } } }} label="Worker search pages" />
             )}
           </>
         )}

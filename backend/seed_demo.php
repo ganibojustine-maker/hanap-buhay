@@ -22,6 +22,7 @@
  *   and the matching plan timeline.
  */
 
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }   // command line only
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile)) {
     foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {

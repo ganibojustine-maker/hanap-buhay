@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react'
-import { IconGlobe, IconCheck, IconChevron } from './components/icons.jsx'
+import { IconCheck, IconChevron } from './components/icons.jsx'
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', native: 'English', flag: '🇺🇸', short: 'EN' },

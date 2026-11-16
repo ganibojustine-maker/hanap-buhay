@@ -60,7 +60,7 @@ class Sms
         if (stripos($text, 'test') === 0) $text = 'hanapbuhay: ' . $text; // Semaphore silently drops texts starting with "TEST"
         if (strlen($text) > self::SEGMENT * 2) $text = substr($text, 0, self::SEGMENT * 2 - 3) . '...';
 
-        $key = trim(self::env('SEMAPHORE_API_KEY'));
+        $key = (string) config_item('semaphore_api_key');
         if ($key === '') {
             self::log($to, $text, 'Logged (SEMAPHORE_API_KEY not set)');
             return ['success' => true, 'mode' => 'logged'];
@@ -71,7 +71,7 @@ class Sms
         }
 
         $fields = ['apikey' => $key, 'number' => $to, 'message' => $text];
-        $sender = trim(self::env('SEMAPHORE_SENDER_NAME'));
+        $sender = (string) config_item('semaphore_sender_name');
         if ($sender !== '') $fields['sendername'] = $sender;
 
         $ch = curl_init(self::URL);
@@ -107,7 +107,7 @@ class Sms
     /** Counts today's texts in runtime/cache; false once SMS_DAILY_CAP is reached. */
     private static function take_daily_slot(): bool
     {
-        $cap = (int) (self::env('SMS_DAILY_CAP') ?: 100);
+        $cap = (int) (config_item('sms_daily_cap') ?: 100);
         $dir = ROOT_DIR . 'runtime' . DIRECTORY_SEPARATOR . 'cache';
         if (!is_dir($dir)) @mkdir($dir, 0777, true);
         $fh = @fopen($dir . DIRECTORY_SEPARATOR . 'sms_count_' . date('Ymd') . '.txt', 'c+');
@@ -132,7 +132,7 @@ class Sms
     /** Same lookup as Mailer: Windows/Laragon PHP often has no CA bundle configured. */
     private static function ca_bundle(): ?string
     {
-        $override = trim(self::env('MAIL_CA_BUNDLE'));
+        $override = (string) config_item('mail_ca_bundle');
         if ($override !== '' && is_file($override)) return $override;
         if (ini_get('curl.cainfo') || ini_get('openssl.cafile')) return null;
         foreach ([ROOT_DIR . 'certs' . DIRECTORY_SEPARATOR . 'cacert.pem', 'C:\\laragon\\etc\\ssl\\cacert.pem', '/etc/ssl/certs/ca-certificates.crt'] as $p) {
@@ -141,10 +141,4 @@ class Sms
         return null;
     }
 
-    private static function env(string $key): string
-    {
-        $v = getenv($key);
-        if ($v !== false && $v !== '') return (string) $v;
-        return (string) ($_ENV[$key] ?? $_SERVER[$key] ?? '');
-    }
 }

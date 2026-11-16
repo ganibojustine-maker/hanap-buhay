@@ -3,40 +3,40 @@
  * Helpers for realistic photos across Hanapbuhay
  */
 
-export const DEFAULT_AVATAR = '/images/avatar.jpg'
-export const RECRUITER_AVATAR = '/images/maria.jpg'
+export const DEFAULT_AVATAR = '/images/avatar.webp'
+export const RECRUITER_AVATAR = '/images/maria.webp'
 
 export const ROLE_PHOTOS = {
-  construction: '/images/construction.jpg',
-  builder: '/images/construction.jpg',
-  helper: '/images/construction.jpg',
-  civil: '/images/civil_engineer.jpg',
-  engineer: '/images/civil_engineer.jpg',
-  electrician: '/images/electrician.jpg',
-  electrical: '/images/electrician.jpg',
-  welder: '/images/welder.jpg',
-  welding: '/images/welder.jpg',
-  food: '/images/service_crew.jpg',
-  service: '/images/service_crew.jpg',
-  crew: '/images/service_crew.jpg',
-  cashier: '/images/service_crew.jpg',
-  cook: '/images/food.jpg',
-  baker: '/images/food.jpg',
-  pastry: '/images/food.jpg',
-  designer: '/images/designer.jpg',
-  graphic: '/images/designer.jpg',
-  it: '/images/computer.jpg',
-  tech: '/images/computer.jpg',
-  computer: '/images/computer.jpg',
-  mechanic: '/images/mechanic.jpg',
-  automotive: '/images/mechanic.jpg',
-  caregiver: '/images/caregiver.jpg',
-  nurse: '/images/caregiver.jpg',
-  health: '/images/caregiver.jpg',
-  farm: '/images/agriculture.jpg',
-  agriculture: '/images/agriculture.jpg',
-  warehouse: '/images/construction.jpg',
-  driver: '/images/mechanic.jpg',
+  construction: '/images/construction.webp',
+  builder: '/images/construction.webp',
+  helper: '/images/construction.webp',
+  civil: '/images/civil_engineer.webp',
+  engineer: '/images/civil_engineer.webp',
+  electrician: '/images/electrician.webp',
+  electrical: '/images/electrician.webp',
+  welder: '/images/welder.webp',
+  welding: '/images/welder.webp',
+  food: '/images/service_crew.webp',
+  service: '/images/service_crew.webp',
+  crew: '/images/service_crew.webp',
+  cashier: '/images/service_crew.webp',
+  cook: '/images/food.webp',
+  baker: '/images/food.webp',
+  pastry: '/images/food.webp',
+  designer: '/images/designer.webp',
+  graphic: '/images/designer.webp',
+  it: '/images/computer.webp',
+  tech: '/images/computer.webp',
+  computer: '/images/computer.webp',
+  mechanic: '/images/mechanic.webp',
+  automotive: '/images/mechanic.webp',
+  caregiver: '/images/caregiver.webp',
+  nurse: '/images/caregiver.webp',
+  health: '/images/caregiver.webp',
+  farm: '/images/agriculture.webp',
+  agriculture: '/images/agriculture.webp',
+  warehouse: '/images/construction.webp',
+  driver: '/images/mechanic.webp',
 }
 
 /**
@@ -53,12 +53,12 @@ export function getJobImage(job = {}) {
   }
   // Fallbacks by ID or default
   const fallbackList = [
-    '/images/construction.jpg',
-    '/images/service_crew.jpg',
-    '/images/electrician.jpg',
-    '/images/welder.jpg',
-    '/images/designer.jpg',
-    '/images/civil_engineer.jpg',
+    '/images/construction.webp',
+    '/images/service_crew.webp',
+    '/images/electrician.webp',
+    '/images/welder.webp',
+    '/images/designer.webp',
+    '/images/civil_engineer.webp',
   ]
   const id = typeof job.id === 'number' ? job.id : (job.title?.length || 0)
   return fallbackList[id % fallbackList.length]
@@ -69,39 +69,39 @@ export function getJobImage(job = {}) {
  */
 export const COURSE_PHOTOS = {
   // more specific words first: the first match wins
-  beverage: '/images/fnb.jpg',
-  barista: '/images/fnb.jpg',
-  bartending: '/images/fnb.jpg',
-  events: '/images/service_crew.jpg',
-  housekeeping: '/images/service_crew.jpg',
-  'front office': '/images/service_crew.jpg',
-  cookery: '/images/food.jpg',
-  electronic: '/images/electrician.jpg',
-  masonry: '/images/construction.jpg',
-  carpentry: '/images/construction.jpg',
-  'tile setting': '/images/construction.jpg',
-  plumbing: '/images/construction.jpg',
-  painting: '/images/construction.jpg',
-  'heavy equipment': '/images/construction.jpg',
-  driving: '/images/mechanic.jpg',
-  motorcycle: '/images/mechanic.jpg',
-  'animal production': '/images/agriculture.jpg',
-  crops: '/images/agriculture.jpg',
-  massage: '/images/caregiver.jpg',
-  dressmaking: '/images/designer.jpg',
-  'nail care': '/images/designer.jpg',
-  welding: '/images/welder.jpg',
-  computer: '/images/computer.jpg',
-  electrical: '/images/electrical-nc.jpg',
-  bread: '/images/food.jpg',
-  pastry: '/images/food.jpg',
-  food: '/images/food.jpg',
-  caregiving: '/images/caregiver.jpg',
-  health: '/images/caregiver.jpg',
-  agriculture: '/images/agriculture.jpg',
-  organic: '/images/agriculture.jpg',
-  automotive: '/images/mechanic.jpg',
-  mechanic: '/images/mechanic.jpg',
+  beverage: '/images/fnb.webp',
+  barista: '/images/fnb.webp',
+  bartending: '/images/fnb.webp',
+  events: '/images/service_crew.webp',
+  housekeeping: '/images/service_crew.webp',
+  'front office': '/images/service_crew.webp',
+  cookery: '/images/food.webp',
+  electronic: '/images/electrician.webp',
+  masonry: '/images/construction.webp',
+  carpentry: '/images/construction.webp',
+  'tile setting': '/images/construction.webp',
+  plumbing: '/images/construction.webp',
+  painting: '/images/construction.webp',
+  'heavy equipment': '/images/construction.webp',
+  driving: '/images/mechanic.webp',
+  motorcycle: '/images/mechanic.webp',
+  'animal production': '/images/agriculture.webp',
+  crops: '/images/agriculture.webp',
+  massage: '/images/caregiver.webp',
+  dressmaking: '/images/designer.webp',
+  'nail care': '/images/designer.webp',
+  welding: '/images/welder.webp',
+  computer: '/images/computer.webp',
+  electrical: '/images/electrical-nc.webp',
+  bread: '/images/food.webp',
+  pastry: '/images/food.webp',
+  food: '/images/food.webp',
+  caregiving: '/images/caregiver.webp',
+  health: '/images/caregiver.webp',
+  agriculture: '/images/agriculture.webp',
+  organic: '/images/agriculture.webp',
+  automotive: '/images/mechanic.webp',
+  mechanic: '/images/mechanic.webp',
 }
 
 export function getCourseImage(course = {}) {
@@ -109,5 +109,5 @@ export function getCourseImage(course = {}) {
   for (const [key, path] of Object.entries(COURSE_PHOTOS)) {
     if (text.includes(key)) return path
   }
-  return '/images/computer.jpg'
+  return '/images/computer.webp'
 }

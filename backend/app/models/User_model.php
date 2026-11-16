@@ -25,6 +25,12 @@ class User_model extends Model
         return $this->db->table($this->table)->where('id', $id)->get();
     }
 
+    /** Every active administrator (they are told about new disputes and reports). */
+    public function admins(): array
+    {
+        return $this->db->table($this->table)->select('id, full_name, email')->where('role', 'admin')->where('is_active', 1)->get_all() ?: [];
+    }
+
     public function find_by(string $column, $value)
     {
         return $this->db->table($this->table)->where($column, $value)->get();
@@ -70,8 +76,12 @@ class User_model extends Model
             });
         }
 
-        if ($role !== '' && $role !== 'all') {
-            $db->where('role', $role);
+        // "role" here is what the admin filters by: admin is a role, the rest are account types
+        if ($role === 'admin') {
+            $db->where('role', 'admin');
+        } elseif (in_array($role, ['worker', 'employer', 'hirer'], true)) {
+            $db->where('account_type', $role);
+            $db->where('role', '<>', 'admin');
         }
 
         if ($status === 'active') {

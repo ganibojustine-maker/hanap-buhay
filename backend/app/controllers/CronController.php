@@ -20,15 +20,13 @@ class CronController extends Controller
     public function reminders()
     {
         $this->api->require_method('GET');
-        $secret = (string) (getenv('CRON_SECRET') ?: '');
+        $secret = (string) config_item('cron_secret');
         $key = (string) ($_GET['key'] ?? ($_SERVER['HTTP_X_CRON_KEY'] ?? ''));
         if (strlen($secret) < 16 || !hash_equals($secret, $key)) $this->api->respond_error('Not found.', 404);
 
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Reminders.php';
         $out = ['success' => true] + \Reminders::run(true);
         // the same pinger keeps payments right: PayMongo does not resend webhooks it could not
         // deliver, so pending payments are re-checked here; plans past their date end here too
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Payments.php';
         if (\Payments::ready()) {
             $p = new \Payments();
             $out['payments'] = $p->reconcile(null, 50) + $p->run_lifecycle();

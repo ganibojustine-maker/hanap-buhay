@@ -4,6 +4,7 @@ import { useAuth } from './auth.jsx'
 import Landing from './pages/Landing.jsx'
 import AppUpdate from './components/AppUpdate.jsx'
 import TopProgress from './components/TopProgress.jsx'
+import SlowNotice from './components/SlowNotice.jsx'
 import PageErrorBoundary from './components/PageErrorBoundary.jsx'
 import DataNotice from './components/DataNotice.jsx'
 
@@ -103,6 +104,7 @@ export default function App() {
     <>
     <AppUpdate />
     <TopProgress />
+    <SlowNotice />
     {!pathname.startsWith('/dashboard') && <DataNotice />}
     {/* keyed by the first path segment: going to another section clears an earlier error */}
     <PageErrorBoundary key={pathname.split('/')[1]}>

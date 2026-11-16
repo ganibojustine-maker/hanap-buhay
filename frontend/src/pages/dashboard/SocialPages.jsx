@@ -9,19 +9,18 @@
  * (employer_reviews) and the employer rates the worker (worker_reviews). Both averages
  * show on the profile, so credibility is built by actually working, not by claiming.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import BrandLoader from '../../components/BrandLoader.jsx'
 import WorkPhotos from '../../components/WorkPhotos.jsx'
+import ServiceCard from '../../components/ServiceCard.jsx'
+import '../../styles/platform.css'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import UserAvatar from '../../components/Avatar.jsx'
-import {
-  IconUsers, IconCheck, IconPlus, IconMsgCircle, IconPin, IconShield, IconStar,
-  IconBriefcase, IconSearch, IconArrow, IconX, IconBook,
-} from '../../components/icons.jsx'
+import { IconUsers, IconCheck, IconPlus, IconMsgCircle, IconPin, IconShield, IconBriefcase, IconSearch, IconArrow, IconX } from '../../components/icons.jsx'
 import { StarRow } from '../jobs/JobView.jsx'
 import { fmtSalary, timeAgo } from '../../components/JobCard.jsx'
 import { tr } from '../../lang/dash.js'
-import { fileUrl } from '../../api.js'
+
 import '../../styles/social.css'
 
 const ROLE_LABEL = { worker: 'Worker', employer: 'Employer', hirer: 'Client' }
@@ -181,6 +180,7 @@ export function PublicProfile({ call, user }) {
   const nav = useNavigate()
   const [p, setP] = useState(null)
   const [portfolio, setPortfolio] = useState([])
+  const [services, setServices] = useState([])
   const [error, setError] = useState('')
 
   const load = useCallback(() => {
@@ -188,6 +188,7 @@ export function PublicProfile({ call, user }) {
       .then(r => setP(r.profile))
       .catch(e => setError(e?.message || tr('Profile not found.')))
     call(`/portfolio/user/${id}`).then(r => setPortfolio(r.items || [])).catch(() => {})
+    call(`/services?worker=${id}`).then(r => setServices(r.services || [])).catch(() => {})
   }, [call, id])
   useEffect(() => { load() }, [load])
 
@@ -263,6 +264,15 @@ export function PublicProfile({ call, user }) {
         </section>
       )}
 
+      {isWorker && services.length > 0 && (
+        <section className="panel">
+          <h2 style={{ fontSize: 17, margin: '0 0 12px' }}>{tr('Services')} ({services.length})</h2>
+          <div className="pf-post-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+            {services.map(s => <ServiceCard key={s.id} s={s} showWorker={false}
+              to={user?.account_type === 'hirer' ? `/dashboard/talent/services/${s.id}` : Number(user?.id) === Number(s.worker_id) ? `/dashboard/gigs/services/${s.id}` : '#'} />)}
+          </div>
+        </section>
+      )}
       {isWorker && <WorkPhotos items={portfolio} title={tr('Work photos')} />}
 
       {/* employer: open jobs */}

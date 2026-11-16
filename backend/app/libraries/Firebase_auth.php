@@ -15,16 +15,10 @@ class Firebase_auth
 {
     private const AUDIENCE = 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit';
 
-    private static function env(string $key): string
-    {
-        $v = getenv($key);
-        if ($v === false || $v === '') $v = $_ENV[$key] ?? $_SERVER[$key] ?? '';
-        return trim((string) $v);
-    }
 
     public static function is_configured(): bool
     {
-        return self::env('FIREBASE_CLIENT_EMAIL') !== '' && self::env('FIREBASE_PRIVATE_KEY') !== '';
+        return (string) config_item('firebase_client_email') !== '' && (string) config_item('firebase_private_key') !== '';
     }
 
     private static function b64url(string $raw): string
@@ -37,8 +31,8 @@ class Firebase_auth
     {
         if (!self::is_configured()) return null;
 
-        $email = self::env('FIREBASE_CLIENT_EMAIL');
-        $key   = str_replace('\\n', "\n", self::env('FIREBASE_PRIVATE_KEY'));
+        $email = (string) config_item('firebase_client_email');
+        $key   = str_replace('\\n', "\n", (string) config_item('firebase_private_key'));
         $now   = time();
 
         $header  = ['alg' => 'RS256', 'typ' => 'JWT'];

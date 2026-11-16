@@ -15,12 +15,11 @@ import { paySuffix, PAY_LABEL, neededBy } from '../../components/JobCard.jsx'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth.jsx'
 import { api } from '../../api.js'
-import {
-  IconPin, IconBriefcase, IconClock, IconCheck, IconAlert, IconSend, IconBuilding,
-  IconCalendar, IconUsers, IconShield, IconBook, IconArrow, IconStar, IconBookmark, IconMsgCircle, IconBack, IconX,
-} from '../../components/icons.jsx'
+import { IconPin, IconBriefcase, IconClock, IconCheck, IconAlert, IconSend, IconBuilding, IconCalendar, IconUsers, IconShield, IconArrow, IconStar, IconBookmark, IconMsgCircle, IconBack, IconX } from '../../components/icons.jsx'
 import UserAvatar from '../../components/Avatar.jsx'
 import { getJobImage } from '../../utils/jobImages.js'
+import Gallery from '../../components/Gallery.jsx'
+import { apiUrl } from '../../utils/photos.js'
 import { coursesForSkill } from '../../utils/tesdaCourses.js'
 import EnrollLink from '../../components/EnrollLink.jsx'
 import CertificateUpload from '../../components/CertificateUpload.jsx'
@@ -311,7 +310,9 @@ export default function JobView({ embedded = false, basePath = '/jobs' }) {
         <div className="jv-main">
           {/* header */}
           <section className="jv-card jv-head">
-            {Number(j.image_v) > 0 && (
+            {(j.photos || []).length > 1 ? (
+              <div className="jv-gallery"><Gallery photos={j.photos.map(p => apiUrl(p.url))} alt={`Photo for ${j.title}`} ratio="16 / 8" /></div>
+            ) : Number(j.image_v) > 0 && (
               <div className="jv-cover"><img src={getJobImage(j)} alt={`Photo for ${j.title}`} /></div>
             )}
             <div className="jv-head-top">

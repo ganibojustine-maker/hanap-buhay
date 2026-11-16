@@ -58,9 +58,6 @@ class VerificationController extends Controller
         $this->call->model('User_model', 'user_model');
         $this->call->model('Skill_model', 'skill_model');
         $this->call->model('Application_model', 'application_model');
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Sms.php';
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Job_matcher.php';
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Verification_log.php';
     }
 
     private function me(): array
@@ -115,7 +112,8 @@ class VerificationController extends Controller
         $items[] = ['key' => 'phone', 'label' => 'Confirm your mobile number', 'done' => !empty($u['phone_verified_at']), 'auto' => true,
             'help' => 'We text a 6-digit code to your number.'];
         if ($type === 'worker') {
-            $missing = (new Job_matcher())->missing_profile($u, $this->skill_model->get_skills_for_matching((int) $u['id']));
+            $this->call->library('job_matcher');
+            $missing = $this->job_matcher->missing_profile($u, $this->skill_model->get_skills_for_matching((int) $u['id']));
             $items[] = ['key' => 'profile', 'label' => 'Complete your profile and Skills Passport', 'done' => !$missing, 'auto' => true,
                 'help' => $missing ? 'Still needed: ' . implode(', ', array_column($missing, 'label')) . '.' : 'Name, mobile number, town, education, experience and at least one skill.'];
         } else {

@@ -117,13 +117,8 @@ class Application_model extends Model
             if ($user && !empty($user['email'])) {
                 $email_to = $user['email'];
                 $recipient_name = $user['full_name'] ?? $user['username'] ?? 'hanapbuhay User';
-                $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
+                $frontend_url = (string) config_item('frontend_url');
                 $full_link = !empty($link) ? (str_starts_with($link, 'http') ? $link : ($frontend_url . '/' . ltrim($link, '/'))) : '';
-
-                $mailer_file = APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Mailer.php';
-                if (file_exists($mailer_file)) {
-                    require_once $mailer_file;
-                }
 
                 if (class_exists('Mailer')) {
                     $email_html = \Mailer::render_notification_template($recipient_name, $type, $title, $body, $full_link);

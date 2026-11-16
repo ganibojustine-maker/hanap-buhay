@@ -9,6 +9,7 @@
  * Job Matches page uses, so the percentage on a card here is the same number the
  * employer sees on their application. Jobs in their own town come first.
  */
+import { Pager } from '../../components/Pager.jsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth.jsx'
@@ -219,11 +220,7 @@ export default function JobSearch({ embedded = false, basePath = '/jobs' }) {
           )}
 
       {pages > 1 && !loading && (
-        <nav className="jb-pager" aria-label="Pages">
-          <button type="button" className="btn btn-light btn-sm" disabled={page <= 1} onClick={() => load(page - 1)}>← Prev</button>
-          <span className="jb-page">Page {page} of {pages}</span>
-          <button type="button" className="btn btn-light btn-sm" disabled={page >= pages} onClick={() => load(page + 1)}>Next →</button>
-        </nav>
+        <Pager pg={{ page, pages, total: res?.total || 0, perPage: PER_PAGE, setPage: n => { load(n); window.scrollTo({ top: 0, behavior: 'smooth' }) } }} label="Job search pages" />
       )}
 
       {!user && !loading && jobs.length > 0 && (

@@ -70,7 +70,6 @@ export const IconUsers    = (p) => <Icon {...p}><circle cx="9" cy="8" r="3.5"/><
 export const IconFile     = (p) => <Icon {...p}><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></Icon>
 export const IconSpark    = (p) => <Icon {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></Icon>
 export const IconSearch   = (p) => <Icon {...p}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></Icon>
-export const IconFilter   = (p) => <Icon {...p}><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></Icon>
 export const IconMap      = (p) => <Icon {...p}><path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15M15 6v15"/></Icon>
 export const IconStar     = (p) => <Icon {...p}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></Icon>
 export const IconBell     = (p) => <Icon {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Icon>

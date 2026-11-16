@@ -9,7 +9,6 @@ const parse = s => (s instanceof Date ? s : new Date(String(s).replace(' ', 'T')
 
 export const phDate = s => (s ? parse(s).toLocaleDateString('en-PH', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' }) : '')
 export const phDateTime = s => (s ? parse(s).toLocaleString('en-PH', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')
-export const phLongDate = s => (s ? parse(s).toLocaleDateString('en-PH', { timeZone: TZ, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '')
 
 /** "09171234567" → "0917 123 4567" */
 export const phPhone = p => {

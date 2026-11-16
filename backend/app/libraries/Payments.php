@@ -50,9 +50,9 @@ class Payments
         $lava->call->database();
         $lava->call->model('Subscription_model', 'subscription_model');
         $lava->call->model('Application_model', 'application_model');
-        require_once __DIR__ . DIRECTORY_SEPARATOR . 'Paymongo.php';
+        $lava->call->library('paymongo');
         $this->db = $lava->db;
-        $this->paymongo = new Paymongo();
+        $this->paymongo = $lava->paymongo;
         $this->subs = $lava->subscription_model;
         $this->notify = $lava->application_model;
     }
@@ -135,7 +135,7 @@ class Payments
 
         $change = $this->change_type($user, $plan);
         $ref = 'HB-' . date('ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
-        $front = rtrim(Paymongo::get_env('APP_FRONTEND_URL', 'http://localhost:5173'), '/');
+        $front = (string) config_item('frontend_url');
         $who = ($user['account_type'] ?? '') === 'hirer' ? 'Service Buyer Pass' : 'Employer plan';
 
         $res = $this->paymongo->create_checkout_session([

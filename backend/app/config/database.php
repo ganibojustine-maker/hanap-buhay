@@ -66,6 +66,8 @@ $database['main'] = array(
     'database'	=> getenv('DB_NAME') ?: '',
     'charset'	=> getenv('DB_CHARSET') ?: '',
     'dbprefix'	=> getenv('DB_PREFIX') ?: '',
+    // reuse the connection between requests (no new TLS handshake to the database each time)
+    'persistent' => filter_var(getenv('DB_PERSISTENT') ?: 'true', FILTER_VALIDATE_BOOLEAN),
     // Optional for SQLite
     'path'      => ''
 );

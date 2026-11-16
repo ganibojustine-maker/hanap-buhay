@@ -104,7 +104,3 @@ export const NC_TO_LEVEL = { I: 'beginner', II: 'intermediate', III: 'advanced',
  * What to show under a dropdown once something is chosen. Falls back to a prompt,
  * so the help text is never an empty gap in the layout.
  */
-export function hintFor(list, id, prompt) {
-  const found = byId(list, id)
-  return found ? found.desc : prompt
-}

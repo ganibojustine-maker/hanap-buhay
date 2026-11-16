@@ -26,8 +26,8 @@ class HealthController extends Controller
         $this->api->respond([
             'success'  => true,
             'data'     => [
-                'app'      => getenv('APP_NAME') ?: 'HANAPBUHAY',
-                'env'      => getenv('APP_ENV') ?: 'production',
+                'app'      => config_item('app_name') ?: 'hanapbuhay',
+                'env'      => config_item('environment'),
                 'database' => $db_ok ? 'connected' : 'unavailable',
                 'time'     => gmdate('c'),
             ],

@@ -88,6 +88,7 @@ const supportPages = () => import('./dashboard/Support.jsx')
 const HelpSupport        = pick(supportPages, 'HelpSupport')
 const AdminSupport       = pick(supportPages, 'AdminSupport')
 const ResumeBuilder      = lazy(() => import('./ResumeBuilder.jsx'))
+const ServiceDetail      = lazy(() => import('./dashboard/ServiceDetail.jsx'))
 
 // The public pages, rendered inside this shell. They are the same components /jobs,
 // /jobs/:id, /map and /training use — only the chrome differs — so moving between the
@@ -434,9 +435,12 @@ function Topbar({ user, onToggleSidebar, call, onSupportCount }) {
               {/* Body */}
               <div style={{ flex: 1, overflowY: 'auto', padding: 20, background: '#f8fafc' }}>
                 {activeEmail.email_html ? (
-                  <div
-                    dangerouslySetInnerHTML={{ __html: activeEmail.email_html }}
-                    style={{ borderRadius: 8, overflow: 'hidden' }}
+                  // a sandboxed frame: the email is shown exactly as sent, and nothing in it can run
+                  <iframe
+                    title={activeEmail.title || 'Email'}
+                    sandbox=""
+                    srcDoc={activeEmail.email_html}
+                    style={{ width: '100%', minHeight: 520, border: 0, borderRadius: 8, background: '#fff' }}
                   />
                 ) : (
                   <div className="panel" style={{ padding: 24, background: '#fff' }}>
@@ -1024,6 +1028,7 @@ export default function Dashboard() {
               <Route path="gigs/contracts"    element={<WorkerContracts call={call} />} />
               <Route path="gigs/contracts/:id" element={<WorkerContract call={call} />} />
               <Route path="gigs/services"     element={<WorkerServices call={call} user={user} />} />
+              <Route path="gigs/services/:id" element={<ServiceDetail call={call} role="worker" />} />
               <Route path="verification"      element={<WorkerVerification call={call} user={user} updateUser={updateUser} />} />
             </>
           )}
@@ -1040,6 +1045,7 @@ export default function Dashboard() {
               <Route path="contracts/:id"      element={<ClientContract call={call} />} />
               <Route path="talent"             element={<ClientFindWorkers call={call} />} />
               <Route path="talent/services"    element={<ClientServices call={call} />} />
+              <Route path="talent/services/:id" element={<ServiceDetail call={call} role="hirer" />} />
               <Route path="talent/saved"       element={<ClientSavedWorkers call={call} />} />
               <Route path="talent/:id"         element={<ClientTalentProfile call={call} />} />
               <Route path="client/messages"    element={<ClientMessages key={user.id} call={call} user={user} />} />

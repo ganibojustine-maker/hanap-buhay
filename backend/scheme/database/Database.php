@@ -267,6 +267,9 @@ class Database {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         );
+        if (!empty($database_config['persistent'])) {
+            $options[PDO::ATTR_PERSISTENT] = true;   // keep the connection open between requests
+        }
 
         // SSL for managed MySQL (Aiven requires it). Enable with DB_SSL=true.
         // DB_SSL_CA = path to the CA file (relative to project root or absolute).

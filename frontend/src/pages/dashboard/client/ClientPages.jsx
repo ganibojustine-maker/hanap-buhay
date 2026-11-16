@@ -16,12 +16,17 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import BrandLoader from '../../../components/BrandLoader.jsx'
 import Dialog from '../../../components/Dialog.jsx'
 import UserAvatar from '../../../components/Avatar.jsx'
-import { IconBriefcase, IconPlus, IconCheck, IconX, IconEdit, IconTrash, IconMsgCircle, IconStar, IconAlert, IconClock, IconFile, IconSearch, IconBadge, IconPin, IconArrow, IconEye } from '../../../components/icons.jsx'
+import { IconBriefcase, IconPlus, IconCheck, IconX, IconEdit, IconTrash, IconMsgCircle, IconStar, IconAlert, IconClock, IconFile, IconSearch, IconBadge, IconArrow, IconEye } from '../../../components/icons.jsx'
 import { CONTRACT, PROPOSAL, PAYMENT_STATUS } from '../../../utils/hiringStatus.js'
 import { CATEGORIES } from '../../../utils/categories.js'
 import { peso, phDate, phDateTime, daysUntil, validPhMobile } from '../../../utils/format.js'
 import { barangaysOf } from '../../../data/barangays.js'
 import { greet } from '../shared.jsx'
+import PhotoManager from '../../../components/PhotoManager.jsx'
+import ServiceCard from '../../../components/ServiceCard.jsx'
+import { usePaged, Pager, ListTools, SORT } from '../../../components/Pager.jsx'
+import { getJobImage } from '../../../utils/jobImages.js'
+import { apiUrl, uploadPhotos } from '../../../utils/photos.js'
 import '../../../styles/platform.css'
 import '../../../styles/overview.css'
 
@@ -177,6 +182,12 @@ export function ClientGigs({ call }) {
   const open = all.filter(g => g.status === 'active' || g.moderation_status === 'pending' || g.moderation_status === 'rejected')
   const closed = all.filter(g => !open.includes(g))
   const list = tab === 'open' ? open : tab === 'closed' ? closed : all
+  const pg = usePaged(list, { sorts: {
+    new: ['Newest first', SORT.date('created_at')],
+    proposals: ['Most proposals', SORT.num('proposals')],
+    fresh: ['New proposals first', SORT.num('new_proposals')],
+    title: ['Title (A–Z)', SORT.text('title')],
+  } })
 
   return (
     <div className="page-inner">
@@ -202,12 +213,19 @@ export function ClientGigs({ call }) {
           </div>
         </div>
       ) : list.length === 0 ? <div className="panel pf-empty"><p>No gigs here.</p></div> : (
+        <>
+        <ListTools pg={pg} noun="gig" />
         <div className="pf-list">
-          {list.map(g => {
+          {pg.items.map(g => {
             const st = gigState(g)
             const ended = st.label === 'Ended' || st.label === 'Closed'
             return (
-              <article key={g.id} className="pf-card">
+              <article key={g.id} className="pf-card cg-card">
+                <Link to={`/dashboard/gigs/${g.id}/edit`} className="cg-thumb" title={Number(g.image_v) > 0 ? 'Change photos' : 'Add photos'}>
+                  <img src={getJobImage(g)} alt="" loading="lazy" />
+                  {!(Number(g.image_v) > 0) && <span>Add photos</span>}
+                </Link>
+                <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="pf-between">
                   <h3><Link to={`/dashboard/proposals?gig=${g.id}`}>{g.title}</Link></h3>
                   <span className={`chip ${st.tone}`}>{st.label}</span>
@@ -224,10 +242,13 @@ export function ClientGigs({ call }) {
                   <Link to={`/dashboard/browse/${g.id}`} className="btn btn-light btn-sm"><IconEye size={13} /> As workers see it</Link>
                   <button type="button" className="btn btn-light btn-sm" disabled={busy} onClick={() => del(g)}><IconTrash size={13} /> Delete</button>
                 </div>
+                </div>
               </article>
             )
           })}
         </div>
+        <Pager pg={pg} />
+        </>
       )}
     </div>
   )
@@ -244,6 +265,7 @@ export function ClientPostGig({ call, user }) {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(null)
+  const [pending, setPending] = useState([])   // photos picked before a new gig is saved
   const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'location' ? { barangay: '' } : {}) }))
 
   useEffect(() => {
@@ -264,7 +286,10 @@ export function ClientPostGig({ call, user }) {
     if (!body.expires_in_days) delete body.expires_in_days
     try {
       const r = id ? await call(`/jobs/${id}`, { method: 'PUT', body }) : await call('/jobs', { method: 'POST', body })
-      setDone(id ? { live: true, message: 'Your changes are saved.' } : r)
+      // the photos go up after the gig exists; a failed photo never loses the gig
+      const newId = r?.job?.id || r?.id
+      const failed = !id && newId && pending.length ? await uploadPhotos(call, 'job', newId, pending) : 0
+      setDone(id ? { live: true, message: 'Your changes are saved.' } : { ...r, photoFail: failed })
     } catch (e2) { setErr(e2.message || 'We couldn’t save your gig. Please try again.') } finally { setBusy(false) }
   }
 
@@ -274,7 +299,8 @@ export function ClientPostGig({ call, user }) {
         <IconCheck size={40} />
         <h2>{done.live ? (id ? 'Gig updated' : 'Your gig is live') : 'Thanks! We’re checking your gig'}</h2>
         <p>{done.live ? (id ? done.message : 'Workers near you can now send proposals. We’ll tell you when the first one arrives.')
-          : 'Because your account isn’t verified yet, our team checks new gigs first, usually within one working day. Verify your account so next time it goes live right away.'}</p>
+          : 'Because your account isn’t verified yet, our team checks new gigs first, usually within one working day. Verify your account so next time it goes live right away.'}
+          {done.photoFail ? ` ${done.photoFail} photo${done.photoFail === 1 ? '' : 's'} didn’t upload. Open Edit to add ${done.photoFail === 1 ? 'it' : 'them'} again.` : ''}</p>
         <div className="pf-actions" style={{ justifyContent: 'center' }}>
           <Link to="/dashboard/gigs" className="btn btn-primary">Go to My Gigs</Link>
           {!done.live && <Link to="/dashboard/verification" className="btn btn-light">Verify my account</Link>}
@@ -306,6 +332,11 @@ export function ClientPostGig({ call, user }) {
                 placeholder="What exactly needs doing, what you already have (tools, materials), and anything the worker should know." /></label>
             <label className="field"><span>Skills needed <em>comma-separated</em></span>
               <div className="in no-icon"><input maxLength={2000} value={form.skills_needed || ''} onChange={e => set('skills_needed', e.target.value)} placeholder="e.g. Plumbing, Pipe fitting" /></div></label>
+          </section>
+          <section className="panel">
+            <h2 className="pf-h">Photos <em className="pf-small" style={{ fontWeight: 500 }}>optional, up to 6</em></h2>
+            <PhotoManager type="job" id={id ? Number(id) : null} call={id ? call : null} pending={pending} onPending={setPending} max={6}
+              hint="A photo of what needs doing (the leak, the room, the broken item) helps workers understand the job and quote the right price. The first photo is the cover." />
           </section>
           <section className="panel">
             <h2 className="pf-h">Where and when</h2>
@@ -415,6 +446,13 @@ export function ClientProposals({ call }) {
   const open = all.filter(p => ['submitted', 'shortlisted'].includes(p.status))
   const list = tab === 'open' ? open : tab === 'shortlisted' ? all.filter(p => p.status === 'shortlisted') : all
   const best = useMemo(() => open.length > 1 ? [...open].sort((a, b) => b.match_score - a.match_score || a.bid_amount - b.bid_amount)[0]?.id : null, [open])
+  const pg = usePaged(list, { sorts: {
+    match: ['Best match first', (a, b) => b.match_score - a.match_score || a.bid_amount - b.bid_amount],
+    low: ['Lowest price', SORT.num('bid_amount', 1)],
+    fast: ['Fastest delivery', SORT.num('delivery_days', 1)],
+    rating: ['Highest rated', (a, b) => (b.worker?.rating?.average || 0) - (a.worker?.rating?.average || 0)],
+    new: ['Newest first', SORT.date('created_at')],
+  } })
 
   async function decide(p, action) {
     try {
@@ -450,11 +488,12 @@ export function ClientProposals({ call }) {
       ) : (
         <section className="panel">
           <p className="pf-muted" style={{ marginTop: 0 }}>The match score uses the same formula workers see: skills, experience, certificates, distance and education.</p>
+          <ListTools pg={pg} noun="proposal" />
           <div className="pf-compare-wrap">
             <table className="pf-compare">
               <thead><tr><th>Worker</th><th>Price</th><th>Delivery</th><th>Match</th><th>Their message</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                {list.map(p => (
+                {pg.items.map(p => (
                   <tr key={p.id} className={p.id === best ? 'best' : ''}>
                     <td><div className="pf-person"><UserAvatar user={{ id: p.worker_id, full_name: p.worker_name, picture: p.worker_picture, avatar_color: p.avatar_color }} size={38} />
                       <span><b>{p.worker_name}</b> <Verified on={Number(p.worker_verified) === 1} />
@@ -464,10 +503,18 @@ export function ClientProposals({ call }) {
                     <td><b>{peso(p.bid_amount)}</b></td>
                     <td>{p.delivery_days} day{Number(p.delivery_days) === 1 ? '' : 's'}</td>
                     <td><span className={`chip ${p.match_score >= 75 ? 'green' : p.match_score >= 50 ? 'gold' : 'red'}`}>{p.match_score}%</span></td>
-                    <td style={{ maxWidth: 320 }}><p style={{ margin: 0, fontSize: 13.5, whiteSpace: 'pre-line' }}>{p.cover_letter}</p></td>
+                    <td className="pc-msg">
+                      <p style={{ margin: 0, fontSize: 13.5, whiteSpace: 'pre-line' }}>{p.cover_letter}</p>
+                      {p.available_from && <p className="pf-small" style={{ margin: '6px 0 0' }}><IconClock size={11} /> Can start {phDate(p.available_from)}</p>}
+                      {p.work?.length > 0 && (
+                        <div className="pp-proof">{p.work.map(w => (
+                          <a key={w.id} href={apiUrl(w.url)} target="_blank" rel="noreferrer" title={w.title}><img src={apiUrl(w.url)} alt={w.title} loading="lazy" /></a>
+                        ))}<span className="pf-small">Similar work</span></div>
+                      )}
+                    </td>
                     <td><span className={`chip ${PROPOSAL[p.status]?.tone || ''}`}>{PROPOSAL[p.status]?.label || p.status}</span></td>
                     <td>
-                      <div className="pf-row" style={{ flexWrap: 'nowrap' }}>
+                      <div className="pc-act">
                         {['submitted', 'shortlisted'].includes(p.status) && <button type="button" className="btn btn-primary btn-sm" onClick={() => setHire(p)}>Hire</button>}
                         {p.status === 'submitted' && <button type="button" className="btn btn-light btn-sm" onClick={() => decide(p, 'shortlist')}>Shortlist</button>}
                         {['submitted', 'shortlisted'].includes(p.status) && <button type="button" className="btn btn-light btn-sm" onClick={() => decide(p, 'decline')}>Decline</button>}
@@ -481,6 +528,8 @@ export function ClientProposals({ call }) {
               </tbody>
             </table>
           </div>
+          {list.length === 0 && <p className="pf-muted" style={{ textAlign: 'center', margin: '14px 0 0' }}>No proposals in this list.</p>}
+          <Pager pg={pg} />
         </section>
       )}
     </div>
@@ -498,6 +547,13 @@ export function ClientContracts({ call }) {
     cancelled: all.filter(c => c.status === 'cancelled'),
   }
   const list = groups[tab]
+  const needsMe = c => (c.status === 'delivered' ? 1 : 0)
+  const pg = usePaged(list, { sorts: {
+    todo: ['Needs my action first', (a, b) => needsMe(b) - needsMe(a) || String(a.due_date || '').localeCompare(String(b.due_date || ''))],
+    due: ['Due soonest', (a, b) => String(a.due_date || '9999').localeCompare(String(b.due_date || '9999'))],
+    new: ['Newest first', SORT.date('started_at')],
+    amount: ['Highest price', SORT.num('agreed_amount')],
+  } })
   return (
     <div className="page-inner">
       {error && <div className="pf-note bad" role="alert" style={{ marginBottom: 14 }}>{error}</div>}
@@ -510,8 +566,10 @@ export function ClientContracts({ call }) {
           <p>Contracts start when you hire someone from Proposals or book a service.</p>
           <div className="pf-actions" style={{ justifyContent: 'center' }}><Link to="/dashboard/proposals" className="btn btn-navy">See proposals</Link><Link to="/dashboard/talent/services" className="btn btn-light">Browse services</Link></div></div>
       ) : (
+        <>
+        <ListTools pg={pg} noun="contract" />
         <div className="pf-list">
-          {list.map(c => (
+          {pg.items.map(c => (
             <Link key={c.id} to={`/dashboard/contracts/${c.id}`} className="pf-card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="pf-between"><h3>{c.title}</h3><span className={`chip ${CONTRACT[c.status]?.tone || ''}`}>{CONTRACT[c.status]?.label}</span></div>
               <p className="pf-meta">{c.worker_name} · {peso(c.agreed_amount)} · Due {phDate(c.due_date)}{Number(c.milestones) ? ` · ${c.milestones_done} of ${c.milestones} milestones approved` : ''}</p>
@@ -519,6 +577,8 @@ export function ClientContracts({ call }) {
             </Link>
           ))}
         </div>
+        <Pager pg={pg} />
+        </>
       )}
     </div>
   )
@@ -569,7 +629,8 @@ export function ClientContract({ call }) {
     catch (e) { setFlash(''); setDialog(d => ({ ...(d || {}), error: e.message || 'That didn’t work. Please try again.' })) } finally { setBusy(false) }
   }
   async function openFile(ev) {
-    try { const r = await call(`/contracts/${id}/files/${ev.id}`); const w = window.open(); if (w) w.document.write(`<title>${ev.file_name}</title><iframe src="${r.data_url}" style="border:0;width:100%;height:100vh"></iframe>`) }
+    // the file opens from a local blob: URL in a new tab; no HTML is built from its name
+    try { const r = await call(`/contracts/${id}/files/${ev.id}`); const blob = await (await fetch(r.data_url)).blob(); const url = URL.createObjectURL(blob); window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000) }
     catch (e) { setFlash(e.message) }
   }
 
@@ -704,68 +765,51 @@ export function ClientServices({ call }) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
   const [town, setTown] = useState('')
+  const [max, setMax] = useState('')
   const [data, setData] = useState(null)
-  const [book, setBook] = useState(null)
-  const [note, setNote] = useState('')
-  const [due, setDue] = useState('')
-  const [err, setErr] = useState('')
-  const [busy, setBusy] = useState(false)
-  const navigate = useNavigate()
 
   useEffect(() => {
     const t = setTimeout(() => {
-      const qs = new URLSearchParams(Object.entries({ q, category: cat, location: town }).filter(([, v]) => v))
+      const qs = new URLSearchParams(Object.entries({ q, category: cat, location: town, max_price: max }).filter(([, v]) => v))
       call(`/services?${qs}`).then(setData).catch(e => setData({ services: [], error: e.message }))
     }, q ? 300 : 0)
     return () => clearTimeout(t)
-  }, [call, q, cat, town])
-
-  async function confirm() {
-    setErr(''); setBusy(true)
-    try { const r = await call(`/services/${book.id}/book`, { method: 'POST', body: { note, due_date: due } }); navigate(`/dashboard/contracts/${r.contract_id}`) }
-    catch (e) { setErr(e.message || 'We couldn’t send the booking. Please try again.') } finally { setBusy(false) }
-  }
+  }, [call, q, cat, town, max])
 
   const list = data?.services || []
+  const rating = s => s.worker?.rating?.average || 0
+  const pg = usePaged(list, { perPage: 12, sorts: {
+    rec: ['Recommended', (a, b) => Number(b.worker_verified) - Number(a.worker_verified) || rating(b) - rating(a)],
+    low: ['Lowest price', SORT.num('price', 1)],
+    high: ['Highest price', SORT.num('price')],
+    rating: ['Highest rated', (a, b) => rating(b) - rating(a)],
+    popular: ['Most booked', SORT.num('completed')],
+    new: ['Newest', SORT.date('created_at')],
+  } })
   return (
     <div className="page-inner">
-      {book && (
-        <Dialog tone="info" title={`Book: ${book.title}`} onClose={() => setBook(null)} busy={busy}
-          actions={[{ label: busy ? 'Sending…' : `Book for ${peso(book.price)}`, primary: true, onClick: confirm }, { label: 'Cancel', onClick: () => setBook(null) }]}>
-          <p className="pf-muted" style={{ marginTop: 0 }}>{book.worker_name} will accept or decline. You pay them directly once the work is done.</p>
-          {err && <div className="pf-note bad" role="alert" style={{ marginBottom: 10 }}>{err}</div>}
-          <label className="field"><span>Describe the job: what, where and when</span><textarea className="pf-textarea" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Two split-type aircon units, Brgy. Lalud, Saturday morning" /></label>
-          <label className="field"><span>Needed by</span><div className="in no-icon"><input type="date" min={new Date().toISOString().slice(0, 10)} value={due} onChange={e => setDue(e.target.value)} /></div></label>
-        </Dialog>
-      )}
       <div className="pf-browse-filters">
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search services, like aircon cleaning" aria-label="Search services" />
         <select value={cat} onChange={e => setCat(e.target.value)} aria-label="Kind of work"><option value="">Any kind of work</option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
         <select value={town} onChange={e => setTown(e.target.value)} aria-label="Town"><option value="">Any town</option>{TOWNS.map(t => <option key={t}>{t}</option>)}</select>
-        <span />
+        <select value={max} onChange={e => setMax(e.target.value)} aria-label="Budget"><option value="">Any price</option>{[500, 1000, 2000, 5000, 10000].map(v => <option key={v} value={v}>Up to {peso(v, { cents: false })}</option>)}</select>
       </div>
+      {data?.error && <div className="pf-note bad" role="alert" style={{ marginBottom: 14 }}>{data.error}</div>}
       {!data ? <BrandLoader compact label="Finding services…" /> : list.length === 0 ? (
         <div className="panel pf-empty"><IconSearch size={40} /><h2>No services found</h2>
-          <p>{q || cat || town ? 'Try another word, kind of work or town.' : 'Workers have not listed services yet. Post a gig and workers will send you proposals.'}</p>
+          <p>{q || cat || town || max ? 'Try another word, kind of work, town or price.' : 'Workers have not listed services yet. Post a gig and workers will send you proposals.'}</p>
           <Link to="/dashboard/gigs/new" className="btn btn-primary">Post a gig</Link></div>
       ) : (
-        <div className="pf-post-grid">
-          {list.map(s => (
-            <article key={s.id} className="pf-post">
-              <div className="pf-between"><span className="pf-type gig">Service</span><span className="pf-price">{peso(s.price, { cents: false })}<span className="pf-small"> / {s.price_unit === 'job' ? 'job' : s.price_unit}</span></span></div>
-              <h3>{s.title}</h3>
-              {s.description && <p className="pf-small" style={{ margin: 0 }}>{s.description.slice(0, 140)}{s.description.length > 140 ? '…' : ''}</p>}
-              <div className="pf-person" style={{ minWidth: 0 }}><UserAvatar user={{ id: s.worker_id, full_name: s.worker_name, picture: s.worker_picture, avatar_color: s.avatar_color }} size={32} />
-                <span><b style={{ fontSize: 13.5 }}>{s.worker_name}</b> <Verified on={Number(s.worker_verified) === 1} />
-                  <span className="pf-small" style={{ display: 'block' }}><IconPin size={11} /> {s.service_area || s.worker_location}{s.worker?.rating?.count ? <> · <Stars value={s.worker.rating.average} /></> : ''}</span></span></div>
-              <div className="pf-actions" style={{ marginTop: 'auto' }}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setBook(s); setNote(''); setErr('') }}>Book</button>
-                <Link to={`/dashboard/talent/${s.worker_id}`} className="btn btn-light btn-sm">Profile</Link>
-                <Link to={`${MSG}?to=${s.worker_id}`} className="btn btn-light btn-sm" aria-label="Message"><IconMsgCircle size={13} /></Link>
-              </div>
-            </article>
-          ))}
-        </div>
+        <>
+          <ListTools pg={pg} noun="service" perPageOptions={[12, 24, 48]} />
+          <div className="pf-post-grid">
+            {pg.items.map(s => (
+              <ServiceCard key={s.id} s={s} to={`/dashboard/talent/services/${s.id}`}
+                actions={<Link to={`/dashboard/talent/services/${s.id}`} className="btn btn-primary btn-sm">View</Link>} />
+            ))}
+          </div>
+          <Pager pg={pg} />
+        </>
       )}
     </div>
   )

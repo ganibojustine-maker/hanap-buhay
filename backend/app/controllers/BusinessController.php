@@ -35,7 +35,6 @@ class BusinessController extends Controller
         $this->call->library('schema_info');
         $this->call->model('User_model', 'user_model');
         $this->call->model('Application_model', 'application_model');
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Verification_log.php';
     }
 
     private function me(): array

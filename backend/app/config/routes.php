@@ -174,6 +174,8 @@ $router->patch('/api/admin/verification/{id}', 'VerificationController::admin_de
 
 // Gigs: proposals, contracts, service listings
 $router->get('/api/gigs/mine', 'GigController::my_gigs');
+$router->get('/api/gigs/invites', 'GigController::my_invites');
+$router->post('/api/gigs/{id}/invite', 'GigController::invite');
 $router->get('/api/gigs/{id}/proposals', 'GigController::gig_proposals');
 $router->post('/api/gigs/{id}/proposals', 'GigController::propose');
 $router->get('/api/proposals/mine', 'GigController::my_proposals');
@@ -197,10 +199,16 @@ $router->post('/api/contracts/{id}/dispute', 'GigController::dispute');
 $router->post('/api/contracts/{id}/review', 'GigController::review');
 $router->get('/api/services/mine', 'GigController::my_services');
 $router->get('/api/services', 'GigController::services');
+$router->get('/api/services/{id}', 'GigController::service_detail');
 $router->post('/api/services', 'GigController::save_service');
 $router->put('/api/services/{id}', 'GigController::save_service');
 $router->delete('/api/services/{id}', 'GigController::delete_service');
 $router->post('/api/services/{id}/book', 'GigController::book');
+// Photos for jobs, gigs and service listings (up to 6 each)
+$router->get('/api/photos/{type}/{id}', 'PhotoController::index');
+$router->post('/api/photos/{type}/{id}', 'PhotoController::store');
+$router->delete('/api/photos/{type}/{id}/{slot}', 'PhotoController::destroy');
+$router->get('/api/photos/{type}/{id}/{slot}/file', 'PhotoController::file');
 $router->get('/api/admin/contracts', 'GigController::admin_contracts');
 $router->get('/api/admin/disputes', 'GigController::admin_disputes');
 $router->patch('/api/admin/disputes/{id}', 'GigController::admin_resolve');

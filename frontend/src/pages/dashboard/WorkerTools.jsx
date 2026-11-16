@@ -1,9 +1,10 @@
 // Worker tools: Saved Jobs page, availability, sharing the Skills Passport (link + QR),
 // next steps after "not selected", and rating an employer after being hired.
+import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useState, useCallback } from 'react'
 import BrandLoader from '../../components/BrandLoader.jsx'
 import { Link } from 'react-router-dom'
-import { IconCheck, IconSearch, IconArrow, IconStar, IconBookmark, IconQr, IconLink, IconPrinter, IconDownload } from '../../components/icons.jsx'
+import { IconCheck, IconArrow, IconStar, IconBookmark, IconQr, IconLink, IconPrinter, IconDownload } from '../../components/icons.jsx'
 import { TOWNS } from '../../components/art.jsx'
 import EnrollLink from '../../components/EnrollLink.jsx'
 import QuickApplyModal from '../../components/QuickApplyModal.jsx'
@@ -17,7 +18,6 @@ export const APP_STATUS = {
   pending: 'Pending Review', reviewed: 'Under Review', shortlisted: 'Shortlisted',
   for_interview: 'For Interview', hired: 'Hired', rejected: 'Not Selected',
 }
-
 
 function savedWhen(v) {
   const d = v ? new Date(String(v).replace(' ', 'T')) : null
@@ -69,6 +69,11 @@ export function SavedJobs({ call, user }) {
   const open = all.filter(j => j.is_open)
   const closed = all.filter(j => !j.is_open)
   const list = filter === 'open' ? open : filter === 'closed' ? closed : all
+  const pg = usePaged(list, { perPage: 12, sorts: {
+    saved: [tr('Recently saved'), SORT.date('saved_at')],
+    posted: [tr('Newest posts'), SORT.date('created_at')],
+    pay: [tr('Highest pay'), (a, b) => Number(b.salary_max || b.salary_min || 0) - Number(a.salary_max || a.salary_min || 0)],
+  } })
 
   return (
     <div className="page-inner">
@@ -123,8 +128,10 @@ export function SavedJobs({ call, user }) {
               {filter === 'open' ? tr('None of your saved jobs are open right now.') : tr('No jobs in this list.')}
             </div>
           ) : (
+            <>
+            <ListTools pg={pg} noun={tr('saved job')} plural={tr('saved jobs')} perPageOptions={[12, 24, 48]} />
             <div className="jc-grid">
-              {list.map(j => {
+              {pg.items.map(j => {
                 const applied = j.application_status || (justApplied[j.id] ? 'pending' : null)
                 return (
                   <FeaturedJobCard key={j.id} job={{ ...j, match_pct: j.match_score ?? j.match_pct }}
@@ -140,6 +147,8 @@ export function SavedJobs({ call, user }) {
                 )
               })}
             </div>
+            <Pager pg={pg} />
+            </>
           )}
         </>
       )}

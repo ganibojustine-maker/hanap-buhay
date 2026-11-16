@@ -4,16 +4,19 @@ import BrandLoader from '../../components/BrandLoader.jsx'
 import { Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { barangaysOf } from '../../data/barangays.js'
 import { CATEGORIES, EDUCATION } from '../../utils/categories.js'
-import { IconBriefcase, IconUsers, IconPin, IconMail, IconCheck, IconMsgCircle, IconPlus, IconTrend, IconX, IconClock, IconArrow, IconCalendar, IconBuilding, IconEdit, IconTrash, IconStar, IconPhone, IconAlert, IconEye } from '../../components/icons.jsx'
+import { IconBriefcase, IconUsers, IconPin, IconMail, IconCheck, IconMsgCircle, IconPlus, IconTrend, IconX, IconClock, IconCalendar, IconBuilding, IconEdit, IconTrash, IconStar, IconPhone, IconAlert, IconEye } from '../../components/icons.jsx'
 import { TOWNS } from '../../components/art.jsx'
 import ImageCropModal from '../../components/ImageCropModal.jsx'
-import { fmt, days, greet, ApplicationTracker } from './shared.jsx'
+import { days, greet, ApplicationTracker } from './shared.jsx'
 import { nextSteps } from '../../utils/hiringStatus.js'
 import '../../styles/platform.css'
 import ApplicantProfile from '../../components/ApplicantProfile.jsx'
 import Dialog from '../../components/Dialog.jsx'
 import { FeaturedJobCard, fmtSalary, paySuffix, neededBy } from '../../components/JobCard.jsx'
 import { getJobImage } from '../../utils/jobImages.js'
+import PhotoManager from '../../components/PhotoManager.jsx'
+import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
+import { uploadPhotos } from '../../utils/photos.js'
 import { useAuth } from '../../auth.jsx'
 import '../../styles/overview.css'
 import ReputationStrip from '../../components/ReputationStrip.jsx'
@@ -350,6 +353,12 @@ export function EmployerJobs({ call, user }) {
   const closed = all.filter(j => j.status !== 'active' && !waiting(j))
   const ended = j => j.status !== 'active' && j.moderation_status === 'approved' && j.expires_at && new Date(String(j.expires_at).replace(' ', 'T')) < new Date()
   const list = tab === 'active' ? active : tab === 'closed' ? closed : all
+  const pg = usePaged(list, { sorts: {
+    new: ['Newest first', SORT.date('created_at')],
+    apps: ['Most applicants', (a, b) => Number(b.applicants ?? b.applicant_count ?? 0) - Number(a.applicants ?? a.applicant_count ?? 0)],
+    views: ['Most views', SORT.num('views')],
+    title: ['Title (A–Z)', SORT.text('title')],
+  } })
   const until = j => j.featured_until && new Date(String(j.featured_until).replace(' ', 'T')).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
 
   return (
@@ -378,8 +387,10 @@ export function EmployerJobs({ call, user }) {
               ))}
             </div>
             {list.length === 0 ? <div className="panel ej-empty"><p>No {words.posts} here.</p></div> : (
+              <>
+              <ListTools pg={pg} noun={words.post} plural={words.posts} />
               <div className="ej-list">
-                {list.map(j => (
+                {pg.items.map(j => (
                   <article key={j.id} className={`ej-card${j.status !== 'active' ? ' closed' : ''}`}>
                     <Link to={`/dashboard/jobs/${j.id}/edit`} className="ej-thumb" title={Number(j.image_v) > 0 ? 'Change photo' : 'Add your own photo'}>
                       <img src={getJobImage(j)} alt="" loading="lazy" />
@@ -428,6 +439,8 @@ export function EmployerJobs({ call, user }) {
                   </article>
                 ))}
               </div>
+              <Pager pg={pg} />
+              </>
             )}
           </>
         )}
@@ -489,6 +502,7 @@ export function PostJob({ call, editId = null }) {
   const [photo, setPhoto] = useState(null)        // { file, url } — a new photo picked here
   const [oldPhoto, setOldPhoto] = useState(null)  // the post's current photo (when editing)
   const [dropPhoto, setDropPhoto] = useState(false)
+  const [extra, setExtra] = useState([])          // more photos picked for a new post
   const photoInput = useRef(null)
 
   useEffect(() => {
@@ -554,6 +568,7 @@ export function PostJob({ call, editId = null }) {
       } else if (jobId && dropPhoto) {
         try { await call(`/jobs/${jobId}/image`, { method: 'DELETE' }) } catch { /* ignore */ }
       }
+      if (jobId && !editId && extra.length) await uploadPhotos(call, 'job', jobId, extra)
       navigate('/dashboard/jobs', { state: { flash: editId ? 'Your changes are saved.' : (res?.message || 'Your job post is saved.') } })
     } catch (e2) {
       setErr(e2.status === 402 ? <>{e2.message} <Link to="/dashboard/plans" style={{ fontWeight: 700 }}>See plans →</Link></> : (e2.message || 'We couldn’t save the post. Please try again.'))
@@ -781,6 +796,9 @@ export function PostJob({ call, editId = null }) {
             ) : (
               <button type="button" className="pj-drop" onClick={() => photoInput.current?.click()}><IconPlus size={16} /> Add a photo <small>JPG, PNG or WEBP</small></button>
             )}
+            <h3 style={{ fontSize: 14, margin: '16px 0 6px' }}>More photos <em className="pj-hint" style={{ fontStyle: 'normal' }}>up to 5</em></h3>
+            <PhotoManager type="job" id={editId ? Number(editId) : null} call={editId ? call : null} pending={extra} onPending={setExtra} max={5} extraOnly
+              hint={isGig ? 'Different angles of the work: before photos, the materials, the measurements.' : 'The team, the inside of the shop, the equipment workers will use.'} />
           </section>
 
           {!editId && (
@@ -932,7 +950,6 @@ export function EmployerProfile({ user, call, updateUser }) {
 
       {/* the Verified business badge: upload a permit, an admin checks it */}
       <BusinessVerification call={call} user={user} updateUser={updateUser} />
-
 
       <div className="wp-grid">
         <form onSubmit={save} className="panel">
@@ -1270,6 +1287,12 @@ export function EmployerApplicants({ call }) {
     if (filter === 'pending') return a.status === 'pending' || a.status === 'reviewed'
     return a.status === filter
   })
+  const pg = usePaged(filtered, { sorts: {
+    match: ['Best match first', SORT.num('match_score')],
+    new: ['Newest first', SORT.date('created_at')],
+    old: ['Oldest first', (a, b) => -SORT.date('created_at')(a, b)],
+    name: ['Name (A–Z)', (a, b) => String(a.applicant_name || a.full_name || '').localeCompare(String(b.applicant_name || b.full_name || ''))],
+  } })
 
   return (
     <div className="page-inner">
@@ -1341,8 +1364,10 @@ export function EmployerApplicants({ call }) {
           </p>
         </div>
       ) : (
+        <>
+        <ListTools pg={pg} noun="applicant" />
         <div style={{ display: 'grid', gap: 16 }}>
-          {filtered.map(a => {
+          {pg.items.map(a => {
             const currentStatus = a.status === 'reviewed' ? 'pending' : a.status
             const isHired = currentStatus === 'hired'
             const isInterview = currentStatus === 'for_interview'
@@ -1528,7 +1553,6 @@ export function EmployerApplicants({ call }) {
 
                     {/* Re-open / Reconsider for Hired or Rejected candidates */}
 
-
                     </>)}
                     {/* Chat with candidate */}
                     {a.worker_id && (
@@ -1546,6 +1570,8 @@ export function EmployerApplicants({ call }) {
             )
           })}
         </div>
+        <Pager pg={pg} />
+        </>
       )}
 
       {profileId && <ApplicantProfile appId={profileId} call={call} onClose={() => setProfileId(null)} />}

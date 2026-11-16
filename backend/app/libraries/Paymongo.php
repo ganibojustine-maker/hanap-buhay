@@ -29,53 +29,22 @@ class Paymongo
 
     public function __construct()
     {
-        $this->secret_key = self::get_env('PAYMONGO_SECRET_KEY', '');
-        $this->public_key = self::get_env('PAYMONGO_PUBLIC_KEY', '');
+        $this->secret_key = (string) config_item('paymongo_secret_key');
+        $this->public_key = (string) config_item('paymongo_public_key');
         // Sandbox only: a live key (real money) is ignored unless PAYMONGO_ALLOW_LIVE=true is set
         // on purpose. Checkout then says online payment is not set up, instead of charging anyone.
-        if (str_starts_with($this->secret_key, 'sk_live_') && strtolower(self::get_env('PAYMONGO_ALLOW_LIVE', 'false')) !== 'true') {
+        if (str_starts_with($this->secret_key, 'sk_live_') && !config_item('paymongo_allow_live')) {
             error_log('[PayMongo] live key ignored: this deployment is sandbox only (set PAYMONGO_ALLOW_LIVE=true to allow real payments)');
             $this->secret_key = '';
             $this->public_key = '';
         }
     }
 
-    /**
-     * Helper to read environment variables reliably.
-     */
-    public static function get_env(string $key, string $default = ''): string
-    {
-        $val = getenv($key);
-        if ($val !== false && $val !== '') return trim((string) $val);
-
-        if (isset($_ENV[$key]) && $_ENV[$key] !== '') return trim((string) $_ENV[$key]);
-        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return trim((string) $_SERVER[$key]);
-
-        // Attempt reading backend/.env
-        static $env_cache = null;
-        if ($env_cache === null) {
-            $env_cache = [];
-            $env_path = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . '.env';
-            if (file_exists($env_path)) {
-                $lines = file($env_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if ($line === '' || str_starts_with($line, '#')) continue;
-                    if (str_contains($line, '=')) {
-                        [$k, $v] = explode('=', $line, 2);
-                        $env_cache[trim($k)] = trim(trim($v), '"\'');
-                    }
-                }
-            }
-        }
-
-        return $env_cache[$key] ?? $default;
-    }
 
     /** Methods turned on for checkout (PAYMONGO_METHODS). */
     public static function methods(): array
     {
-        $list = array_values(array_filter(array_map('trim', explode(',', self::get_env('PAYMONGO_METHODS', 'card,gcash,paymaya,grab_pay,qrph')))));
+        $list = array_values(array_filter(array_map('trim', explode(',', (string) config_item('paymongo_methods')))));
         $list = array_values(array_intersect($list, array_keys(self::METHOD_LABELS)));
         return $list ?: ['card', 'gcash', 'paymaya'];
     }
@@ -99,7 +68,7 @@ class Paymongo
      */
     public static function show_test_labels(): bool
     {
-        return strtolower(self::get_env('PAYMONGO_SHOW_TEST_LABELS', 'false')) === 'true';
+        return (bool) config_item('paymongo_show_test_labels');
     }
 
     public function configured(): bool
@@ -268,7 +237,7 @@ class Paymongo
      */
     public function verify_webhook_signature(string $raw_body, string $header): bool
     {
-        $secret = self::get_env('PAYMONGO_WEBHOOK_SECRET', '');
+        $secret = (string) config_item('paymongo_webhook_secret');
         if ($secret === '' || $header === '' || $raw_body === '') return false;
 
         $parts = [];

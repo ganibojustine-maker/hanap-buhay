@@ -64,9 +64,8 @@ function CalendarButtons({ date, calendar, notes }) {
 
 export const fmt = (n, max) => { if (!n && !max) return 'Negotiable'; const f = v => '₱'+Number(v).toLocaleString(); return n && max ? `${f(n)}–${f(max)}/mo` : n ? `From ${f(n)}/mo` : `Up to ${f(max)}/mo` }
 
-export const days = dt => { const d = Math.floor((Date.now()-new Date(dt))/86400000); return d===0?tr('Today'):d===1?tr('1 day ago'):tr('{d}d ago', { d }) }
+export const days = dt => { const d = Math.floor((Date.now() - new Date(String(dt).replace(' ', 'T'))) / 86400000); return d===0?tr('Today'):d===1?tr('1 day ago'):tr('{d}d ago', { d }) }
 
-export const demoDate = d => new Date(Date.now() - d * 86400000).toISOString().slice(0, 19).replace('T', ' ')
 
 
 /* ─ Application Stepper Tracker ─────────────────────────── */

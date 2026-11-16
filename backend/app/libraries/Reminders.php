@@ -62,7 +62,6 @@ class Reminders
             if (!$rows) return ['ran' => true, 'sent' => 0];
 
             $lava->call->model('Application_model', 'application_model');
-            require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Sms.php';
 
             foreach ($rows as $r) {
                 // claim it first, so two overlapping runs never send twice

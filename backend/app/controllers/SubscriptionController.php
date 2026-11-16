@@ -26,7 +26,6 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 class SubscriptionController extends Controller
 {
     /** @var Payments */
-    private $payments;
 
     public function __construct()
     {
@@ -38,8 +37,7 @@ class SubscriptionController extends Controller
         $this->call->model('Subscription_model', 'subscription_model');
         $this->call->model('Application_model', 'application_model');
         $this->call->model('Job_model', 'job_model');
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Payments.php';
-        $this->payments = new Payments();
+        $this->call->library('payments');
     }
 
     private function me(): array
@@ -501,7 +499,7 @@ class SubscriptionController extends Controller
     public function cron()
     {
         $this->api->require_method('GET');
-        $secret = (string) (getenv('CRON_SECRET') ?: Paymongo::get_env('CRON_SECRET', ''));
+        $secret = (string) config_item('cron_secret');
         $key = (string) ($_GET['key'] ?? ($_SERVER['HTTP_X_CRON_KEY'] ?? ''));
         if (strlen($secret) < 16 || !hash_equals($secret, $key)) $this->api->respond_error('Not found.', 404);
         $this->api->respond(['success' => true] + $this->payments->reconcile(null, 100) + $this->payments->run_lifecycle());

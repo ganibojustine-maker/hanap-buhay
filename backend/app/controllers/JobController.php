@@ -25,7 +25,7 @@ class JobController extends Controller
         $this->call->model('Subscription_model', 'subscription_model');
         $this->call->library('schema_info');
         $this->call->helper('format');
-        require_once APP_DIR . 'libraries' . DIRECTORY_SEPARATOR . 'Job_matcher.php';
+        $this->call->model('Photo_model', 'photo_model');
     }
 
     /**
@@ -285,6 +285,8 @@ class JobController extends Controller
 
         // open jobs like this one, nearest first — shown under the posting
         $job['similar'] = $this->similar_jobs($job, $user);
+        // every photo of the post: the cover first, then the extra ones (migration 022)
+        $job['photos'] = $this->photo_model->list_for('job', (int) $job['id'], (int) ($job['image_v'] ?? 0));
 
         $this->api->respond(['success' => true, 'job' => $job]);
     }
@@ -643,10 +645,8 @@ class JobController extends Controller
         $user = $this->user_model->find_by_id((int) $payload['sub']);
         if (!$job || !$user) $this->api->respond_error('Job not found.', 404);
         if ((int) $job['employer_id'] !== (int) $user['id'] && ($user['role'] ?? '') !== 'admin') $this->api->respond_error('Forbidden', 403);
-        if (!$this->schema_info->has_table('job_images')) $this->api->respond_error('Job photos are not available yet. Please try again later.', 503);
-
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'DELETE') {
-            $this->db->raw('DELETE FROM job_images WHERE job_id = ?', [(int) $id]);
+            $this->photo_model->remove_cover((int) $id);
             $this->job_model->update_job((int) $id, ['image_v' => 0]);
             $this->api->respond(['success' => true, 'image_v' => 0]);
         }
@@ -660,11 +660,7 @@ class JobController extends Controller
         $types = [IMAGETYPE_JPEG => 'image/jpeg', IMAGETYPE_PNG => 'image/png', IMAGETYPE_WEBP => 'image/webp'];
         if (!$info || !isset($types[$info[2]])) $this->api->respond_error('Upload a photo (JPG, PNG or WEBP). Videos and documents are not accepted.', 422);
         $mime = $types[$info[2]];
-        $this->db->raw(
-            'INSERT INTO job_images (job_id, file_mime, file_size, file_data, updated_at) VALUES (?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE file_mime = VALUES(file_mime), file_size = VALUES(file_size), file_data = VALUES(file_data), updated_at = NOW()',
-            [(int) $id, $mime, strlen($bytes), 'data:' . $mime . ';base64,' . base64_encode($bytes)]
-        );
+        $this->photo_model->save_cover((int) $id, $mime, strlen($bytes), 'data:' . $mime . ';base64,' . base64_encode($bytes));
         $v = (int) ($job['image_v'] ?? 0) + 1;
         $this->job_model->update_job((int) $id, ['image_v' => $v]);
         $this->api->respond(['success' => true, 'image_v' => $v]);
@@ -674,8 +670,7 @@ class JobController extends Controller
     public function image($id)
     {
         $this->api->require_method('GET');
-        if (!$this->schema_info->has_table('job_images')) $this->api->respond_error('Photo not found.', 404);
-        $row = $this->db->raw('SELECT file_mime, file_data FROM job_images WHERE job_id = ?', [(int) $id])->fetch(PDO::FETCH_ASSOC);
+        $row = $this->photo_model->cover((int) $id);
         if (!$row) $this->api->respond_error('Photo not found.', 404);
         $data = (string) $row['file_data'];
         $bytes = str_contains($data, ';base64,') ? base64_decode(substr($data, strpos($data, ';base64,') + 8), true) : false;

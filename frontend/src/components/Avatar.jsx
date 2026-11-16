@@ -2,7 +2,7 @@
  * Avatar — the one place a person's picture is drawn.
  *
  * Nobody starts with a photo, so instead of showing the same stock face to everyone
- * (the old /images/avatar.jpg) each account gets its own generated avatar: their initials
+ * (the old /images/avatar.webp) each account gets its own generated avatar: their initials
  * on a colour picked from their account id, so it is the same on every screen, every
  * device and in every list. A real uploaded photo always wins; if that photo fails to
  * load, the generated one is still underneath.
