@@ -106,5 +106,5 @@ $autoload['models'] = array();
 | config files.  Otherwise, leave it blank.
 |
 */
-$autoload['configs'] = array('google', 'resume', 'paymongo', 'mail', 'sms', 'firebase');
+$autoload['configs'] = array('google', 'resume', 'paymongo', 'mail', 'firebase');
 ?>

@@ -8,6 +8,7 @@
  * The first photo is the cover: it is the picture on every card and at the top of the page.
  * Photos are shrunk on the phone before they go up, so a 10 MB camera shot uploads quickly.
  */
+import askConfirm from './askConfirm.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { IconPlus, IconTrash } from './icons.jsx'
 import { apiUrl, shrinkPhoto } from '../utils/photos.js'
@@ -61,6 +62,7 @@ export default function PhotoManager({ type, id, call, max = 6, pending, onPendi
     setErr('')
     if (!live) { onPending?.((pending || []).filter((_, k) => k !== i)); return }
     const p = saved[i]
+    if (!(await askConfirm({ tone: 'danger', title: 'Remove this photo?', yes: 'Remove' }))) return
     setBusy(true)
     try { const r = await call(`/photos/${type}/${id}/${p.slot}`, { method: 'DELETE' }); setPhotos(r.photos || []); onChange?.(r.photos || []) }
     catch (e2) { setErr(e2.message || 'We couldn’t remove that photo.') } finally { setBusy(false) }

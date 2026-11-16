@@ -12,9 +12,9 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * Rule-based weighted scoring (see docs/MATCHING.md):
  *   Skills 45 · Experience 15 · Certification 15 · Location 15 · Education 10
  * Only what a job actually asks for is scored (the weights of the other parts are dropped,
- * so asking for nothing never hands out free points), and the skills a job lists are a gate:
- * a worker with none of them is a Low match, and one with under half is never a Good match.
- * A TESDA NC the job requires and the worker does not hold also keeps the score below Strong.
+ * so asking for nothing never hands out free points). The skills a job lists then scale the
+ * whole result by a smooth "qualification factor" (see score()), so the percentage moves with
+ * exactly how much of the job the worker covers: no fixed caps, no cliffs.
  *
  * "Electrical NC II" style requirements need a TESDA NC at that level: the
  * skill part counts the skill, the certification part counts the NC, and a
@@ -54,11 +54,10 @@ class Job_matcher
     /** jobs.experience → minimum years */
     private const EXPERIENCE_YEARS = ['none' => 0, '1' => 1, '2-3' => 2, '4+' => 4];
 
-    /** The score a worker can reach when the job's skills are not met (see the gate in score()). */
-    private const CAP_NO_SKILLS = 24;      // none of the listed skills: always Low
-    private const CAP_FEW_SKILLS = 49;     // under half of them: never Good
-    private const CAP_NO_REQUIREMENTS = 60; // the job lists no skills, so there is little to compare
-    private const CAP_MISSING_NC = 74;      // the job requires a TESDA NC the worker does not have yet: never Strong
+    /** Qualification factor: share of the score that does NOT depend on skills (distance, schooling...). */
+    private const FACTOR_FLOOR = 0.30;     // with none of the listed skills a worker keeps at most 30% of the score
+    private const FACTOR_NO_SKILLS_LISTED = 0.80; // the job lists no skills: little to compare, so 80% at most
+    private const FACTOR_NC_PENALTY = 0.12; // a required TESDA NC that is missing takes up to 12% off
 
     /** Skill level → how much of a required skill it covers. */
     private const LEVEL_CREDIT = ['beginner' => 0.7, 'intermediate' => 0.85, 'advanced' => 1.0, 'expert' => 1.0];
@@ -132,18 +131,24 @@ class Job_matcher
         return null;
     }
 
+    /** How well a worker skill covers the job's skill name, 0 to 1 (ignoring any NC level). */
+    public function skill_strength(string $need, string $skill): float
+    {
+        $n = $this->norm($need); $s = $this->norm($skill);
+        if ($n === '' || $s === '') return 0.0;
+        if (str_contains(" $s ", " $n ") || str_contains(" $n ", " $s ")) return 1.0;
+        $nAb = $this->abbrevs($need); $sAb = $this->abbrevs($skill);
+        if (in_array($n, $sAb, true) || in_array($s, $nAb, true) || array_intersect($nAb, $sAb)) return 1.0;
+        $tn = $this->tokens($need); $ts = $this->tokens($skill);
+        if (!$tn || !$ts) return 0.0;
+        $r = count(array_intersect($tn, $ts)) / count($tn);
+        return $r >= 0.6 ? $r : 0.0;   // 60%+ of the words in common counts, in proportion
+    }
+
     /** Does this worker skill satisfy the job's skill name (ignoring any NC level)? */
     public function skill_matches(string $need, string $skill): bool
     {
-        $n = $this->norm($need); $s = $this->norm($skill);
-        if ($n === '' || $s === '') return false;
-        if (str_contains(" $s ", " $n ") || str_contains(" $n ", " $s ")) return true;
-        $nAb = $this->abbrevs($need); $sAb = $this->abbrevs($skill);
-        if (in_array($n, $sAb, true) || in_array($s, $nAb, true) || array_intersect($nAb, $sAb)) return true;
-        $tn = $this->tokens($need); $ts = $this->tokens($skill);
-        if (!$tn || !$ts) return false;
-        $hit = count(array_intersect($tn, $ts));
-        return $hit / count($tn) >= 0.6;
+        return $this->skill_strength($need, $skill) > 0;
     }
 
     /** "Welding, Carpentry; Safety Training" → list */
@@ -230,9 +235,9 @@ class Job_matcher
      *
      * Only the parts the job asks for count: a job with no experience or education requirement is
      * scored on skills, certificate and distance alone, so "no requirement" is never a free point.
-     * Skills are a gate: none met = at most 24 (Low); under half met = at most 49 (never Good).
-     * A job that lists no skills at all is capped at 60, because there is little to compare.
-     * A required TESDA NC the worker lacks caps the score at 74 (never Strong).
+         * Then multiplied by the qualification factor 0.30 + 0.70 x (average skill coverage), so the
+     * percentage falls in proportion to the skills that are missing. A missing required NC takes
+     * off up to 12% more; a job that lists no skills is scored at 80% at most.
      * Every part comes back with its points (out of 100 in total) and a one-line explanation.
      *
      * @param array $worker  users row (location, preferred_towns, experience_years, education_level, resume_data)
@@ -244,7 +249,7 @@ class Job_matcher
         $W = self::WEIGHTS;
         $needs = $this->needs($job['skills_needed'] ?? '');
         $matched = []; $missing = []; $verifiedHits = []; $gaps = [];
-        $skillCredits = []; $ncNeeds = 0; $ncCredit = 0.0;
+        $skillCredits = []; $skillNames = []; $ncNeeds = 0; $ncCredit = 0.0;
 
         foreach ($needs as $need) {
             $needNc = $this->nc_level($need);
@@ -256,9 +261,10 @@ class Job_matcher
                 $name = (string) ($sk['skill_name'] ?? '');
                 $skNc = $this->nc_level($name . ' ' . ($sk['certificate'] ?? ''));
                 $isTesda = ($sk['source'] ?? '') === 'tesda' || $skNc !== null;
-                $sameSkill = !$credentialOnly && $this->skill_matches($needName, $name);
+                $strength = $credentialOnly ? 0.0 : $this->skill_strength($needName, $name);
+                $sameSkill = $strength > 0;
                 if ($sameSkill) {
-                    $c = self::LEVEL_CREDIT[$sk['level'] ?? ''] ?? 0.8;
+                    $c = (self::LEVEL_CREDIT[$sk['level'] ?? ''] ?? 0.8) * $strength;
                     if ($c > $bestSkill) { $bestSkill = $c; $bestSk = $sk; }
                 }
                 if ($needNc && ($sameSkill || $credentialOnly) && $isTesda
@@ -268,7 +274,7 @@ class Job_matcher
             }
 
             if (!$credentialOnly) {
-                $skillCredits[] = $bestSkill;
+                $skillCredits[] = $bestSkill; $skillNames[] = $needName;
                 if ($bestSkill > 0 && !empty($bestSk['verified'])) $verifiedHits[] = $need;
             }
             if ($needNc) { $ncNeeds++; $ncCredit += $bestNc; }
@@ -353,7 +359,7 @@ class Job_matcher
             $gaps[] = ['name' => self::EDUCATION_LABELS[$needEdu], 'kind' => 'education', 'skill' => null, 'pending' => false];
         } else {
             $diff = self::EDUCATION[$edu] - self::EDUCATION[$needEdu];
-            $eduPts = $diff >= 0 ? $W['education'] : ($diff === -1 ? $W['education'] / 2 : 0);
+            $eduPts = $diff >= 0 ? $W['education'] : $W['education'] * max(0, 1 + $diff * 0.5);   // one step short: half, two: none
             $eduText = $diff >= 0 ? 'You meet the minimum schooling (' . self::EDUCATION_LABELS[$needEdu] . ').'
                 : 'Needs: ' . self::EDUCATION_LABELS[$needEdu] . '. You have: ' . self::EDUCATION_LABELS[$edu] . '.';
             if ($diff < 0) $gaps[] = ['name' => self::EDUCATION_LABELS[$needEdu], 'kind' => 'education', 'skill' => null, 'pending' => false];
@@ -372,16 +378,22 @@ class Job_matcher
         unset($x);
         $parts = array_values(array_filter($parts, fn($x) => $x['applies']));
 
-        // the skills a job lists are a gate (see the doc above)
-        $coverage = $skillNeeds ? $have / $skillNeeds : 1.0;
-        $gate = null;
-        if ($skillNeeds === 0) $gate = self::CAP_NO_REQUIREMENTS;
-        elseif ($have === 0) $gate = self::CAP_NO_SKILLS;
-        elseif ($coverage < 0.5) $gate = self::CAP_FEW_SKILLS;
-        if ($ncNeeds > 0 && $ncCredit < $ncNeeds) $gate = min($gate ?? 100, self::CAP_MISSING_NC);
-        $score = (int) max(0, min(100, round($raw)));
-        if ($gate !== null) $score = min($score, $gate);
+        // Qualification factor: the skills a job lists scale the whole score smoothly.
+        //   q = average skill coverage (0..1) -> factor = 0.30 + 0.70 * q
+        // None of the skills: at most 30. Half covered: at most 65. All covered: no reduction.
+        // A required TESDA NC that is missing takes off up to another 12%. A job that lists no
+        // skills is scored at 80% at most, because there is little to compare.
+        $q = $skillNeeds ? array_sum($skillCredits) / $skillNeeds : 0.0;
+        $factor = $skillNeeds ? self::FACTOR_FLOOR + (1 - self::FACTOR_FLOOR) * $q : self::FACTOR_NO_SKILLS_LISTED;
+        if ($ncNeeds > 0) $factor *= 1 - self::FACTOR_NC_PENALTY * (1 - $ncCredit / $ncNeeds);
+        $score = (int) max(0, min(100, round($raw * $factor)));
         $level = self::level_of($score);
+
+        // each requirement with its own percentage, so the worker sees what really lacks
+        $checks = [];
+        foreach ($skillCredits as $i => $c) {
+            $checks[] = ['name' => $skillNames[$i], 'kind' => 'skill', 'pct' => (int) round($c * 100), 'status' => $c >= 0.99 ? 'met' : ($c > 0 ? 'partial' : 'missing')];
+        }
 
         $reasons = [];
         $reasons[] = $skillNeeds ? sprintf('Has %d of %d skills', $have, $skillNeeds) : 'No specific skills listed';
@@ -396,6 +408,8 @@ class Job_matcher
             'skills_have' => $have,
             'skills_need' => $skillNeeds,
             'gaps'        => $gaps,
+            'checks'      => $checks,
+            'factor'      => round($factor, 2),
             'distance_km' => $km,
             'matched'     => $matched,
             'missing'     => $missing,

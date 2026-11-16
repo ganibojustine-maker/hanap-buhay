@@ -3,7 +3,7 @@
  * Each role reads its own title, reason, document and tips (ROLE_PAGE below); the steps come
  * from the server and differ per role too.
  *
- * Hybrid: the system checks email, phone (a texted code), profile completeness, the file,
+ * Hybrid: the system checks email, phone number, profile completeness, the file,
  * duplicate ID numbers and the name on the ID; an admin then looks at the document itself.
  *   Worker and client: valid government ID.   Employer: business permit or registration.
  * Status: Unverified → Pending → Verified, or Rejected (with reason) / Resubmission requested.
@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SkeletonCards } from '../../components/Skeleton.jsx'
 import BusinessVerification from '../../components/BusinessVerification.jsx'
-import { IconCheck, IconBadge, IconPhone, IconShield } from '../../components/icons.jsx'
+import { IconCheck, IconBadge, IconShield } from '../../components/icons.jsx'
 import { phDateTime, phPhone } from '../../utils/format.js'
 import '../../styles/platform.css'
 
@@ -26,41 +26,6 @@ export const VERIFY_STATUS = {
 const ACTION_TEXT = {
   submitted: 'Document sent', approved: 'Approved', rejected: 'Not approved', resubmission_requested: 'Asked to send again',
   revoked: 'Verified badge removed', phone_confirmed: 'Mobile number confirmed',
-}
-
-function PhoneStep({ call, phone, onDone }) {
-  const [num, setNum] = useState(phone || '')
-  const [sent, setSent] = useState(null)
-  const [code, setCode] = useState('')
-  const [msg, setMsg] = useState(null)
-  const [busy, setBusy] = useState(false)
-  async function send() {
-    setBusy(true); setMsg(null)
-    try { const r = await call('/verification/phone/send', { method: 'POST', body: { phone: num } }); setSent(r); setMsg({ text: r.message }) }
-    catch (e) { setMsg({ bad: true, text: e.message }) } finally { setBusy(false) }
-  }
-  async function confirm() {
-    setBusy(true); setMsg(null)
-    try { await call('/verification/phone/confirm', { method: 'POST', body: { code } }); onDone() }
-    catch (e) { setMsg({ bad: true, text: e.message }) } finally { setBusy(false) }
-  }
-  return (
-    <div style={{ marginTop: 10 }}>
-      {msg && <div className={`pf-note ${msg.bad ? 'bad' : 'info'}`} role="status" style={{ marginBottom: 10 }}>{msg.text}{sent?.test_code && <> Code: <b>{sent.test_code}</b></>}</div>}
-      {!sent ? (
-        <div className="pf-row">
-          <div className="in no-icon" style={{ maxWidth: 220 }}><input inputMode="tel" value={num} onChange={e => setNum(e.target.value)} placeholder="0917 123 4567" aria-label="Mobile number" /></div>
-          <button type="button" className="btn btn-navy btn-sm" disabled={busy} onClick={send}><IconPhone size={13} /> Text me a code</button>
-        </div>
-      ) : (
-        <div className="pf-row">
-          <div className="in no-icon"><input className="pf-otp" inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="______" aria-label="6-digit code" /></div>
-          <button type="button" className="btn btn-primary btn-sm" disabled={busy || code.length !== 6} onClick={confirm}>Confirm</button>
-          <button type="button" className="btn btn-light btn-sm" disabled={busy} onClick={() => { setSent(null); setCode('') }}>Use another number</button>
-        </div>
-      )}
-    </div>
-  )
 }
 
 function IdStep({ call, idTypes, user, onDone }) {
@@ -187,15 +152,15 @@ function VerificationPage({ call, user, updateUser, role }) {
                     <div className="vf-body">
                       <b>{label}</b>
                       <small>
-                        {i.done ? (i.key === 'phone' && data.phone ? `Confirmed: ${phPhone(data.phone)}` : 'Done')
+                        {i.done ? (i.key === 'phone' && data.phone ? `Added: ${phPhone(data.phone)}` : 'Done')
                           : isDoc ? page.docHelp : i.help}
                       </small>
-                      {!i.done && i.key === 'phone' && <PhoneStep call={call} phone={data.phone} onDone={() => { setFlash('Your mobile number is confirmed.'); load() }} />}
+                      {!i.done && i.key === 'phone' && <Link to="/dashboard/profile" className="btn btn-light btn-sm" style={{ marginTop: 8 }}>Add my number</Link>}
                       {!i.done && i.key === 'email' && <p className="pf-small" style={{ margin: '6px 0 0' }}>Can’t find the email? Check your spam folder, or open <Link to="/dashboard/settings">Settings</Link> to send it again.</p>}
                       {!i.done && i.key === 'profile' && <Link to={role === 'worker' && /skill/i.test(i.help || '') ? '/dashboard/passport' : '/dashboard/profile'} className="btn btn-light btn-sm" style={{ marginTop: 8 }}>{role === 'employer' ? 'Complete business profile' : 'Complete my profile'}</Link>}
                       {isDoc && !i.done && docOpen && (
                         !(emailDone && phoneDone)
-                          ? <p className="pf-small" style={{ margin: '6px 0 0' }}>Confirm your email and mobile number first.</p>
+                          ? <p className="pf-small" style={{ margin: '6px 0 0' }}>Confirm your email and add your mobile number first.</p>
                           : role === 'employer'
                             ? <div style={{ marginTop: 10 }}><BusinessVerification call={call} user={user} updateUser={updateUser} /></div>
                             : <IdStep call={call} idTypes={data.id_types} user={user} onDone={() => { setFlash('Thanks! We’ll check your ID within 1 to 2 working days.'); load() }} />

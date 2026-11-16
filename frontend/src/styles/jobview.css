@@ -267,3 +267,40 @@
 .ma.low .ma-hd { background: linear-gradient(90deg, #FEF2F2, #fff 70%); }
 .ma.low .ma-hd h2 { color: var(--red); }
 .ma.good .ma-hd h2 { color: var(--amber-d); }
+
+/* each requirement with how well the worker covers it */
+.ma-list li.partial .ma-ic { background: #FFF7E6; color: var(--amber-d); }
+.ma-bar { display: block; height: 5px; border-radius: 99px; background: var(--soft); margin-top: 6px; overflow: hidden; }
+.ma-bar i { display: block; height: 100%; border-radius: inherit; background: var(--red); }
+.ma-list li.have .ma-bar i { background: var(--green); }
+.ma-list li.partial .ma-bar i { background: var(--amber); }
+.ma-state { display: inline-flex; align-items: center; gap: 10px; }
+.ma-pct { font-family: var(--display); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--red); min-width: 38px; text-align: right; }
+.ma-list li.have .ma-pct { color: var(--green); }
+.ma-list li.partial .ma-pct { color: var(--amber-d); }
+.ma-upload { margin: 6px 22px 0 !important; }
+.ma-upload .ma-learn { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-weight: 700; }
+@media (max-width: 640px) {
+  .ma-list li { flex-wrap: nowrap; }
+  .ma-state { margin-left: 0; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .ma-upload { margin: 6px 16px 0 !important; }
+}
+
+/* ── Job page head on phones: logo + title + ring in one row, details and buttons full width ── */
+@media (max-width: 640px) {
+  .jv-card:not(.ma) { padding: 18px 16px; }
+  .jv-head-top { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+  .jv-logo { width: 52px; height: 52px; border-radius: 14px; }
+  .jv-head-top > .mring { grid-column: 3; grid-row: 1; transform: scale(.8); transform-origin: top right; margin: 0 0 -16px -16px; }
+  .jv-head-copy { display: contents; }
+  .jv-head-copy h1 { grid-column: 2; grid-row: 1; font-size: 20px; line-height: 1.2; margin: 0; align-self: center; }
+  .jv-co, .jv-meta { grid-column: 1 / -1; }
+  .jv-co { margin: 2px 0 0; font-size: 14.5px; }
+  .jv-meta { gap: 8px 14px; font-size: 13px; }
+  .jv-meta span { white-space: normal; }
+  .jv-head-foot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .jv-head-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+  .jv-head .jv-head-actions > .btn-primary, .jv-head .jv-head-actions > .btn-navy, .jv-head .jv-head-actions > .jv-applied { grid-column: 1 / -1; width: 100%; justify-content: center; min-height: 48px; }
+  .jv-head-actions .jrow-save { width: 48px; height: 48px; }
+  .jv-head-actions > a.btn-light { width: 100%; justify-content: center; min-height: 48px; }
+}

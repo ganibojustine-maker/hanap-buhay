@@ -33,7 +33,7 @@ function defaultCoverNote(job, user, skills = []) {
 }
 
 /** The fit check: what the worker should know before applying. */
-function FitCheck({ match }) {
+export function FitCheck({ match }) {
   const level = matchLevel(match.score)
   const gaps = match.gaps || []
   if (level.key === 'strong' && !gaps.length) {

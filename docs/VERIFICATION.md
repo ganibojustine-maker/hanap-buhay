@@ -11,7 +11,7 @@
 **Automatic checks** (done by the system, shown to the admin next to each request):
 
 - Email confirmed: the link sent at sign-up. Google sign-in counts as confirmed.
-- Mobile number confirmed: a 6-digit code texted through Semaphore. It expires in 10 minutes and allows 5 tries.
+- Mobile number: a valid Philippine number in the profile (09XX XXX XXXX). No text message is sent.
 - Profile complete: the same required fields as applying (see MATCHING.md).
 - File check: JPG, PNG, WEBP or PDF only, up to 5 MB, and at least 400×250 pixels so it is readable.
 - Duplicate check: the same ID number is not already pending or approved on another account.
@@ -24,7 +24,7 @@
 | Step | Worker | Client | Employer |
 |---|---|---|---|
 | Email confirmed | ✔ | ✔ | ✔ |
-| Mobile number confirmed (SMS code) | ✔ | ✔ | ✔ |
+| Mobile number added | ✔ | ✔ | ✔ |
 | Profile complete | Name, mobile, town, education, experience, 1+ skill | Name, town | Business name, town |
 | Document | Valid government ID | Valid government ID | DTI / SEC / CDA / Mayor's permit / BIR 2303 |
 

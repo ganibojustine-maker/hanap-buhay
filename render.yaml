@@ -54,9 +54,7 @@ services:
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
-      # optional: SMS to workers (empty = texts only logged) and the reminder pinger secret
-      - key: SEMAPHORE_API_KEY
-        sync: false
+      # optional: the reminder pinger secret
       - key: CRON_SECRET
         sync: false
       - key: PAYMONGO_METHODS

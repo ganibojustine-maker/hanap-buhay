@@ -76,6 +76,9 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
   const where = m.distance_km === null ? null : m.distance_km === 0 ? 'in your town' : `${m.distance_km} km from ${user.location || 'you'}`
   // what is lacking: skills and certificates (with training), then experience and education
   const gaps = (m.gaps || []).map(g => ({ ...g, course: g.kind === 'skill' || g.kind === 'certificate' ? coursesForSkill(g.name, 1)[0] || null : null }))
+  // every skill the job lists with how much the worker covers; other gaps (certificate, years, schooling) below
+  const checks = (m.checks || []).map(c => ({ ...c, course: c.status === 'missing' ? coursesForSkill(c.name, 1)[0] || null : null }))
+  const otherGaps = checks.length ? gaps.filter(g => g.kind !== 'skill') : gaps
   const training = basePath.startsWith('/dashboard') ? '/dashboard/training' : '/training'
 
   return (
@@ -89,17 +92,30 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
         </div>
       </header>
 
-      {gaps.length > 0 && (
+      {(checks.length > 0 || otherGaps.length > 0) && (
         <div className="ma-gaps">
           <ul className="ma-list">
-            {gaps.map(g => (
-              <li key={g.name} className="missing">
+            {checks.map(c => (
+              <li key={'s' + c.name} className={c.status === 'met' ? 'have' : c.status}>
+                <span className="ma-ic" aria-hidden="true">{c.status === 'missing' ? <IconX size={13} /> : <IconCheck size={13} />}</span>
+                <div className="ma-main">
+                  <b>{c.name}</b>
+                  <span className="ma-bar" aria-hidden="true"><i style={{ width: `${c.pct}%` }} /></span>
+                </div>
+                <span className="ma-state">
+                  <b className="ma-pct">{c.pct}%</b>
+                  {c.status === 'missing' && c.course && <EnrollLink course={c.course} className="ma-learn">Training</EnrollLink>}
+                </span>
+              </li>
+            ))}
+            {otherGaps.map(g => (
+              <li key={'g' + g.name} className="missing">
                 <span className="ma-ic" aria-hidden="true"><IconX size={13} /></span>
                 <div className="ma-main"><b>{g.name}</b>{g.pending && <small>Being checked</small>}</div>
                 <span className="ma-state">
                   {g.kind === 'experience' || g.kind === 'education'
                     ? <Link to="/dashboard/profile" className="ma-learn">Update profile</Link>
-                    : g.course ? <EnrollLink course={g.course} className="ma-learn">Find training</EnrollLink> : null}
+                    : g.course ? <EnrollLink course={g.course} className="ma-learn">Training</EnrollLink> : null}
                 </span>
               </li>
             ))}
@@ -107,7 +123,7 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
           {gaps.some(g => g.kind === 'certificate' || g.kind === 'skill') && user.account_type === 'worker' && call && (
             upload
               ? <div style={{ marginTop: 10 }}><CertificateUpload call={call} user={user} onSaved={() => { setUpload(false); onChanged?.() }} /></div>
-              : <p className="pf-small" style={{ margin: '8px 0 0' }}><button type="button" className="ma-learn" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }} onClick={() => setUpload(true)}>Upload a certificate</button></p>
+              : <p className="pf-small ma-upload"><button type="button" className="ma-learn" onClick={() => setUpload(true)}>Have a certificate? Upload it</button></p>
           )}
         </div>
       )}
@@ -124,7 +140,7 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
               </li>
             ))}
           </ul>
-          <p className="pf-small">Only what the job asks for is scored. <Link to="/faq#matching">More</Link></p>
+          <p className="pf-small">Only what the job asks for is scored, and the score drops in step with the skills you lack. <Link to="/faq#matching">More</Link></p>
           {gaps.some(g => g.course) && <Link to={training} className="ma-more">Free TESDA courses <IconArrow size={12} /></Link>}
         </details>
       )}

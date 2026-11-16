@@ -204,7 +204,7 @@ function PageHeader({ user }) {
 }
 
 /* ─ Topbar ──────────────────────────────────────────────── */
-function Topbar({ user, onToggleSidebar, call, onSupportCount }) {
+function Topbar({ user, onToggleSidebar, call, onSupportCount, onSignOut }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifs, setNotifs] = useState([])
@@ -212,7 +212,6 @@ function Topbar({ user, onToggleSidebar, call, onSupportCount }) {
   const [activeEmail, setActiveEmail] = useState(null)
   const menuRef = useRef()
   const notifRef = useRef()
-  const { logout } = useAuth()
 
   const loadNotifications = useCallback(async () => {
     if (!call) return
@@ -501,7 +500,7 @@ function Topbar({ user, onToggleSidebar, call, onSupportCount }) {
                 <Link key={l.to} to={l.to} role="menuitem" onClick={() => setMenuOpen(false)}><l.icon size={16} />{tr(l.label)}</Link>
               ))}
               <Link to="/dashboard/settings" role="menuitem" onClick={() => setMenuOpen(false)}><IconSettings size={16} />{tr("Settings")}</Link>
-              <button role="menuitem" onClick={logout}><IconLogout size={16} />{tr("Sign Out")}</button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onSignOut() }}><IconLogout size={16} />{tr("Sign Out")}</button>
             </div>
           )}
         </div>
@@ -544,10 +543,9 @@ function Settings({ user, call, updateUser }) {
       setDelBusy(false)
     }
   }
-  // SMS (Semaphore) is for workers only: hired, interview invite, interview reminder
   const isWorker = user?.account_type === 'worker' && user?.role !== 'admin'
   const initialPrefs = user?.notification_prefs || {}
-  const EMAIL_KEYS = ['email', 'job_alerts', 'sms', 'email_applications', 'email_updates', 'email_invites', 'email_messages', 'email_reviews', 'email_social', 'email_posts']
+  const EMAIL_KEYS = ['email', 'job_alerts', 'email_applications', 'email_updates', 'email_invites', 'email_messages', 'email_reviews', 'email_social', 'email_posts']
   const readPrefs = pr => Object.fromEntries(EMAIL_KEYS.map(k => [k, pr?.[k] !== false]))
   const [notifs, setNotifs] = useState(readPrefs(initialPrefs))
   const isAdmin = user?.role === 'admin'
@@ -646,16 +644,10 @@ function Settings({ user, call, updateUser }) {
         </section>
       )}
 
-      {/* ── worker: texts and new-job alerts ── */}
+      {/* ── worker: new-job alerts ── */}
       {isWorker && (
         <section className="panel">
-          <h2><IconPhone size={17} /> {tr('Text messages (SMS)')}</h2>
-          <Toggle k="sms" title="Text me when I am hired or invited to an interview" sub="And a reminder the day before the interview. Free for you." />
-          <p className="st-note" style={{ color: user?.phone ? 'var(--green)' : 'var(--amber)' }}>
-            {user?.phone ? tr('Texts go to {phone}.', { phone: user.phone })
-              : <>{tr('Add your mobile number in')} <Link to="/dashboard/profile">{tr('My Profile')}</Link> {tr('to get texts.')}</>}
-          </p>
-          <h2 style={{ marginTop: 18 }}>{tr('New job alerts')}</h2>
+          <h2>{tr('New job alerts')}</h2>
           <Toggle k="job_alerts" title="Tell me about new jobs that fit me" sub="Under the bell, as soon as a matching job is posted." />
           <SaveBar />
         </section>
@@ -948,7 +940,11 @@ export default function Dashboard() {
   const { user, logout, tokens, updateUser, call, acceptTerms } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [supportCount, setSupportCount] = useState(0)
+  const [askSignOut, setAskSignOut] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const { pathname } = useLocation()
+  const askToSignOut = () => { setSidebarOpen(false); setAskSignOut(true) }
+  const signOut = async () => { setSigningOut(true); try { await logout() } finally { setSigningOut(false) } }
 
   const role = user.role === 'admin' ? 'admin' : user.account_type
 
@@ -984,10 +980,16 @@ export default function Dashboard() {
           className="mob-overlay" />
       )}
 
-      <Sidebar user={user} logout={logout} open={sidebarOpen} onClose={() => setSidebarOpen(false)} badges={{ support: supportCount }} />
+      {askSignOut && (
+        <Dialog tone="warn" title={tr('Sign out?')} onClose={() => !signingOut && setAskSignOut(false)} busy={signingOut}
+          actions={[{ label: signingOut ? tr('Signing out…') : tr('Sign out'), primary: true, onClick: signOut }, { label: tr('Cancel'), onClick: () => setAskSignOut(false) }]}>
+          <p style={{ margin: 0 }}>{tr('You will need your email and password to sign in again on this device.')}</p>
+        </Dialog>
+      )}
+      <Sidebar user={user} logout={askToSignOut} open={sidebarOpen} onClose={() => setSidebarOpen(false)} badges={{ support: supportCount }} />
 
       <div className="dash-content">
-        <Topbar user={user} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} call={call} onSupportCount={setSupportCount} />
+        <Topbar user={user} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} call={call} onSupportCount={setSupportCount} onSignOut={askToSignOut} />
         <InstallApp />
         <PageHeader user={user} />
 

@@ -816,3 +816,8 @@
 .st-danger h2 { color: #991b1b; }
 .st-del { color: #991b1b; border-color: #fecaca; }
 .st-delform { display: grid; gap: 10px; max-width: 420px; }
+@media (max-width: 380px) {
+  .app-tracker { padding: 10px 6px; max-width: 100%; overflow: hidden }
+  .tracker-circle { width: 20px; height: 20px; font-size: 10px }
+  .tracker-line { min-width: 2px }
+}

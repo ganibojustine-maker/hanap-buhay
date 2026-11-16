@@ -62,10 +62,11 @@ function GuestOnly({ children }) {
 }
 
 function Private({ children, needType = true }) {
-  const { user, ready } = useAuth()
+  const { user, ready, signedOut } = useAuth()
   const loc = useLocation()
   if (!ready) return <Splash />
-  if (!user) return <Navigate to="/login" state={{ from: loc.pathname }} replace />
+  // after a deliberate sign-out, remember nothing: the next person starts fresh at their own dashboard
+  if (!user) return <Navigate to="/login" state={signedOut ? null : { from: loc.pathname }} replace />
   if (needType && !user.account_type && user.role !== 'admin') return <Navigate to="/onboarding" replace />
   return children
 }

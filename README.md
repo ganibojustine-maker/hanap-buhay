@@ -11,7 +11,7 @@ moderates posts, resolves disputes and watches payments.
 | Front end | React 18 + Vite, React Router |
 | Database | MySQL 8 (Aiven), schema in versioned migrations |
 | Chat, Help & Support | Firebase Realtime Database |
-| Email · Payments · SMS | Brevo · PayMongo (sandbox) · Semaphore (optional) |
+| Email · Payments | Brevo · PayMongo (sandbox) |
 | Hosting | Render: `hanapbuhay-api` (Docker) and `hanapbuhay-web` (static site), see `render.yaml` |
 
 ## Project structure

@@ -506,19 +506,11 @@ class ApplicationController extends Controller
                 $status !== 'reviewed'
             );
 
-            // a text for the updates a worker must not miss, only when something actually changed
+            // when the time changes the reminder is sent again
             $norm = fn($d) => substr((string) $d, 0, 16);
             $isNew = $app['status'] !== $status || $norm($interview_date) !== $norm($app['interview_date'] ?? '');
             if ($status === 'for_interview' && $isNew && array_key_exists('interview_reminded_at', $app)) {
                 $this->db->table('applications')->where('id', (int) $id)->update(['interview_reminded_at' => null]);
-            }
-            if ($worker && $isNew && in_array($status, ['hired', 'for_interview', 'offer'], true)) {
-                $t = mb_substr($job['title'], 0, 40);
-                $c = mb_substr($company, 0, 35);
-                if ($status === 'hired') $sms = "hanapbuhay: {$c} hired you for {$t}. Open the app for the next steps.";
-                elseif ($status === 'offer') $sms = "hanapbuhay: {$c} sent you a job offer for {$t}. Open the app to accept or decline.";
-                else $sms = "hanapbuhay: {$c} invited you to an interview for {$t}" . ($interview_date ? ' on ' . date('M j, g:i A', strtotime($interview_date)) : '') . '. Details in the app.';
-                \Sms::notify($worker, $sms);
             }
         }
 

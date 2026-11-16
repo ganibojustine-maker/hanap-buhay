@@ -1,4 +1,5 @@
 // Dashboard worker pages (split out of Dashboard.jsx so each role downloads only its own code).
+import askConfirm from '../../components/askConfirm.jsx'
 import { matchKey } from '../../utils/match.js'
 import { FreelanceStrip } from './worker/WorkerGigs.jsx'
 import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
@@ -1039,7 +1040,7 @@ export function WorkerProfile({ user, call, tokens, updateUser }) {
 
   // Handle Remove Photo
   async function handleRemovePhoto() {
-    if (!window.confirm(tr('Are you sure you want to remove your profile photo?'))) return
+    if (!(await askConfirm({ tone: 'danger', title: tr('Remove your profile photo?'), body: tr('Your initials will show instead.'), yes: tr('Remove'), no: tr('Cancel') }))) return
     setUploadingPhoto(true)
     setPhotoMsg({ type: '', text: '' })
     try {

@@ -1130,45 +1130,128 @@ tr:hover td { background: var(--soft) }
 
 /* ---- Phone refinements: profile stats, passport rows, map filters, job cards ---- */
 @media (max-width: 640px) {
-  .rep-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  .rep-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rep-links > * { justify-content: center; text-align: center; }
-  .up-head { grid-template-columns: minmax(0, 1fr); }
-  .up-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  .up-actions { min-width: 0; }
-  .sp-score { gap: 14px; }
-  .sp-counts { width: 100%; justify-content: space-between; gap: 10px; }
-  .sp-skill { grid-template-columns: auto minmax(0, 1fr) !important; }
-  .sp-skill > :not(.sp-skill-ic):not(.sp-skill-main) { grid-column: 2; justify-self: start; }
-  .sp-skill-x { min-width: 40px; min-height: 40px; }
-  .jm2-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .jm2-filters > input, .jm2-filters > :first-child { grid-column: 1 / -1; }
-  .ej-card .btn, .ej-card a.btn { min-height: 40px; }
-  .btn-sm, .chip-btn, .pf-tabs button { min-height: 40px; }
-  table td, table th { word-break: break-word; }
+  :root .rep-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  :root .rep-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root .rep-links > * { justify-content: center; text-align: center; }
+  :root .up-head { grid-template-columns: minmax(0, 1fr); }
+  :root .up-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  :root .up-actions { min-width: 0; }
+  :root .sp-score { gap: 14px; }
+  :root .sp-counts { width: 100%; justify-content: space-between; gap: 10px; }
+  :root .sp-skill { grid-template-columns: auto minmax(0, 1fr) 40px !important; align-items: start; }
+  :root .sp-skill > .chip { grid-column: 2; grid-row: 2; justify-self: start; }
+  :root .sp-skill-x { grid-column: 3; grid-row: 1; width: 40px; height: 40px; display: grid; place-items: center; margin: -6px -6px 0 0; }
+  :root .ej-card .btn, :root .ej-card a.btn { min-height: 40px; }
+  :root .btn-sm, :root .chip-btn, :root .pf-tabs button { min-height: 40px; }
 }
 
 /* Phone: selects and toolbars never wider than the screen */
 .top-progress { overflow: hidden; }
 @media (max-width: 640px) {
-  .jb-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
-  .jb-selects select, .tl-forjob, .jb-sort select { max-width: 100%; min-width: 0; width: 100%; }
-  .tp-back, .mlg-how, .auth-link, .lp-textlink { display: inline-flex; align-items: center; min-height: 40px; }
+  :root .jb-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  :root .jb-selects select, :root .tl-forjob, :root .jb-sort select { max-width: 100%; min-width: 0; width: 100%; }
+  :root .tp-back, :root .mlg-how, :root .auth-link, :root .lp-textlink { display: inline-flex; align-items: center; min-height: 40px; }
 }
 
 /* Phone: wide legal tables scroll inside their own box instead of squeezing */
 @media (max-width: 640px) {
-  .legal-body table, .info-body table, article table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .legal-body td, .legal-body th, .info-body td, .info-body th, article td, article th { min-width: 120px; }
+  :root .legal-body table, :root .info-body table, :root article table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  :root .legal-body td, :root .legal-body th, :root .info-body td, :root .info-body th, :root article td, :root article th { min-width: 120px; }
 }
 @media (max-width: 640px) {
-  .sp-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sp-counts { flex: 1 0 100%; order: 3; }
-  .sp-counts span { font-size: 10px; letter-spacing: .02em; }
+  :root .sp-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root .sp-counts { flex: 1 0 100%; order: 3; }
+  :root .sp-counts span { font-size: 10px; letter-spacing: .02em; }
 }
 @media (max-width: 640px) {
-  .sp-strength { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .sp-strength > div:last-child { width: 100%; }
-  .sp-strength .sp-counts { gap: 8px; }
-  .sp-strength .sp-counts span { white-space: nowrap; }
+  :root .sp-strength { flex-direction: column; align-items: flex-start; gap: 12px; }
+  :root .sp-strength > div:last-child { width: 100%; }
+  :root .sp-strength .sp-counts { gap: 8px; }
+  :root .sp-strength .sp-counts span { white-space: nowrap; }
+}
+
+/* ── One dropdown style for every toolbar and filter in the app ──────────────
+   (form fields inside .in keep their own taller look; this is for list tools) */
+:root :is(.jb-sort, .jb-selects, .tl-filters, .lt-ctrl, .pf-browse-filters, .jm2-filters, .tp-invite) select {
+  -webkit-appearance: none; appearance: none;
+  height: 44px; min-height: 44px; max-width: 100%;
+  border: 1.5px solid var(--line); border-radius: var(--r-md);
+  padding: 0 38px 0 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+  background-color: #fff; cursor: pointer; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  transition: border-color .15s, box-shadow .15s;
+}
+:root :is(.jb-sort, .jb-selects, .tl-filters, .lt-ctrl, .pf-browse-filters, .jm2-filters, .tp-invite) select:hover { border-color: #CBD2DC }
+:root :is(.jb-sort, .jb-selects, .tl-filters, .lt-ctrl, .pf-browse-filters, .jm2-filters, .tp-invite) select:focus {
+  outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(13,27,62,.1);
+}
+:root .tl-toggle { height: 44px; border-radius: var(--r-md); border-width: 1.5px; font-size: 14px }
+@media (min-width: 901px) {
+  :root :is(.jb-sort, .lt-ctrl) select { height: 40px; min-height: 40px; font-size: 13.5px }
+}
+
+/* ── Phone: panel headers stack (title and text first, the action under them) ── */
+@media (max-width: 640px) {
+  :root .panel-hd { flex-wrap: wrap; align-items: flex-start; }
+  :root .panel-hd > div:first-child { flex: 1 1 100%; min-width: 0; }
+  :root .panel-hd > .btn, :root .panel-hd > div:last-child:not(:first-child) { flex: 1 1 100%; }
+  :root .panel-hd > .btn { width: 100%; justify-content: center; min-height: 44px; }
+  :root .wg-hd-right { justify-content: space-between; }
+  :root .wg-hd-right .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+
+  /* certificate cards: icon and text, then the status and buttons in one row */
+  :root .cu-cert { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: start; }
+  :root .cu-cert .cu-actions { grid-column: 1 / -1; margin-left: 0; display: flex; align-items: center; gap: 8px; }
+  :root .cu-cert .cu-actions .chip { margin-right: auto; }
+  :root .cu-cert .cu-actions .btn { width: 44px; min-height: 40px; padding: 0; justify-content: center; }
+
+  /* public profile: avatar beside the name, stats, bio and buttons full width */
+  :root .up-head { grid-template-columns: 64px minmax(0, 1fr); gap: 4px 14px; align-items: center; }
+  :root .up-head > :first-child { grid-row: 1 / 3; width: 64px !important; height: 64px !important; font-size: 22px !important; }
+  :root .up-head-main { display: contents; }
+  :root .up-head h1 { grid-column: 2; font-size: 20px; margin: 0; }
+  :root .up-head .up-sub { grid-column: 2; margin: 0; font-size: 13px; }
+  :root .up-stats, :root .up-bio { grid-column: 1 / -1; }
+  :root .up-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+  :root .up-stats:has(> :nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root .up-stat { background: var(--soft); border-radius: 12px; padding: 10px 6px; text-align: center; }
+  :root .up-stat b { justify-content: center; font-size: 17px; }
+  :root .up-stat span { font-size: 10.5px; letter-spacing: .02em; display: block; text-transform: none; }
+  :root .up-bio { margin-top: 10px; }
+  :root .up-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  :root .up-actions > * { width: 100%; justify-content: center; min-height: 44px; }
+  :root .up-head > a.btn { grid-column: 1 / -1; margin-top: 12px; }
+}
+
+/* Phone: data tables scroll sideways inside their card instead of squeezing letters into a column */
+@media (max-width: 760px) {
+  :root .page-inner table:not(.pf-compare) { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  :root .page-inner table:not(.pf-compare) th, :root .page-inner table:not(.pf-compare) td { white-space: nowrap; }
+  :root .page-inner table:not(.pf-compare) td { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Admin profile */
+.adm-prof { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; }
+.adm-prof > div { min-width: 0; }
+.adm-access { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 13px; color: #4338ca; }
+.adm-row { display: flex; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
+.adm-row-k { width: 120px; flex-shrink: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+.adm-row-v { font-size: 14px; color: var(--navy-d); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  :root .adm-prof { grid-template-columns: minmax(0, 1fr); }
+  :root .adm-access { grid-template-columns: minmax(0, 1fr); }
+  :root .adm-row { display: block; }
+  :root .adm-row-k { width: auto; margin-bottom: 2px; }
+}
+.ap-tab-n { font-size: 11.5px; font-weight: 700; opacity: .75; margin-left: 4px }
+
+/* Phone: stat tiles two per row, compact; action buttons fill their row evenly */
+@media (max-width: 640px) {
+  :root .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  :root .stat-grid .stat-card { padding: 14px; min-height: 0; }
+  :root .stat-grid .stat-card-val { font-size: 24px; }
+  :root .stat-grid .stat-card-label { font-size: 12.5px; }
+  :root .pf-actions > .btn, :root .pf-actions > a.btn { flex: 1 1 auto; justify-content: center; min-height: 42px; }
+  .field > span:first-child { flex-wrap: wrap; }
 }

@@ -1,5 +1,6 @@
 // Worker tools: Saved Jobs page, availability, sharing the Skills Passport (link + QR),
 // next steps after "not selected", and rating an employer after being hired.
+import askConfirm from '../../components/askConfirm.jsx'
 import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useState, useCallback } from 'react'
 import BrandLoader from '../../components/BrandLoader.jsx'
@@ -269,8 +270,8 @@ export function SharePassport({ user, call, updateUser }) {
   }, [url])
 
   async function set(enabled, rotate = false) {
-    if (rotate && !window.confirm(tr('Make a new link? The old link and any printed QR codes will stop working.'))) return
-    if (!enabled && !window.confirm(tr('Turn off sharing? The link and QR code will stop working.'))) return
+    if (rotate && !(await askConfirm({ title: tr('Make a new link?'), body: tr('The old link and any printed QR codes will stop working.'), yes: tr('Make new link'), no: tr('Cancel') }))) return
+    if (!enabled && !(await askConfirm({ tone: 'danger', title: tr('Turn off sharing?'), body: tr('The link and QR code will stop working.'), yes: tr('Turn off'), no: tr('Cancel') }))) return
     setBusy(rotate ? 'rotate' : enabled ? 'on' : 'off'); setMsg(null)
     try {
       const res = await call('/auth/share', { method: 'POST', body: { enabled, rotate } })

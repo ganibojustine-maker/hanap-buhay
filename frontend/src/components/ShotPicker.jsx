@@ -87,7 +87,7 @@ export default function ShotPicker({ shots, onChange, disabled, label }) {
         <small>{tr('Up to {n} images. You can also paste one with Ctrl+V.', { n: MAX_SHOTS })}</small>
       </div>
 
-      <input ref={inputRef} type="file" accept="image/*" multiple hidden
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
         onChange={e => { const f = e.target.files; e.target.value = ''; if (f?.length) add(f) }} />
 
       {err && <p className="shot-err"><IconAlert size={13} /> {err}</p>}

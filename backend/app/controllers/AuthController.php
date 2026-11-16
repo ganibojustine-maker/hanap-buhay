@@ -211,7 +211,7 @@ class AuthController extends Controller
         }
         $phone = trim((string) ($b['phone'] ?? ''));
         if ($phone !== '') {
-            $phone = \Sms::normalize($phone);
+            $phone = \Phone::normalize($phone);
             if (!$phone) $this->api->respond_error('Enter a Philippine mobile number, like 0917 123 4567.', 422);
         }
 
@@ -352,9 +352,8 @@ class AuthController extends Controller
             $this->api->respond_error('Choose a town in Oriental Mindoro.', 422);
         }
         if (array_key_exists('phone', $data) && $data['phone'] !== '') {
-            $norm = \Sms::normalize($data['phone']);
+            $norm = \Phone::normalize($data['phone']);
             if (!$norm) $this->api->respond_error('Enter a Philippine mobile number, like 0917 123 4567.', 422);
-            if ($norm !== \Sms::normalize($user['phone'] ?? '') && $this->schema_info->has_column('users', 'phone_verified_at')) $data['phone_verified_at'] = null; // a new number must be confirmed again
             $data['phone'] = $norm;
         }
         if ($this->schema_info->has_column('users', 'barangay')) {
@@ -421,8 +420,7 @@ class AuthController extends Controller
             'alert_skills_only' => (bool) $get('alert_skills_only', false),
             'alert_email'       => (bool) $get('alert_email', false),
             // texts for hired / interview invite / interview reminder (on unless turned off; needs a mobile number)
-            'sms'               => (bool) $get('sms', true),
-            // one switch per kind of email (Mailer::TYPE_PREF); all on unless turned off
+                        // one switch per kind of email (Mailer::TYPE_PREF); all on unless turned off
             'email_applications' => (bool) $get('email_applications', true),
             'email_updates'      => (bool) $get('email_updates', true),
             'email_invites'      => (bool) $get('email_invites', true),
@@ -858,7 +856,7 @@ class AuthController extends Controller
             'picture'            => null,
             'location'           => null,
             'google_sub'         => null,
-            'notification_prefs' => json_encode(['email' => false, 'sms' => false, 'job_alerts' => false]),
+            'notification_prefs' => json_encode(['email' => false, 'job_alerts' => false]),
             'is_active'          => 0,
         ]);
         // a shared Skills Passport link must stop working too

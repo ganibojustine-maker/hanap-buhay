@@ -64,7 +64,6 @@ export default {
   'Receive emails when an employer reviews your application, updates your status (Shortlisted, Hired), or sends a message.': 'Makatanggap ng email kapag tiningnan ng employer ang aplikasyon mo, binago ang status mo (Shortlisted, Hired), o nag-message sa iyo.',
   'Job Match Notifications': 'Abiso sa Bagong Trabaho',
   'Receive instant email alerts whenever new jobs matching your skills or location are posted.': 'Agad na maabisuhan kapag may bagong trabahong bagay sa skills o lugar mo.',
-  'Text Messages (SMS)': 'Text Message (SMS)',
   'Get a text when you are hired or invited to an interview, and a reminder the day before the interview. Free for you.': 'Makatanggap ng text kapag natanggap ka sa trabaho o inimbitahan sa interview, at paalala isang araw bago ang interview. Libre ito para sa iyo.',
   'Texts go to {phone}.': 'Ipapadala ang text sa {phone}.',
   'Add your mobile number in': 'Ilagay ang iyong mobile number sa',

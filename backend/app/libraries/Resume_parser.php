@@ -441,26 +441,31 @@ class Resume_parser
     public function pdf_text(string $content): string
     {
         $sources = [$content];
-        if (preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $content, $streams)) {
-            foreach ($streams[1] as $s) {
-                $inflated = @gzuncompress($s);
-                if ($inflated === false) $inflated = @gzinflate($s);
+        // Only Flate-compressed streams are unpacked (a plain-text stream is already in
+        // $content), and only when the bytes start like zlib data, so no warning is raised.
+        if (preg_match_all('/<<((?:(?!>>\s*stream).)*?)>>\s*stream\r?\n(.*?)\r?\nendstream/s', $content, $streams, PREG_SET_ORDER)) {
+            foreach ($streams as [, $dict, $s]) {
+                if (!str_contains($dict, 'FlateDecode') || strlen($s) < 2) continue;
+                $inflated = ord($s[0]) === 0x78 ? @gzuncompress($s) : false;
+                if ($inflated === false) $inflated = @gzinflate(ord($s[0]) === 0x78 ? substr($s, 2) : $s);
                 if ($inflated !== false && $inflated !== '') $sources[] = $inflated;
             }
         }
 
         $text = '';
         foreach ($sources as $src) {
-            if (!preg_match_all('/(?:\[((?:[^\]\\\\]|\\\\.)*)\]\s*TJ|\(((?:[^()\\\\]|\\\\.)*)\)\s*(?:Tj|\'|")|(T\*|ET|Td|TD))/s', $src, $ops, PREG_SET_ORDER)) {
+            if (!preg_match_all('/(?:\[((?:[^\]\\\\]|\\\\.)*)\]\s*TJ|\(((?:[^()\\\\]|\\\\.)*)\)\s*(Tj|\'|")|(T\*|ET|Td|TD))/s', $src, $ops, PREG_SET_ORDER)) {
                 continue;
             }
             foreach ($ops as $op) {
-                if (!empty($op[3])) {
+                if (!empty($op[4])) {
                     // new line / positioning: keep the line breaks the parser relies on
-                    if ($op[3] === 'Td' || $op[3] === 'TD' || $op[3] === 'T*') $text .= "\n";
+                    if ($op[4] === 'Td' || $op[4] === 'TD' || $op[4] === 'T*') $text .= "\n";
                     continue;
                 }
                 if (isset($op[2]) && $op[2] !== '') {
+                    // the ' and " operators move to the next line before showing the text
+                    if (($op[3] ?? '') !== 'Tj') $text .= "\n";
                     $text .= $this->pdf_string($op[2]);
                 } elseif (isset($op[1]) && $op[1] !== '' && preg_match_all('/\(((?:[^()\\\\]|\\\\.)*)\)/s', $op[1], $sub)) {
                     $text .= implode('', array_map([$this, 'pdf_string'], $sub[1]));

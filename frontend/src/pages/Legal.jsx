@@ -178,7 +178,7 @@ export function Privacy() {
           <li><b>Employers and clients</b> see a job seeker’s profile, Skills Passport and match score when the job seeker applies or sends a proposal, or when they search Find Workers. Contact details are shown only after an application or proposal, or when an employer uses a contact unlock.</li>
           <li><b>Job seekers</b> see the employer or client name, verified badge, rating and post details.</li>
           <li><b>Our verification and support team</b> sees ID and business documents, reports, disputes, and messages linked to a report or dispute, only as needed for that task.</li>
-          <li><b>Service providers</b> who process data for us under written agreements: PayMongo (payments), Google Firebase (chat), Brevo (email), Semaphore (text messages), Aiven (database hosting) and Render (application hosting). Some store data outside the Philippines; we require them to protect it to the standard the law requires.</li>
+          <li><b>Service providers</b> who process data for us under written agreements: PayMongo (payments), Google Firebase (chat), Brevo (email), Aiven (database hosting) and Render (application hosting). Some store data outside the Philippines; we require them to protect it to the standard the law requires.</li>
           <li><b>Authorities</b>, when the law requires it or to report a crime such as fraud or trafficking.</li>
         </ul>
 

@@ -163,8 +163,6 @@ $router->patch('/api/admin/jobs/{id}/moderate', 'JobController::moderate');
 
 // Verification (workers, clients; employers use /api/business/verification)
 $router->get('/api/verification', 'VerificationController::status');
-$router->post('/api/verification/phone/send', 'VerificationController::phone_send');
-$router->post('/api/verification/phone/confirm', 'VerificationController::phone_confirm');
 $router->post('/api/verification/id', 'VerificationController::submit_id');
 $router->get('/api/verification/requests/{id}/file', 'VerificationController::file');
 $router->get('/api/admin/verification', 'VerificationController::admin_index');

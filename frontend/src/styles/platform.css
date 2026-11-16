@@ -154,7 +154,7 @@
 .jm2-item small { color: var(--muted); font-size: 12.5px }
 .jm2-map { position: relative; min-height: 0 }
 .jm2-map .leaflet-container { width: 100%; height: 100%; font-family: var(--body) }
-.jm2-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px }
+.jm2-filters { display: flex; gap: 8px; flex-wrap: wrap; flex: 999 1 auto }
 .jm2-filters select, .jm2-filters input { height: 40px; border: 1.5px solid var(--line); border-radius: var(--r-md); padding: 0 12px; font: inherit; font-size: 14px; background: #fff }
 .jm2-legend { position: absolute; z-index: 500; left: 12px; bottom: 12px; background: #fff; border-radius: var(--r-md); box-shadow: var(--shadow-sm); padding: 8px 10px; font-size: 12.5px; display: grid; gap: 4px }
 .jm2-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px }
@@ -194,12 +194,6 @@
   .pf-side, .pf-grid2 { grid-template-columns: minmax(0, 1fr) }
   .pf-browse-filters { grid-template-columns: 1fr 1fr }
   .pf-usage { grid-template-columns: minmax(0, 1fr) }
-  /* map first, the list slides up over it */
-  .jm2 { display: block; position: relative; height: calc(100vh - 140px) }
-  .jm2-map { position: absolute; inset: 0 }
-  .jm2-list { position: absolute; z-index: 600; left: 0; right: 0; bottom: 0; max-height: 72%; background: #fff; border-right: 0; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -8px 30px rgba(13,27,62,.18); transition: transform .3s var(--ease) }
-  .jm2-list.collapsed { transform: translateY(calc(100% - 86px)) }
-  .jm2-handle { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--line); margin: 8px auto 0; border: 0; padding: 0; cursor: pointer }
 }
 @media (max-width: 600px) {
   .pf-post-grid, .pf-browse-filters { grid-template-columns: minmax(0, 1fr) }
@@ -392,3 +386,45 @@ p > svg, small > svg, li > svg, .pf-small svg, .pf-meta svg, .svc-meta svg, .svc
 .vf-tips li { padding-left: 14px; position: relative }
 .vf-tips li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--navy) }
 @media (max-width: 640px) { .vf-hero { flex-wrap: wrap } }
+
+/* ── Map toolbar: search, near me and filters ─────────────── */
+.jm2-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center }
+.jm2-search { display: flex; gap: 8px; flex: 1 1 320px; min-width: 0 }
+.jm2-search input { flex: 1 1 auto; min-width: 0; height: 44px; border: 1.5px solid var(--line); border-radius: var(--r-md); padding: 0 14px; font: inherit; font-size: 15px; background: #fff }
+.jm2-search input:focus, .jm2-filters select:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(13,27,62,.1) }
+.jm2-bar .btn { height: 44px; min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 14px }
+.jm2-filters select { height: 44px; padding-right: 34px; color: var(--ink); min-width: 0 }
+.jm2-ftoggle { display: none !important; position: relative }
+.jm2-count { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--navy); color: #fff; font-size: 11.5px; font-weight: 800; display: inline-grid; place-items: center }
+.jm2-near.on span { max-width: 140px; overflow: hidden; text-overflow: ellipsis }
+
+@media (max-width: 900px) {
+  .jm2-bar { display: block }
+  .jm2-search { display: grid; grid-template-columns: minmax(0, 1fr) auto auto }
+  .jm2-ftoggle { display: inline-flex !important }
+  .jm2-near span { display: none }                 /* icon only next to the search box */
+  .jm2-near { width: 44px; padding: 0 !important; justify-content: center }
+  .jm2-near.on { width: auto; padding: 0 10px !important }
+  .jm2-near.on span { display: inline; max-width: 90px }
+  .jm2-filters { display: none; margin-top: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg) }
+  .jm2-filters.open { display: grid }
+  .jm2-filters select, .jm2-filters .btn { width: 100%; justify-content: center }
+
+  /* map on top, the list below it in the page: nothing slides over the map */
+  .jm2 { display: flex; flex-direction: column; gap: 12px; height: auto; min-height: 0; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible }
+  .jm2.public { height: auto }
+  .jm2-map { order: 1; position: relative; height: min(62vh, 520px); min-height: 300px; border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden; background: #fff }
+  .jm2-list { order: 2; position: static; border: 1px solid var(--line); border-radius: var(--r-xl); background: #fff; overflow: hidden }
+  .jm2-scroll { overflow: visible }
+  .jm2-legend { top: 10px; left: 10px; bottom: auto; right: 64px; display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px; font-size: 11.5px; width: max-content; max-width: calc(100% - 74px) }
+  .jm2-legend span { white-space: nowrap }
+  .jm2-legend i { width: 9px; height: 9px; margin-right: 4px }
+  .leaflet-popup-content { margin: 10px 12px; max-width: calc(100vw - 80px) }
+  .jm2-pop { min-width: 0; width: min(240px, calc(100vw - 100px)) }
+  .jm2-pop .pf-actions .btn { flex: 1 1 auto; justify-content: center; min-height: 38px }
+}
+
+/* gig card buttons: main action, details, and a square message button on one row */
+.gig-actions { display: grid !important; grid-template-columns: minmax(0, 1fr) auto 44px; gap: 8px; }
+.gig-actions .btn { min-height: 42px; justify-content: center; white-space: nowrap; }
+.gig-actions .btn[aria-label] { padding: 0; }

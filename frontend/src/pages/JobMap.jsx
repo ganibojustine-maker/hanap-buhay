@@ -11,7 +11,7 @@ import { PublicNav } from '../components/PublicShell.jsx'
 import BrandLoader from '../components/BrandLoader.jsx'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { IconX, IconPin, IconMap } from '../components/icons.jsx'
+import { IconX, IconPin, IconFilter } from '../components/icons.jsx'
 import { fmtSalary } from '../components/JobCard.jsx'
 import { CATEGORIES } from '../utils/categories.js'
 import { getJobImage } from '../utils/jobImages.js'
@@ -104,7 +104,8 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
   const [town, setTown] = useState('')
   const [minMatch, setMinMatch] = useState(0)
   const [activeId, setActiveId] = useState(null)
-  const [sheet, setSheet] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)   // phones: the filters fold away under one button
+  const [limit, setLimit] = useState(12)
   const [zoom, setZoom] = useState(9)
   // "Near me": the phone's location (or the town in their profile when location is off)
   const [me, setMe] = useState(null)          // { pos: [lat, lng], acc, from: 'gps' | 'town', label }
@@ -270,7 +271,7 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
     if (map.getZoom() < CLUSTER_UNTIL) map.setView(j.pos, 13)
     else map.panTo(j.pos)
     setTimeout(() => markers.current[j.id]?.openPopup(), 350)
-    if (window.matchMedia('(max-width: 900px)').matches) setSheet(false)
+    if (window.matchMedia('(max-width: 900px)').matches) mapEl.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   return (
@@ -283,8 +284,17 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
             <p className="pf-sub" style={{ margin: 0 }}>Open jobs and gigs across Oriental Mindoro’s 15 towns.</p>
           </div>
         )}
-        <div className="jm2-filters" role="group" aria-label="Map filters">
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title or skill" aria-label="Search" style={{ flex: '1 1 200px' }} />
+        <div className="jm2-bar" role="search" aria-label="Map filters">
+          <div className="jm2-search">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title or skill" aria-label="Search" />
+            {me
+              ? <button type="button" className="btn jm2-near on" onClick={clearMe} title="Stop using my location" aria-label="Stop using my location"><IconPin size={15} /><span>{me.from === 'gps' ? 'Near me' : me.label}</span><IconX size={13} /></button>
+              : <button type="button" className="btn jm2-near" onClick={nearMe} disabled={locating} aria-label="Show posts near me"><IconPin size={15} /><span>{locating ? 'Finding you…' : 'Near me'}</span></button>}
+            <button type="button" className="btn btn-light jm2-ftoggle" aria-expanded={filtersOpen} aria-controls="jm2-filters" onClick={() => setFiltersOpen(o => !o)}>
+              <IconFilter size={15} /><span>Filters</span>{((type !== postType) + !!cat + !!town + !!minMatch + !!radius) > 0 && <i className="jm2-count">{(type !== postType) + !!cat + !!town + !!minMatch + !!radius}</i>}
+            </button>
+          </div>
+          <div id="jm2-filters" className={`jm2-filters${filtersOpen ? ' open' : ''}`}>
           {!postType && <select value={type} onChange={e => setType(e.target.value)} aria-label="Type"><option value="">Jobs and gigs</option><option value="job">Jobs</option><option value="gig">Gigs</option></select>}
           <select value={cat} onChange={e => setCat(e.target.value)} aria-label="Kind of work"><option value="">Any kind of work</option>{Object.entries(CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <select value={town} onChange={e => setTown(e.target.value)} aria-label="Town"><option value="">All towns</option>{TOWN_NAMES.map(t => <option key={t}>{t}</option>)}</select>
@@ -295,16 +305,13 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
             <option value="new">Newest first</option><option value="pay">Highest pay</option>
           </select>
           {me && <select value={radius} onChange={e => setRadius(Number(e.target.value))} aria-label="Distance"><option value={0}>Any distance</option>{[5, 10, 25, 50].map(k => <option key={k} value={k}>Within {k} km</option>)}</select>}
-          {me
-            ? <button type="button" className="btn btn-sm jm2-near on" onClick={clearMe} title="Stop using my location"><IconPin size={13} /> {me.from === 'gps' ? 'Near me' : me.label} <IconX size={12} /></button>
-            : <button type="button" className="btn btn-sm jm2-near" onClick={nearMe} disabled={locating}><IconPin size={13} /> {locating ? 'Finding you…' : 'Near me'}</button>}
-          {(q || type !== postType || cat || town || minMatch || radius) ? <button type="button" className="btn btn-light btn-sm" onClick={() => { setQ(''); setType(postType); setCat(''); setTown(''); setMinMatch(0); setRadius(0) }}><IconX size={13} /> Clear</button> : null}
+            {(q || type !== postType || cat || town || minMatch || radius) ? <button type="button" className="btn btn-light" onClick={() => { setQ(''); setType(postType); setCat(''); setTown(''); setMinMatch(0); setRadius(0) }}><IconX size={13} /> Clear</button> : null}
+          </div>
         </div>
         {error && <div className="pf-note bad" role="alert" style={{ marginBottom: 10 }}>{error}</div>}
         {geoNote && <div className="pf-note info" role="status" style={{ marginBottom: 10 }}>{geoNote}</div>}
         <div className={`jm2${embedded ? '' : ' public'}`}>
-          <aside className={`jm2-list${sheet ? '' : ' collapsed'}`} aria-label="Posts on the map">
-            <button type="button" className="jm2-handle" aria-label={sheet ? 'Hide the list' : 'Show the list'} onClick={() => setSheet(s => !s)} />
+          <aside className="jm2-list" aria-label="Posts on the map">
             <div className="jm2-list-hd pf-between">
               <b>{jobs ? `${shown.length} post${shown.length === 1 ? '' : 's'}${town ? ` in ${town}` : ''}` : 'Loading…'}</b>
               <span className="pf-small">{{ near: 'Closest first', match: 'Best match first', pay: 'Highest pay', new: 'Newest first' }[order]}</span>
@@ -316,7 +323,7 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
                     <IconPin size={30} /><h2 style={{ fontSize: 16 }}>No posts here</h2>
                     <p style={{ fontSize: 13.5 }}>{jobs.length ? 'Try another town, type or kind of work.' : 'There are no open posts yet. Check back soon.'}</p>
                   </div>
-                ) : shown.map(j => (
+                ) : shown.slice(0, limit).map(j => (
                   <button key={j.id} type="button" className={`jm2-item has-img${activeId === j.id ? ' on' : ''}`} onClick={() => focus(j)}>
                     <img className="jm2-thumb" src={getJobImage(j)} alt="" loading="lazy" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />
                     <span className="jm2-item-tx">
@@ -328,17 +335,15 @@ export default function JobMap({ embedded = false, basePath = '/jobs', postType 
                     </span>
                   </button>
                 ))}
+              {jobs && shown.length > limit && <button type="button" className="btn btn-light btn-block" onClick={() => setLimit(l => l + 12)}>Show more ({shown.length - limit} left)</button>}
             </div>
           </aside>
           <div className="jm2-map">
             <div ref={mapEl} style={{ position: 'absolute', inset: 0 }} role="application" aria-label="Map of Oriental Mindoro with job posts" />
-            {!me && (
-              <button type="button" className="jm2-locate" onClick={nearMe} disabled={locating} title="Show posts near me" aria-label="Show posts near me"><IconMap size={16} /> {locating ? 'Finding you…' : 'Near me'}</button>
-            )}
             <div className="jm2-legend" aria-hidden="true">
               <span><i style={{ background: 'var(--navy)' }} />Job</span>
               <span><i style={{ background: 'var(--gold)' }} />Gig</span>
-              <span><i style={{ background: 'rgba(13,27,62,.9)', border: '2px solid var(--gold)' }} />Several posts (tap to zoom)</span>
+              <span><i style={{ background: 'rgba(13,27,62,.9)', border: '2px solid var(--gold)' }} />Group, tap to zoom</span>
               {me && <span><i style={{ background: '#0284C7', border: '2px solid #fff' }} />{me.from === 'gps' ? 'You' : 'Your town'}</span>}
             </div>
           </div>

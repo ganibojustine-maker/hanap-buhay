@@ -1390,13 +1390,13 @@ export function EmployerApplicants({ call }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                   {/* Candidate Profile */}
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1, minWidth: 280 }}>
+                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1, minWidth: 'min(280px, 100%)' }}>
                     <div className="avatar" style={{ width: 48, height: 48, fontSize: 18, flexShrink: 0, overflow: 'hidden' }}>
                       <img src={a.applicant_picture || avatarDataUrl({ id: a.worker_id, full_name: a.applicant_name || a.full_name })} alt="" />
                       <span>{(a.applicant_name || a.full_name || 'A')[0].toUpperCase()}</span>
                     </div>
 
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--navy-d)' }}>
                           {a.applicant_name || a.full_name || 'Candidate'}
@@ -1451,7 +1451,7 @@ export function EmployerApplicants({ call }) {
                       <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span>Applied for: <strong style={{ color: 'var(--ink)' }}>{a.job_title}</strong></span>
                         {a.applicant_location && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconPin size={13} /> {a.applicant_location}</span>}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconMail size={13} /> {a.applicant_email || a.email}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, maxWidth: '100%' }}><IconMail size={13} style={{ flexShrink: 0 }} /> <span style={{ overflowWrap: 'anywhere' }}>{a.applicant_email || a.email}</span></span>
                         {a.applicant_phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconPhone size={13} /> {a.applicant_phone}</span>}
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IconClock size={13} /> {days(a.created_at)}</span>
                       </div>

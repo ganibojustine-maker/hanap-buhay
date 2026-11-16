@@ -5,7 +5,7 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * Account verification for workers, employers and clients (migration 021).
  *
  * Hybrid approach: the system checks everything a computer can check reliably (email link,
- * a code texted to the phone, profile completeness, file type and size, an ID number already
+ * a valid mobile number, profile completeness, file type and size, an ID number already
  * used by another account, the name on the ID vs. the account name). An admin then looks at
  * the ID or business document itself, which a computer cannot judge reliably. See
  * docs/VERIFICATION.md.
@@ -20,8 +20,6 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * Employers send a business permit through BusinessController (same statuses and history).
  *
  *   GET   /api/verification                     my checklist, status, history
- *   POST  /api/verification/phone/send          text a 6-digit code to my mobile number
- *   POST  /api/verification/phone/confirm       { code }
  *   POST  /api/verification/id                  multipart: id_type, id_number, name_on_id, file, selfie?
  *   GET   /api/verification/requests/{id}/file  the ID image (owner or admin)
  *   GET   /api/admin/verification?status=       admin queue (workers and clients)
@@ -47,7 +45,6 @@ class VerificationController extends Controller
         'barangay'  => 'Barangay Clearance / ID',
     ];
     private const MAX_BYTES = 5 * 1024 * 1024;
-    private const OTP_MINUTES = 10;
 
     public function __construct()
     {
@@ -109,8 +106,8 @@ class VerificationController extends Controller
         $items = [];
         $items[] = ['key' => 'email', 'label' => 'Confirm your email address', 'done' => !empty($u['email_verified_at']), 'auto' => true,
             'help' => 'Open the link we emailed you when you signed up.'];
-        $items[] = ['key' => 'phone', 'label' => 'Confirm your mobile number', 'done' => !empty($u['phone_verified_at']), 'auto' => true,
-            'help' => 'We text a 6-digit code to your number.'];
+        $items[] = ['key' => 'phone', 'label' => 'Add your mobile number', 'done' => \Phone::normalize($u['phone'] ?? null) !== null, 'auto' => true,
+            'help' => 'Add it in your profile. Only our team and people you hire or work with see it.'];
         if ($type === 'worker') {
             $this->call->library('job_matcher');
             $missing = $this->job_matcher->missing_profile($u, $this->skill_model->get_skills_for_matching((int) $u['id']));
@@ -164,59 +161,6 @@ class VerificationController extends Controller
         ]);
     }
 
-    // POST /api/verification/phone/send
-    public function phone_send()
-    {
-        $this->api->require_method('POST');
-        $u = $this->me();
-        if (!$this->ready()) $this->api->respond_error('Phone confirmation is not available yet. Please try again later.', 503);
-        $this->api->rate_limit('otp_send_' . (int) $u['id'], 5, 3600);
-        $b = $this->api->body();
-        $phone = \Sms::normalize((string) ($b['phone'] ?? $u['phone'] ?? ''));
-        if (!$phone) $this->api->respond_error('Enter a Philippine mobile number, like 0917 123 4567.', 422);
-        $taken = $this->db->raw("SELECT id FROM users WHERE phone_verified_at IS NOT NULL AND id <> ? AND REPLACE(REPLACE(phone, ' ', ''), '-', '') IN (?, ?)",
-            [(int) $u['id'], $phone, '+63' . substr($phone, 1)])->fetchColumn();
-        if ($taken) $this->api->respond_error('This number is already confirmed on another account. Use a different number, or contact support.', 409);
-
-        $code = (string) random_int(100000, 999999);
-        $this->db->raw('INSERT INTO phone_otps (user_id, phone, code_hash, attempts, expires_at, created_at) VALUES (?, ?, ?, 0, DATE_ADD(NOW(), INTERVAL ' . self::OTP_MINUTES . ' MINUTE), NOW())
-            ON DUPLICATE KEY UPDATE phone = VALUES(phone), code_hash = VALUES(code_hash), attempts = 0, expires_at = VALUES(expires_at), created_at = NOW()',
-            [(int) $u['id'], $phone, password_hash($code, PASSWORD_DEFAULT)]);
-        if ($phone !== \Sms::normalize($u['phone'] ?? '')) $this->user_model->update_user((int) $u['id'], ['phone' => $phone]);
-
-        $sent = \Sms::send($phone, "hanapbuhay: Your confirmation code is {$code}. It expires in " . self::OTP_MINUTES . " minutes. Never share this code with anyone.");
-        $out = ['success' => true, 'message' => 'We texted a 6-digit code to ' . substr($phone, 0, 4) . ' ••• ' . substr($phone, -4) . '.'];
-        // Test mode (no SMS account yet): the text is only logged, so show the code for the demo.
-        if (($sent['mode'] ?? '') === 'logged') {
-            $out['test_code'] = $code;
-            $out['message'] = 'Test mode: texts are not being sent yet, so your code is shown here.';
-        } elseif (empty($sent['success'])) {
-            $this->api->respond_error('We could not send the text right now. Please try again in a few minutes.', 502);
-        }
-        $this->api->respond($out);
-    }
-
-    // POST /api/verification/phone/confirm
-    public function phone_confirm()
-    {
-        $this->api->require_method('POST');
-        $u = $this->me();
-        if (!$this->ready()) $this->api->respond_error('Phone confirmation is not available yet.', 503);
-        $code = preg_replace('/\D/', '', (string) ($this->api->body()['code'] ?? ''));
-        $row = $this->db->raw('SELECT * FROM phone_otps WHERE user_id = ?', [(int) $u['id']])->fetch(PDO::FETCH_ASSOC);
-        if (!$row) $this->api->respond_error('Ask for a new code first.', 422);
-        if (strtotime($row['expires_at']) < time()) $this->api->respond_error('That code has expired. Ask for a new one.', 422);
-        if ((int) $row['attempts'] >= 5) $this->api->respond_error('Too many wrong tries. Ask for a new code.', 429);
-        if (strlen($code) !== 6 || !password_verify($code, $row['code_hash'])) {
-            $this->db->raw('UPDATE phone_otps SET attempts = attempts + 1 WHERE user_id = ?', [(int) $u['id']]);
-            $this->api->respond_error("That code doesn't match. Check the text and try again.", 422);
-        }
-        $this->db->raw('DELETE FROM phone_otps WHERE user_id = ?', [(int) $u['id']]);
-        $this->user_model->update_user((int) $u['id'], ['phone' => $row['phone'], 'phone_verified_at' => date('Y-m-d H:i:s')]);
-        \Verification_log::record((int) $u['id'], null, 'phone_confirmed', null, null, null, (int) $u['id']);
-        $this->api->respond(['success' => true, 'message' => 'Your mobile number is confirmed.', 'phone' => $row['phone']]);
-    }
-
     /** Read one uploaded image or PDF, or stop with a plain message. */
     private function read_file(string $field, bool $required, bool $imagesOnly = false): ?array
     {
@@ -261,7 +205,7 @@ class VerificationController extends Controller
         if ($status === 'verified') $this->api->respond_error('Your account is already verified.', 409);
         if ($status === 'pending') $this->api->respond_error('We already have your ID and are checking it. You will get a notice when it is done.', 409);
         if (empty($u['email_verified_at'])) $this->api->respond_error('Confirm your email address first. Open the link we emailed you.', 422);
-        if (empty($u['phone_verified_at'])) $this->api->respond_error('Confirm your mobile number first.', 422);
+        if (\Phone::normalize($u['phone'] ?? null) === null) $this->api->respond_error('Add your mobile number first.', 422);
         $this->api->rate_limit('verify_id_' . (int) $u['id'], 6, 86400);
 
         $b = $this->api->body();

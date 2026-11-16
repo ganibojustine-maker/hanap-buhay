@@ -11,7 +11,7 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * on demand, for a free pinger (cron-job.org etc.) that also keeps the server awake.
  *
  * A reminder goes out once per interview, 24 hours before at the earliest (in-app,
- * email, SMS). Moving the interview clears applications.interview_reminded_at,
+ * email). Moving the interview clears applications.interview_reminded_at,
  * so the new time gets its own reminder. Needs migration 017.
  */
 class Reminders
@@ -89,8 +89,6 @@ class Reminders
                         . "\n\nBring a valid ID and copies of your certificates. Good luck!",
                     '/dashboard/applied'
                 );
-                \Sms::notify($worker, 'hanapbuhay: Reminder - your interview for ' . mb_substr($r['title'], 0, 40)
-                    . ' with ' . mb_substr($company, 0, 35) . " is {$when}. Details in the hanapbuhay app.");
                 $sent++;
             }
         } catch (\Throwable $e) {

@@ -63,6 +63,7 @@ export function AuthProvider({ children }) {
   const [tokens, setTokens] = useState(read)
   const [user, setUserState] = useState(() => (read() ? readUser() : null))
   // ready = we know who is signed in (from the saved session, or the server's answer)
+  const [signedOut, setSignedOut] = useState(false)
   const [ready, setReady] = useState(() => !read() || !!readUser())
 
   const setUser = useCallback((u) => {
@@ -114,6 +115,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const accept = (r, remember = true) => {
+    setSignedOut(false)
     if (!r?.tokens?.access_token) throw new Error(r?.error || 'Sign-in did not complete. Please try again.')
     // a different account on this device: drop whatever the last one left behind
     const last = readUser()
@@ -124,7 +126,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = {
-    user, ready, tokens,
+    user, ready, tokens, signedOut,
     call,
     login: async (email, password, remember = true) => accept(await api('/auth/login', { method: 'POST', body: { email, password } }), remember),
     register: async (form) => accept(await api('/auth/register', { method: 'POST', body: form })),
@@ -155,6 +157,7 @@ export function AuthProvider({ children }) {
     logout: async () => {
       try { if (tokens) await api('/auth/logout', { method: 'POST', body: { refresh_token: tokens.refresh_token } }) } catch { /* ignore */ }
       clearAccountState()
+      setSignedOut(true)   // the next sign-in starts at the dashboard, not at the page the last person was on
       save(null); setUser(null)
     },
   }

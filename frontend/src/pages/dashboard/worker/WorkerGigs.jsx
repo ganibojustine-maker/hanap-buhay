@@ -7,11 +7,13 @@
  *   Contracts      work in progress, delivery, payment and reviews
  *   My services    listings clients can book directly: photos, packages, what's included
  */
+import askConfirm from '../../../components/askConfirm.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import BrandLoader from '../../../components/BrandLoader.jsx'
 import Dialog from '../../../components/Dialog.jsx'
 import UserAvatar from '../../../components/Avatar.jsx'
+import { FitCheck } from '../../../components/QuickApplyModal.jsx'
 import PhotoManager from '../../../components/PhotoManager.jsx'
 import ServiceCard from '../../../components/ServiceCard.jsx'
 import MatchLegend from '../../../components/MatchLegend.jsx'
@@ -60,6 +62,8 @@ export function ProposalDialog({ gig, call, onClose, onSent }) {
   const [picked, setPicked] = useState([])
   const [err, setErr] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [match, setMatch] = useState(gig.match?.gaps ? gig.match : null)   // the fit check; the server sends it when it is low
+  const lowMatch = match ? matchLevel(match.score).key === 'low' : false
   useEffect(() => { call('/portfolio').then(r => setWork(r.items || [])).catch(() => setWork([])) }, [call])
   const toggle = id => setPicked(p => (p.includes(id) ? p.filter(x => x !== id) : p.length >= 4 ? p : [...p, id]))
   const low = Number(gig.salary_min || 0), high = Number(gig.salary_max || 0)
@@ -69,17 +73,19 @@ export function ProposalDialog({ gig, call, onClose, onSent }) {
   async function send() {
     setErr(null); setBusy(true)
     try {
-      await call(`/gigs/${gig.id}/proposals`, { method: 'POST', body: { bid_amount: Number(bid), delivery_days: Number(days), cover_letter: cover, work_ids: picked, available_from: from } })
+      await call(`/gigs/${gig.id}/proposals`, { method: 'POST', body: { bid_amount: Number(bid), delivery_days: Number(days), cover_letter: cover, work_ids: picked, available_from: from, acknowledge_gap: lowMatch } })
       onSent()
-    } catch (e) { setErr({ text: e.message || 'We couldn’t send your proposal. Please try again.', missing: e.data?.missing, phone: /mobile number/.test(e.message || '') }) }
+    } catch (e) {
+      if (e.data?.code === 'low_match') { setMatch(e.data.match); setBusy(false); return } setErr({ text: e.message || 'We couldn’t send your proposal. Please try again.', missing: e.data?.missing, phone: /mobile number/.test(e.message || '') }) }
     finally { setBusy(false) }
   }
   return (
     <Dialog tone="info" title={`Send a proposal: ${gig.title}`} onClose={onClose} busy={busy}
-      actions={[{ label: busy ? 'Sending…' : 'Send proposal', primary: true, onClick: send }, { label: 'Cancel', onClick: onClose }]}>
+      actions={[{ label: busy ? 'Sending…' : lowMatch ? 'Send anyway' : 'Send proposal', primary: true, onClick: send }, { label: 'Cancel', onClick: onClose }]}>
       <p className="pf-muted" style={{ marginTop: 0 }}>
         Client’s budget: <b>{budget(gig) || 'not set'}</b> {BASIS[gig.pay_basis] || ''}{gig.location ? ` · ${gig.location}` : ''}{gig.needed_by ? ` · needed by ${phDate(gig.needed_by)}` : ''}. The client pays you directly when the work is done.
       </p>
+      {match && <FitCheck match={match} />}
       {err && (
         <div className="pf-note bad" role="alert" style={{ marginBottom: 10 }}>
           {err.text}
@@ -134,7 +140,7 @@ function GigTile({ g, sent, onPropose }) {
           <span className="pf-small">{g.needed_by ? `By ${phDate(g.needed_by)}` : phDate(g.created_at)}</span>
         </div>
         {(m.gaps || []).length > 0 && <p className="pf-small" style={{ margin: 0 }}>Missing: {m.gaps.slice(0, 2).map(x => x.name).join(', ')}</p>}
-        <div className="pf-actions" style={{ marginTop: 'auto' }}>
+        <div className="pf-actions gig-actions" style={{ marginTop: 'auto' }}>
           {sent
             ? <Link to="/dashboard/gigs/proposals" className="btn btn-light btn-sm"><IconCheck size={13} /> Proposal sent</Link>
             : <button type="button" className="btn btn-primary btn-sm" onClick={() => onPropose(g)}>Send proposal</button>}
@@ -233,6 +239,7 @@ export function WorkerProposals({ call }) {
     gig: ['Gig title (A–Z)', SORT.text('gig_title')],
   } })
   async function withdraw(p) {
+    if (!(await askConfirm({ tone: 'danger', title: 'Withdraw this proposal?', body: `The client will no longer see your offer for “${p.gig_title || 'this gig'}”.`, yes: 'Withdraw' }))) return
     try { await call(`/proposals/${p.id}/withdraw`, { method: 'POST' }); setFlash('Proposal withdrawn.'); load() } catch (e) { setFlash(e.message) }
   }
   return (

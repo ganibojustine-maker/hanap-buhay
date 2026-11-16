@@ -153,8 +153,8 @@ class GigController extends Controller
 
     private function require_phone(array $u, string $what): void
     {
-        if ($this->schema_info->has_column('users', 'phone_verified_at') && empty($u['phone_verified_at'])) {
-            $this->api->respond_error("To keep gigs safe from scams, confirm your mobile number before you {$what}. Open Verification to do it in a minute.", 422);
+        if (\Phone::normalize($u['phone'] ?? null) === null) {
+            $this->api->respond_error("To keep gigs safe from scams, add your mobile number before you {$what}. You can add it in your profile.", 422);
         }
     }
 
@@ -204,7 +204,13 @@ class GigController extends Controller
 
         $existing = $this->proposal_model->for_gig_and_worker((int) $id, (int) $u['id']);
         if ($existing && $existing['status'] !== 'withdrawn') $this->api->respond_error('You already sent a proposal for this gig.', 409);
-        $score = $this->job_matcher->score($u, $skills, $g)['score'];
+        // A low match asks once, then the worker may send the proposal anyway
+        $match = $this->job_matcher->score($u, $skills, $g);
+        if ($match['level'] === 'low' && empty($b['acknowledge_gap'])) {
+            $this->api->respond(['success' => false, 'code' => 'low_match', 'match' => $match,
+                'error' => 'This gig asks for things your profile does not show yet.'], 409);
+        }
+        $score = $match['score'];
         $data = ['bid_amount' => $bid, 'delivery_days' => $days, 'cover_letter' => $cover, 'match_score' => $score,
                  'work_ids' => $work ? implode(',', $work) : null, 'available_from' => $this->future_date('available_from')];
         if ($existing) {

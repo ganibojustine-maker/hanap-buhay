@@ -15,5 +15,5 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 $config['brevo_api_key']     = trim((string) getenv('BREVO_API_KEY'));
 $config['mail_from_address'] = trim((string) getenv('MAIL_FROM_ADDRESS')) ?: 'noreply@hanapbuhay.ph';
 $config['mail_from_name']    = trim((string) getenv('MAIL_FROM_NAME')) ?: 'hanapbuhay Oriental Mindoro';
-// optional CA bundle for outgoing HTTPS (Mailer and Sms); certs/cacert.pem is used when empty
+// optional CA bundle for outgoing HTTPS (Mailer); certs/cacert.pem is used when empty
 $config['mail_ca_bundle']    = trim((string) getenv('MAIL_CA_BUNDLE'));

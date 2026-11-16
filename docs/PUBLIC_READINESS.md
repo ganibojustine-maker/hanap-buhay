@@ -9,7 +9,6 @@
 | 3 | **NPC registration.** Register the data processing system and the DPO with the National Privacy Commission, if your setup requires it. | npc.gov.ph |
 | 4 | **Money between clients and workers.** Right now clients pay workers directly and both confirm. Holding funds (escrow) needs a licensed partner. Decide whether to keep direct payment for the capstone. | docs/GIGS.md |
 | 5 | **PayMongo account.** Which methods are actually turned on for your account (card, GCash, Maya, GrabPay, QR Ph…). Set `PAYMONGO_METHODS` to match. Also create the webhook. | `backend/.env` |
-| 6 | **Semaphore SMS credits** for the phone codes. Without a key, test mode shows the code on screen. That is fine for the demo, but not for going live. | `SEMAPHORE_API_KEY` |
 | 7 | **Partner offices.** The About page lists PESO, TESDA and DOLE offices as offices that "work alongside us", with a note that a listing does not mean endorsement. Confirm the wording, or get their permission to name them. | `frontend/src/data/site.js` |
 | 8 | **Plan prices** (₱499 / ₱1,499 / ₱249 / ₱599). The names were changed away from "JobStreet" and "Street Job" to avoid using other companies' brands. | `backend/app/models/Subscription_model.php` |
 | 9 | **Brand colors.** The new logo uses a lighter blue (#3F7BFF) and yellow (#FCC54E). The app theme still uses navy (#0D1B3E) and gold (#F5A623). Say if you want the theme moved to the logo colors. | `frontend/src/styles/base.css` |

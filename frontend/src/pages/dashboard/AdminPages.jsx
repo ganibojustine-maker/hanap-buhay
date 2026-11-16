@@ -1,4 +1,5 @@
 // Dashboard admin pages (split out of Dashboard.jsx so each role downloads only its own code).
+import askConfirm, { showNotice } from '../../components/askConfirm.jsx'
 import { usePaged, Pager, ListTools, SORT } from '../../components/Pager.jsx'
 import { useEffect, useState, useCallback } from 'react'
 import { statusLabel, statusTone } from '../../utils/hiringStatus.js'
@@ -45,7 +46,7 @@ export function AdminReports({ call }) {
   useEffect(() => { load() }, [load])
 
   const act = async (report, status, action) => {
-    if (action === 'archive_job' && !window.confirm(`Remove "${report.job_title}" from the job board? The employer will be notified.`)) return
+    if (action === 'archive_job' && !(await askConfirm({ tone: 'danger', title: 'Remove this job?', body: `"${report.job_title}" will be taken off the job board and the employer will be told.`, yes: 'Remove job' }))) return
     setBusy(report.id); setMsg('')
     try {
       await call(`/admin/reports/${report.id}`, { method: 'PATCH', body: { status, action } })
@@ -189,8 +190,8 @@ export function AdminProfile({ user, call, updateUser }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
-        <div className="panel rise" style={{ textAlign: 'center', padding: 28 }}>
+      <div className="adm-prof">
+        <div className="panel rise" style={{ textAlign: 'center', padding: 28, minWidth: 0 }}>
           <div className="avatar avatar-gold" style={{ width: 84, height: 84, margin: '0 auto 14px', overflow: 'hidden' }}>
             <img src={user.picture || avatarDataUrl(user)} alt={user.full_name} />
             <span style={{ fontSize: 26 }}>{(user.full_name || user.email || 'A')[0].toUpperCase()}</span>
@@ -231,9 +232,9 @@ export function AdminProfile({ user, call, updateUser }) {
             <div className="panel rise">
               <h3 style={{ marginBottom: 16 }}>Profile Details</h3>
               {[['Full Name', user.full_name || '—'], ['Email', user.email], ['Phone', user.phone || '—'], ['Location', user.location || '—'], ['Role', 'Administrator'], ['Bio', user.bio || '—']].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', gap: 14, borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 12 }}>
-                  <div style={{ width: 120, flexShrink: 0, fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>{label}</div>
-                  <div style={{ fontSize: 14, color: 'var(--navy-d)', flex: 1, wordBreak: 'break-all' }}>{val}</div>
+                <div key={label} className="adm-row">
+                  <div className="adm-row-k">{label}</div>
+                  <div className="adm-row-v">{val}</div>
                 </div>
               ))}
             </div>
@@ -247,7 +248,7 @@ export function AdminProfile({ user, call, updateUser }) {
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>Full platform access</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13, color: '#4338ca' }}>
+            <div className="adm-access">
               {[{ icon: IconUsers, text: 'Manage all user accounts' }, { icon: IconBriefcase, text: 'Moderate job listings' }, { icon: IconShield, text: 'Verify businesses & workers' }, { icon: IconTrend, text: 'View platform analytics' }].map(({ icon: Ic, text }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Ic size={14} /><span>{text}</span></div>
               ))}
@@ -290,7 +291,7 @@ export function AdminUsers({ call }) {
   }, [loadUsers])
 
   async function toggleUser(id, currentStatus) {
-    if (!window.confirm(`Are you sure you want to ${currentStatus ? 'disable/ban' : 'activate'} this user account?`)) return
+    if (!(await askConfirm(currentStatus ? { tone: 'danger', title: 'Disable this account?', body: 'The person will be signed out and can’t sign in until you turn the account back on.', yes: 'Disable account' } : { title: 'Turn this account back on?', body: 'The person will be able to sign in again.', yes: 'Turn on' }))) return
     setTogglingId(id)
     try {
       const res = await call(`/admin/users/${id}/toggle`, { method: 'PATCH' })
@@ -299,7 +300,7 @@ export function AdminUsers({ call }) {
         if (selected?.id === id) setSelected(prev => ({ ...prev, is_active: res.is_active }))
       }
     } catch (err) {
-      alert(err?.message || 'Failed to toggle user status.')
+      showNotice('Could not change the account', err?.message || 'Please try again.')
     } finally {
       setTogglingId(null)
     }
@@ -395,21 +396,14 @@ export function AdminUsers({ call }) {
       {/* Page header */}
 
       {/* Status tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 16, background: '#f1f5f9', borderRadius: 10, padding: 4, alignSelf: 'flex-start', width: 'fit-content' }}>
+      <div className="ap-tabs" role="tablist" aria-label="Account status">
         {[
-          { id: 'all',      label: 'All Users',    count: users.length },
-          { id: 'active',   label: 'Active',        count: activeCount },
-          { id: 'inactive', label: 'Deactivated',   count: inactiveCount },
+          { id: 'all',      label: 'All users',   count: users.length },
+          { id: 'active',   label: 'Active',      count: activeCount },
+          { id: 'inactive', label: 'Deactivated', count: inactiveCount },
         ].map(tab => (
-          <button key={tab.id} onClick={() => setStatusFilter(tab.id)}
-            style={{ padding: '7px 16px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .15s',
-              background: statusFilter === tab.id ? '#fff' : 'transparent',
-              color: statusFilter === tab.id ? 'var(--navy-d)' : 'var(--muted)',
-              boxShadow: statusFilter === tab.id ? '0 1px 4px rgba(0,0,0,.1)' : 'none' }}>
-            {tab.label}
-            <span style={{ marginLeft: 6, fontSize: 11, background: statusFilter === tab.id ? (tab.id === 'inactive' ? '#fef2f2' : '#eff6ff') : 'transparent', color: tab.id === 'inactive' ? '#dc2626' : 'var(--navy)', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>
-              {tab.count}
-            </span>
+          <button key={tab.id} type="button" role="tab" aria-selected={statusFilter === tab.id} className={`ap-tab${statusFilter === tab.id ? ' on' : ''}`} onClick={() => setStatusFilter(tab.id)}>
+            {tab.label} <span className="ap-tab-n">{tab.count}</span>
           </button>
         ))}
       </div>
@@ -553,9 +547,7 @@ export function AdminVerification({ call }) {
   }
 
   const handleVerify = async (id, status) => {
-    if (status === 0 && !window.confirm('Are you sure you want to revoke the verification status of this account?')) {
-      return
-    }
+    if (status === 0 && !(await askConfirm({ tone: 'danger', title: 'Remove the Verified badge?', body: 'The account goes back to unverified and the person is told.', yes: 'Remove badge' }))) return
     setVerifying(true)
     try {
       const res = await call(`/admin/users/${id}/verify`, {
@@ -576,10 +568,10 @@ export function AdminVerification({ call }) {
         })
         setTimeout(() => setToastMessage(null), 4000)
       } else {
-        alert(res?.error || 'Failed to update verification status.')
+        showNotice('Could not update verification', res?.error || 'Please try again.')
       }
     } catch (err) {
-      alert(err?.message || 'Error updating verification status.')
+      showNotice('Could not update verification', err?.message || 'Please try again.')
     } finally {
       setVerifying(false)
     }
