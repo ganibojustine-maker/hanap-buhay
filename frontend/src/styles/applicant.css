@@ -1,0 +1,61 @@
+/* Employer: applicant profile side panel */
+.ap-backdrop { position: fixed; inset: 0; z-index: 900; background: rgba(13, 27, 62, .45); display: flex; justify-content: flex-end; animation: ap-fade .15s ease-out }
+.ap-panel { width: min(580px, 100%); height: 100%; overflow-y: auto; background: var(--bg); box-shadow: var(--shadow-lg); outline: none; animation: ap-in .2s ease-out }
+.ap-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--line) }
+.ap-head h2 { font-size: 18px; letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ap-x { width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 10px; background: var(--soft); color: var(--muted); display: grid; place-items: center; cursor: pointer }
+.ap-x:hover { color: var(--ink); background: var(--line) }
+.ap-body { padding: 16px 20px 28px; display: grid; gap: 12px }
+.ap-id { display: flex; gap: 14px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px }
+.ap-badges { display: flex; gap: 6px; flex-wrap: wrap }
+.ap-badges .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px }
+.ap-meta { font-size: 13px; color: var(--muted); margin-top: 6px }
+.ap-contact { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 13px }
+.ap-contact a { display: inline-flex; align-items: center; gap: 5px; color: var(--navy); font-weight: 600; overflow-wrap: anywhere }
+.ap-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px }
+.ap-card h3 { font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px }
+.ap-card h4 { font-size: 13px; margin: 12px 0 6px; color: var(--ink) }
+.ap-count { font: 700 11px var(--body); background: var(--soft); color: var(--muted); padding: 2px 8px; border-radius: 99px }
+.ap-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px }
+.ap-row h3 { margin: 0 }
+.ap-muted { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 5px }
+.ap-text { font-size: 13.5px; color: var(--text); line-height: 1.6; white-space: pre-line }
+.ap-quote { margin: 8px 0 0; padding: 10px 14px; border-left: 3px solid var(--line); background: var(--soft); border-radius: 0 10px 10px 0; font-size: 13.5px; color: var(--text); white-space: pre-line }
+.ap-match { display: flex; gap: 14px; align-items: center }
+.ap-match > b { font: 800 26px/1 var(--display); color: var(--ink); background: var(--soft); border-radius: 12px; padding: 10px 12px; flex-shrink: 0 }
+.ap-match > b.strong { background: var(--green-l); color: var(--green) }
+.ap-match > b.good { background: var(--gold-l); color: var(--amber) }
+.ap-match p { font-size: 13.5px; font-weight: 600; color: var(--text) }
+.ap-match small { font-size: 12px; color: var(--muted) }
+.ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px }
+.ap-chips .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px }
+.ap-skills, .ap-certs, .ap-list { list-style: none; margin: 0; padding: 0 }
+.ap-skills li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--soft); font-size: 13.5px }
+.ap-skills li:first-child, .ap-certs li:first-child, .ap-list li:first-child { border-top: 0 }
+.ap-skill-name { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 600; min-width: 0 }
+.ap-skill-meta { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; font-size: 12px; color: var(--muted) }
+.ap-tesda { font-weight: 700; color: var(--amber); background: var(--gold-l); padding: 1px 7px; border-radius: 99px }
+.ap-ok { color: var(--green); flex-shrink: 0 }
+.ap-ok-text { color: var(--green); font-weight: 700 }
+.ap-certs li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--soft) }
+.ap-certs li > div { flex: 1; display: grid; gap: 2px }
+.ap-certs b { font-size: 13.5px; color: var(--ink) }
+.ap-certs span:not(.chip) { font-size: 12px; color: var(--muted) }
+.ap-certs .chip { font-size: 11px; flex-shrink: 0 }
+.ap-list li { padding: 8px 0; border-top: 1px solid var(--soft); display: grid; gap: 2px }
+.ap-list b { font-size: 13.5px; color: var(--ink) }
+.ap-list span { font-size: 12.5px; color: var(--muted) }
+.ap-error { margin: 12px 20px 0; padding: 10px 12px; border-radius: 10px; background: var(--red-l); color: var(--red); font-size: 13px; font-weight: 600 }
+.ap-card .ap-error { margin: 10px 0 0 }
+@keyframes ap-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ap-in { from { transform: translateX(24px) } to { transform: none } }
+@media (prefers-reduced-motion: reduce) { .ap-backdrop, .ap-panel { animation: none } }
+@media (max-width: 520px) {
+  .ap-body { padding: 12px 12px 24px }
+  .ap-certs li { flex-wrap: wrap }
+  .ap-certs li > div { flex-basis: 100% }
+}
+.ap-avail { display: grid; gap: 6px; margin: 0 }
+.ap-avail div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px; font-size: 13.5px }
+.ap-avail dt { font-weight: 700; color: var(--muted) }
+.ap-avail dd { margin: 0; color: var(--text) }

@@ -1,0 +1,222 @@
+/* ──────────────────────────────────────────────────────────
+   Job Map — filters and jobs on the left, the province on the
+   right. Public (/map) and inside the dashboard (/dashboard/map).
+   ────────────────────────────────────────────────────────── */
+
+.jm { height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+/* inside the dashboard: below the top bar and the Find Jobs tabs */
+.jm.is-embedded { height: calc(100vh - 186px); min-height: 560px; padding: 20px 28px 24px; width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
+
+.jm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 380px minmax(0, 1fr); }
+.jm.is-embedded .jm-body {
+  border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden; background: #fff; box-shadow: var(--shadow-xs);
+}
+
+/* ── left panel ─────────────────────────────────────── */
+.jm-panel { display: flex; flex-direction: column; min-height: 0; background: #fff; border-right: 1px solid var(--line); z-index: 2; }
+
+.jm-hd {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 18px 18px 14px; background: linear-gradient(135deg, var(--navy) 0%, var(--navy-l) 100%);
+  border-bottom: 3px solid var(--gold); flex-shrink: 0;
+}
+.jm-hd h1 { font-size: 19px; letter-spacing: -.02em; color: #fff; margin: 0; }
+.jm-hd p { font-size: 12.5px; color: rgba(255,255,255,.72); margin: 2px 0 0; }
+.jm-clear {
+  flex-shrink: 0; background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px; font-size: 12px; font-weight: 700; padding: 5px 12px; cursor: pointer;
+}
+.jm-clear:hover { background: rgba(255,255,255,.2); }
+
+.jm-filters { padding: 14px 18px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.jm-search {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px 0 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--faint);
+}
+.jm-search:focus-within { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(13,27,62,.08); }
+.jm-search input { flex: 1; min-width: 0; border: 0; outline: 0; font-size: 13.5px; color: var(--ink); background: transparent; }
+.jm-search button { border: 0; background: var(--soft); color: var(--muted); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.jm-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jm-selects label { display: grid; gap: 4px; min-width: 0; }
+.jm-selects label > span { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.jm-selects select {
+  width: 100%; height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink); background: #fff; cursor: pointer;
+}
+.jm-types { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px; }
+.jm-types::-webkit-scrollbar { display: none; }
+.jm-types button {
+  flex-shrink: 0; border: 1px solid var(--line); background: #fff; color: var(--text); cursor: pointer;
+  font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+}
+.jm-types button:hover { border-color: var(--navy); }
+.jm-types button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+.jm-listbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 18px; background: var(--soft); border-bottom: 1px solid var(--line); flex-shrink: 0;
+  font-size: 12.5px; font-weight: 700; color: var(--muted);
+}
+.jm-listbar label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.jm-listbar select { height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; font-size: 12px; font-weight: 600; color: var(--ink); background: #fff; }
+
+.jm-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: grid; gap: 10px; align-content: start; }
+.jm-empty { text-align: center; padding: 30px 12px; color: var(--muted); font-size: 13px; margin: 0; }
+.jm-empty b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 4px; }
+.jm-empty p { margin: 0 0 12px; }
+
+.jm-job {
+  display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+  cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.jm-job:hover { border-color: #cbd5e1; box-shadow: var(--shadow-xs); }
+.jm-job.on { border-color: var(--navy); background: #F5F8FF; box-shadow: 0 4px 14px rgba(13,27,62,.1); }
+.jm-job:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.jm-job-img { width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: var(--navy-soft); flex-shrink: 0; }
+.jm-job-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jm-job-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.jm-job-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.jm-job-top b { font-size: 13.5px; color: var(--ink); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.jm-job-top em { flex-shrink: 0; font-style: normal; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.jm-job-main > small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jm-job-loc { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 11.5px; color: var(--muted); }
+.jm-job-loc i { font-style: normal; font-weight: 700; font-size: 10.5px; background: var(--gold-l); color: #92400e; padding: 1px 6px; border-radius: 5px; }
+.jm-job-loc i.m { background: var(--blue-l); color: var(--blue); }
+.jm-job-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--soft); }
+.jm-job-ft b { font-size: 13px; color: var(--green); }
+.jm-job-ft a { font-size: 12px; font-weight: 700; color: var(--navy); text-decoration: none; background: var(--soft); padding: 4px 9px; border-radius: 6px; }
+.jm-job-ft a:hover { background: var(--navy); color: #fff; }
+
+/* ── right: the province ─────────────────────────────── */
+.jm-mapwrap { position: relative; min-height: 0; }
+.jm-map { position: absolute; inset: 0; background: #dfe9f3; }
+
+.jm-tools {
+  position: absolute; top: 14px; right: 14px; left: 14px; z-index: 500;
+  display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; pointer-events: none;
+}
+.jm-tools > * { pointer-events: auto; }
+.jm-seg { display: flex; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 3px; box-shadow: var(--shadow-sm); }
+.jm-seg button {
+  border: 0; background: transparent; color: var(--text); font-size: 12.5px; font-weight: 700;
+  padding: 6px 12px; border-radius: 7px; cursor: pointer;
+}
+.jm-seg button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.jm-tool {
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-sm);
+  font-size: 12.5px; font-weight: 700; color: var(--navy); padding: 0 12px; height: 38px; cursor: pointer;
+}
+.jm-tool:hover { border-color: var(--navy); }
+.jm-tool.on { background: #0284C7; border-color: #0284C7; color: #fff; }
+
+.jm-notice {
+  position: absolute; top: 64px; right: 14px; z-index: 500; max-width: 320px;
+  display: flex; align-items: center; gap: 8px; background: var(--ink); color: #fff;
+  font-size: 12.5px; padding: 9px 10px 9px 14px; border-radius: 10px; box-shadow: var(--shadow-sm);
+}
+.jm-notice button { border: 0; background: rgba(255,255,255,.15); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+
+.jm-legend {
+  position: absolute; left: 14px; bottom: 18px; z-index: 500; width: 250px;
+  background: rgba(13,27,62,.94); color: #fff; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  padding: 4px 12px 10px; backdrop-filter: blur(6px);
+}
+.jm-legend.closed { width: auto; padding-bottom: 4px; }
+.jm-legend-hd {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  background: none; border: 0; color: var(--gold); font-size: 12px; font-weight: 800; padding: 6px 0; cursor: pointer;
+}
+.jm-legend ul { list-style: none; margin: 2px 0 6px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 6px; }
+.jm-legend li button {
+  display: flex; align-items: center; gap: 5px; width: 100%; background: none; border: 0; border-radius: 6px;
+  color: #fff; font-size: 11.5px; padding: 3px 4px; cursor: pointer; text-align: left; white-space: nowrap;
+}
+.jm-legend li button:hover { background: rgba(255,255,255,.1); }
+.jm-legend li button[aria-pressed="true"] { background: rgba(255,255,255,.18); font-weight: 700; }
+.jm-legend li i { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.jm-legend p { margin: 0; font-size: 10.5px; color: rgba(255,255,255,.65); }
+
+/* town hubs */
+.jm-hub-wrap, .jm-pin-wrap { background: transparent !important; border: 0 !important; }
+/* the name sits beside the count: the towns run down the coast, so names below would collide */
+.jm-hub { position: absolute; transform: translate(-19px, -19px); display: flex; align-items: center; cursor: pointer; }
+.jm-hub b {
+  position: relative; z-index: 1; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--navy); color: #fff; font: 800 13px/1 var(--body); border: 3px solid #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3); transition: transform .15s;
+}
+.jm-hub:hover b { transform: scale(1.08); }
+.jm-hub > span:not(.jm-pulse) {
+  margin-left: -6px; padding-left: 12px !important; background: rgba(13,27,62,.94); color: #fff; padding: 3px 9px; border-radius: 999px;
+  font: 700 11px/1.3 var(--body); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.jm-hub.empty b { width: 14px; height: 14px; border-width: 2px; background: #94A3B8; font-size: 0; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.jm-hub.empty { transform: translate(-7px, -7px); }
+.jm-hub.empty > span:not(.jm-pulse) { display: none; }
+.jm-hub.on b { width: 46px; height: 46px; background: var(--gold); color: var(--navy); font-size: 15px; }
+.jm-hub.on { transform: translate(-23px, -23px); }
+.jm-hub.on > span:not(.jm-pulse) { background: var(--gold); color: var(--navy); }
+
+/* job pins: a teardrop in the sector's colour */
+.jm-pin { position: absolute; transform: translate(-50%, -100%); cursor: pointer; }
+.jm-pin i {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--c); border: 2px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.3); transition: transform .15s;
+}
+.jm-pin i span { transform: rotate(45deg); font-size: 13px; font-style: normal; user-select: none; }
+.jm-pin:hover i { transform: rotate(-45deg) scale(1.1); }
+.jm-pin.on i { width: 38px; height: 38px; background: var(--gold); }
+.jm-pin.on i span { font-size: 16px; }
+
+.jm-pulse {
+  position: absolute; left: 19px; top: 19px; width: 54px; height: 54px; border-radius: 50%;
+  background: rgba(245,166,35,.45); transform: translate(-50%, -50%); animation: jmPulse 1.8s ease-out infinite; pointer-events: none;
+}
+.jm-pin .jm-pulse { top: 18px; left: 50%; }
+.jm-hub.on .jm-pulse { left: 23px; top: 23px; }
+@keyframes jmPulse {
+  0% { transform: translate(-50%, -50%) scale(.6); opacity: .9; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+/* you are here */
+.jm-me { position: absolute; transform: translate(-50%, -50%); width: 30px; height: 30px; display: grid; place-items: center; }
+.jm-me::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: rgba(2,132,199,.35); animation: jmGps 1.6s ease-out infinite; }
+.jm-me span { position: relative; width: 16px; height: 16px; border-radius: 50%; background: #0284C7; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+@keyframes jmGps { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(2); opacity: 0; } }
+
+/* the photo card a pin opens */
+.jm-popup .leaflet-popup-content-wrapper { border-radius: 14px; padding: 6px; box-shadow: 0 12px 28px rgba(13,27,62,.22); }
+.jm-popup .leaflet-popup-content { margin: 6px; line-height: 1.4; }
+.jm-pop { font-family: var(--body); }
+.jm-pop-img { position: relative; height: 104px; border-radius: 10px; overflow: hidden; margin-bottom: 10px; background: var(--navy); }
+.jm-pop-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jm-pop-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(13,27,62,.8), transparent 60%); }
+.jm-pop-type { position: absolute; left: 8px; bottom: 8px; z-index: 1; background: var(--gold); color: var(--navy); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 5px; text-transform: uppercase; }
+.jm-pop-km { position: absolute; right: 8px; top: 8px; z-index: 1; background: rgba(13,27,62,.85); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+.jm-pop h3 { font-size: 14px; color: var(--ink); margin: 0 0 3px; line-height: 1.3; }
+.jm-pop-co { font-size: 12px; font-weight: 600; color: var(--text); margin: 0 !important; }
+.jm-pop-loc { font-size: 11.5px; color: var(--muted); margin: 2px 0 8px !important; }
+.jm-pop-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.jm-pop-ft b { font-size: 13px; color: var(--green); }
+.jm-pop-ft a { background: var(--navy); color: #fff !important; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 7px; text-decoration: none; white-space: nowrap; }
+.jm-pop-ft a:hover { background: var(--navy-l); }
+
+/* the licence credit, kept small */
+.jm .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.7); color: #64748b; }
+.jm .leaflet-control-attribution a { color: #64748b; }
+
+@media (max-width: 1100px) {
+  .jm-body { grid-template-columns: 330px minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .jm { height: auto; min-height: 100vh; }
+  .jm.is-embedded { height: auto; padding: 12px 16px 20px; }
+  .jm-body { grid-template-columns: minmax(0, 1fr); }
+  .jm-mapwrap { order: -1; height: 56vh; min-height: 340px; }
+  .jm-panel { border-right: 0; border-top: 1px solid var(--line); }
+  .jm-list { overflow: visible; }
+  .jm-tools { justify-content: flex-start; }
+  .jm-legend { width: auto; max-width: calc(100% - 28px); }
+  .jm-legend ul { grid-template-columns: 1fr 1fr; }
+}

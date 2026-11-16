@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './auth.jsx'
 import { LanguageProvider } from './i18n.jsx'
+import { registerServiceWorker } from './pwa.js'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/inter-tight'
 import './styles/base.css'
 import './styles/landing.css'
 import './styles/auth.css'
 import './styles/dash.css'
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>

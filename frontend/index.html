@@ -2,15 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#092866" />
     <meta name="description" content="Hanapbuhay matches workers, small businesses and households across Oriental Mindoro by what people can actually do." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>Hanapbuhay — Your skills are your résumé</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+
+    <!-- Installable app (PWA) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="hanapbuhay" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <title>hanapbuhay — Jobs and gigs in Oriental Mindoro</title>
+
+    <!-- Start talking to the API server right away, while the app's files are still
+         downloading: open the connection early and wake the server (Render's free plan
+         puts it to sleep after 15 idle minutes; waking takes 30–60 s). -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
+    <script>
+      (function () {
+        var api = '%VITE_API_URL%'
+        if (api.charAt(0) === '%') api = '' // not set: same origin (dev proxy)
+        try { fetch(api.replace(/\/$/, '') + '/api/health', { mode: 'no-cors', cache: 'no-store' }).catch(function () {}) } catch (e) {}
+      })()
+    </script>
+    <style>.bmk { --bmk-ink: var(--navy, #0D1B3E); --bmk-gold: var(--gold, #F5A623); --bmk-pin: #CBD5E1; --bmk-glass: #fff; overflow: visible; display: block; } .bmk.dark { --bmk-ink: #fff; --bmk-pin: rgba(255,255,255,.28); --bmk-glass: rgba(255,255,255,.1); } .bmk-road { stroke: var(--bmk-pin); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 2 5; } .bmk-pin { fill: var(--bmk-pin); transform-box: fill-box; transform-origin: center; animation-duration: 1.2s; animation-timing-function: cubic-bezier(.45,0,.55,1); animation-iteration-count: infinite; animation-direction: alternate; } @keyframes bmkPin0 { 0% { fill: var(--bmk-gold); transform: scale(1.9) } 10%, 100% { fill: var(--bmk-gold); transform: scale(1.15) } } .bmk-pin.p0 { animation-name: bmkPin0; } @keyframes bmkPin1 { 0%, 24% { fill: var(--bmk-pin); transform: scale(1) } 25% { fill: var(--bmk-gold); transform: scale(1.9) } 35%, 100% { fill: var(--bmk-gold); transform: scale(1.15) } } .bmk-pin.p1 { animation-name: bmkPin1; } @keyframes bmkPin2 { 0%, 49% { fill: var(--bmk-pin); transform: scale(1) } 50% { fill: var(--bmk-gold); transform: scale(1.9) } 60%, 100% { fill: var(--bmk-gold); transform: scale(1.15) } } .bmk-pin.p2 { animation-name: bmkPin2; } @keyframes bmkPin3 { 0%, 74% { fill: var(--bmk-pin); transform: scale(1) } 75% { fill: var(--bmk-gold); transform: scale(1.9) } 85%, 100% { fill: var(--bmk-gold); transform: scale(1.15) } } .bmk-pin.p3 { animation-name: bmkPin3; } @keyframes bmkPin4 { 0%, 99% { fill: var(--bmk-pin); transform: scale(1) } 100% { fill: var(--bmk-gold); transform: scale(1.9) } } .bmk-pin.p4 { animation-name: bmkPin4; } .bmk-lens { animation: bmkScan 1.2s cubic-bezier(.45,0,.55,1) infinite alternate; } @keyframes bmkScan { from { transform: translate(16px, 38px) } to { transform: translate(104px, 38px) } } .bmk-bob { animation: bmkBob .6s ease-in-out infinite alternate; } @keyframes bmkBob { from { transform: translateY(-1.5px) rotate(-4deg) } to { transform: translateY(1.5px) rotate(4deg) } } .bmk-trail { stroke: var(--bmk-gold); stroke-width: 3; stroke-linecap: round; animation: bmkTrail 2.4s linear infinite; } @keyframes bmkTrail { 0% { opacity: 0; transform: scaleX(1) } 25% { opacity: 1; transform: scaleX(1) } 49.9% { opacity: 0; transform: scaleX(1) } 50% { opacity: 0; transform: scaleX(-1) } 75% { opacity: 1; transform: scaleX(-1) } 100% { opacity: 0; transform: scaleX(-1) } } .bmk-handle { stroke: var(--bmk-gold); stroke-width: 6; stroke-linecap: round; } .bmk.dark .bmk-handle { stroke: var(--bmk-gold); } .bmk-glass { fill: var(--bmk-glass); stroke: var(--bmk-ink); stroke-width: 4.5; } .bmk-case-body { fill: var(--bmk-ink); } .bmk-case-handle { fill: none; stroke: var(--bmk-ink); stroke-width: 2; } .bmk-case-clasp { fill: var(--bmk-gold); } .bmk-shine { fill: none; stroke: var(--bmk-ink); stroke-width: 1.6; stroke-linecap: round; opacity: .25; } .bmk.dark .bmk-shine { opacity: .5; } @media (prefers-reduced-motion: reduce) { .bmk-lens { animation: none; transform: translate(60px, 38px); } .bmk-bob, .bmk-pin, .bmk-trail { animation: none; } .bmk-trail { opacity: 0; } .bmk-pin { fill: var(--bmk-gold); } } .boot{position:fixed;inset:0;display:grid;place-items:center;background:#0D1B3E;color:rgba(255,255,255,.75);font:600 14px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center} .boot>div{display:grid;justify-items:center;gap:6px} .boot b{display:block;margin-top:10px;color:#fff;font-size:22px;font-weight:800;letter-spacing:-.01em} .boot b em{font-style:normal;color:#F5A623} .boot-logo{width:240px;max-width:70vw;height:auto;animation:bootPulse 1.4s ease-in-out infinite alternate} @keyframes bootPulse{from{opacity:.7;transform:scale(.98)}to{opacity:1;transform:scale(1)}} @media (prefers-reduced-motion: reduce){.boot-logo{animation:none}}</style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Shown until the app's JavaScript has downloaded (React replaces it), so slow
+         connections see the brand right away instead of a blank white screen.
+         Its look (the same animation as components/BrandMark.jsx) is in the <style>
+         in <head>: inline, so there is no extra file to download first. -->
+    <div id="root">
+      <div class="boot" role="status">
+        <div>
+          <img class="boot-logo" src="/images/logo-light.png" alt="hanapbuhay" width="240" />
+          <span>Getting things ready…</span>
+        </div>
+      </div>
+    </div>
+    <noscript>Please turn on JavaScript to use HanapBuhay.</noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

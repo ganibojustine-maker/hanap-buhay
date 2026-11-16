@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import Dialog from './Dialog.jsx'
 import {
   IconCheck, IconShield, IconSpark, IconBuilding, IconWrench,
   IconBriefcase, IconPhone, IconClock, IconStar, IconX,
@@ -85,11 +86,146 @@ export function GCashLogo({ height = 32, light = false }) {
   )
 }
 
+/* ── Plan catalog shown on this page ────────────────────────────
+   Only features the app really delivers are listed here, and every number is enforced by
+   the server: active posts (JobController::create), featured posts (JobController::feature),
+   contact unlocks (TalentController::unlock). Keep in step with Subscription_model. */
+const PLAN_SETS = {
+  employer: [
+    {
+      id: 'employer_starter', name: 'Starter', free: true,
+      tagline: 'Try hanapbuhay hiring with a single vacancy.',
+      intro: null,
+      features: [
+        '1 active job post',
+        '5 worker contact unlocks to start',
+        'Find Workers: search every Skills Passport',
+        'Applicant tracking, interviews and match scores',
+        'Email alerts for new applications',
+      ],
+    },
+    {
+      id: 'employer_growth', name: 'Business Pro', popular: true,
+      tagline: 'For growing businesses that hire regularly.',
+      monthly: 499, quarterly: 1199,
+      intro: 'Everything in Starter, plus:',
+      features: [
+        'Up to 5 active job posts',
+        '2 featured posts (30 days each, shown first)',
+        '30 worker contact unlocks',
+        'Unused credits carry over when you renew',
+      ],
+      checkout: { id: 'employer_growth', name: 'Business Pro (MSME Growth)', price_monthly: 499, price_quarter: 1199, job_posts: 5, featured_slots: 2, contact_credits: 30 },
+    },
+    {
+      id: 'employer_enterprise', name: 'Enterprise',
+      tagline: 'For resorts, construction firms, and retail chains.',
+      monthly: 1499, quarterly: 3599,
+      intro: 'Everything in Business Pro, plus:',
+      features: [
+        'Unlimited active job posts',
+        '10 featured posts (30 days each)',
+        'Unlimited worker contact unlocks',
+        'Best for high-volume and seasonal hiring',
+      ],
+      checkout: { id: 'employer_enterprise', name: 'Corporate Enterprise Unlimited', price_monthly: 1499, price_quarter: 3599, job_posts: -1, featured_slots: 10, contact_credits: 9999 },
+    },
+  ],
+  hirer: [
+    {
+      id: 'hirer_free', name: 'Free Buyer', free: true,
+      tagline: 'For occasional service requests and simple repairs.',
+      intro: null,
+      features: [
+        '1 active service request',
+        '3 worker contact unlocks to start',
+        'Find Workers: search every Skills Passport',
+        'In-app chat with workers',
+      ],
+    },
+    {
+      id: 'hirer_service_pass', name: 'Service Pass', popular: true,
+      tagline: 'For homes, offices, and regular project needs.',
+      monthly: 249, quarterly: 599,
+      intro: 'Everything in Free Buyer, plus:',
+      features: [
+        'Up to 5 active service requests',
+        '1 featured request (30 days, shown first)',
+        '15 worker contact unlocks',
+        'Unused credits carry over when you renew',
+      ],
+      checkout: { id: 'hirer_service_pass', name: 'Home & Office Service Pass', price_monthly: 249, price_quarter: 599, active_gigs: 5, contact_credits: 15 },
+    },
+    {
+      id: 'hirer_vip_pass', name: 'VIP Buyer',
+      tagline: 'For frequent hirers with no limits.',
+      monthly: 599, quarterly: 1499,
+      intro: 'Everything in Service Pass, plus:',
+      features: [
+        'Unlimited active service requests',
+        '3 featured requests (30 days each)',
+        'Unlimited worker contact unlocks',
+      ],
+      checkout: { id: 'hirer_vip_pass', name: 'VIP Buyer Pass Unlimited', price_monthly: 599, price_quarter: 1499, active_gigs: -1, contact_credits: 9999 },
+    },
+  ],
+}
+const FREE_TIERS = ['free', 'employer_starter', 'hirer_free']
+const peso = (n) => '₱' + Number(n).toLocaleString('en-PH')
+
+function PlanCard({ plan, cycle, isCurrent, onPaidPlan, onChoose }) {
+  const quarterly = cycle === 'quarterly'
+  const price = plan.free ? 0 : (quarterly ? plan.quarterly : plan.monthly)
+  const perMonth = !plan.free && quarterly ? Math.round(plan.quarterly / 3) : null
+  return (
+    <article className={`sub-card${plan.popular ? ' pop' : ''}${isCurrent ? ' cur' : ''}`}>
+      <div className="sub-card-top">
+        <h3>{plan.name}</h3>
+        {isCurrent ? <span className="sub-tag cur">Your plan</span> : plan.popular ? <span className="sub-tag">Most popular</span> : null}
+      </div>
+      <p className="sub-tagline">{plan.tagline}</p>
+
+      <div className="sub-price">
+        <span className="amt">{peso(price)}</span>
+        <span className="per">
+          {plan.free ? <>PHP<br />free forever</> : quarterly ? <>PHP / 3 months<br />about {peso(perMonth)} a month</> : <>PHP / month<br />billed monthly</>}
+        </span>
+      </div>
+
+      {plan.free ? (
+        <button className="sub-btn ghost" disabled>{isCurrent ? 'Your current plan' : onPaidPlan ? 'Starts when your plan ends' : 'Included with every account'}</button>
+      ) : isCurrent ? (
+        <button className="sub-btn dark" onClick={() => onChoose(plan.checkout)}>
+          Renew · adds {quarterly ? '90' : '30'} days
+        </button>
+      ) : (
+        <button className={`sub-btn ${plan.popular ? 'dark' : 'line'}`} onClick={() => onChoose(plan.checkout)}>
+          Get {plan.name}
+        </button>
+      )}
+
+      <div className="sub-feats">
+        {plan.intro && <p className="sub-intro">{plan.intro}</p>}
+        <ul>
+          {plan.features.map(f => (
+            <li key={f}><IconCheck size={15} /><span>{f}</span></li>
+          ))}
+        </ul>
+      </div>
+    </article>
+  )
+}
+
 export default function Subscription({ user, call, updateUser }) {
   const [searchParams, setSearchParams] = useSearchParams()
   // Determine default mode based on user account_type ('employer' or 'hirer')
   const defaultMode = user?.account_type === 'hirer' ? 'hirer' : 'employer'
   const [viewMode, setViewMode] = useState(defaultMode)
+  const isAdmin = user?.role === 'admin'
+  const canBuy = !isAdmin && ['employer', 'hirer'].includes(user?.account_type)
+  const [notice, setNotice] = useState(null)     // { tone, title, text }
+  const [usage, setUsage] = useState(null)
+  useEffect(() => { if (canBuy) call('/jobs/my').then(r => setUsage(r.usage || null)).catch(() => {}) }, [call, canBuy])
   const [billingCycle, setBillingCycle] = useState('monthly') // 'monthly' | 'quarterly'
   const [subData, setSubData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -124,7 +260,7 @@ export default function Subscription({ user, call, updateUser }) {
             updateUser(res.user)
           }
           setSuccessReceipt({
-            planName: res.subscription?.plan?.name || 'HanapBuhay Plan',
+            planName: res.subscription?.plan?.name || 'hanapbuhay Plan',
             reference: res.subscription?.reference || res.payment?.session_id || cleanRef || 'PAID',
             amount: res.payment?.amount || res.subscription?.price || 0,
             method: 'PayMongo (GCash / Maya / Card)',
@@ -136,15 +272,16 @@ export default function Subscription({ user, call, updateUser }) {
             if (r?.subscription) setSubData(r.subscription)
           }).catch(() => {})
         } else {
-          alert(res?.error || 'Failed to verify PayMongo payment.')
+          setNotice({ tone: 'warn', title: 'Payment not confirmed yet', text: res?.message || res?.error || 'If you already paid, wait a moment and refresh this page.' })
         }
       }).catch(err => {
-        alert(err?.data?.error || err?.data?.message || err?.message || 'Error verifying PayMongo payment.')
+        setNotice({ tone: err?.status === 402 ? 'warn' : 'error', title: err?.status === 402 ? 'Payment not completed' : 'Could not confirm the payment',
+          text: err?.data?.message || err?.data?.error || err?.message || 'Please refresh in a moment. If money was taken, contact Help & Support with your reference.' })
       }).finally(() => {
         setProcessing(false)
       })
     } else if (status === 'cancelled') {
-      alert('Payment was cancelled. You can try again whenever you are ready.')
+      setNotice({ tone: 'info', title: 'Payment cancelled', text: 'Nothing was charged. You can try again whenever you are ready.' })
       setSearchParams({})
     }
   }, [searchParams, call, updateUser, setSearchParams])
@@ -206,18 +343,18 @@ export default function Subscription({ user, call, updateUser }) {
       }
 
       if (res?.success && res?.checkout_url) {
-        console.log('[PayMongo] Redirecting to PayMongo website:', res.checkout_url)
         // Direct redirect to PayMongo official hosted checkout page
         window.location.href = res.checkout_url
         return
       }
 
       console.error('[PayMongo] Unexpected response:', res)
-      alert(res?.error || res?.message || 'Subscription checkout failed.')
+      setNotice({ tone: 'error', title: 'Checkout did not start', text: res?.error || res?.message || 'Please try again.' })
     } catch (err) {
       console.error('[PayMongo] Checkout error:', err)
       const msg = err?.data?.error || err?.data?.message || err?.message || 'Error processing payment with PayMongo.'
-      alert(msg)
+      setNotice({ tone: 'error', title: 'Checkout did not start', text: msg })
+      setCheckoutPlan(null)
     } finally {
       setProcessing(false)
     }
@@ -230,681 +367,67 @@ export default function Subscription({ user, call, updateUser }) {
   const expiresAt = user?.subscription_expires_at || subData?.expires_at
 
   return (
-    <div className="page-inner" style={{ maxWidth: 1180, margin: '0 auto', paddingBottom: 60 }}>
-      {/* ── Top Bar / Mode Switcher ────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-        <div>
-          <span className="eyebrow" style={{ color: 'var(--navy)', fontWeight: 700, letterSpacing: '.06em' }}>
-            HANAPBUHAY PREMIUM MEMBERSHIP
-          </span>
-          <h1 style={{ fontSize: 28, margin: '4px 0 0', color: 'var(--navy-d)', fontWeight: 800 }}>
-            Subscription Plans &amp; Packages
-          </h1>
-        </div>
+    <div className="page-inner sub-page">
+      {notice && <Dialog tone={notice.tone} title={notice.title} onClose={() => setNotice(null)} actions={[{ label: 'OK', primary: true, onClick: () => setNotice(null) }]}><p>{notice.text}</p></Dialog>}
+      <div className="sub-paper">
+        <header className="sub-hero">
+          <h1>Plans that grow with your hiring</h1>
+          <p>Post jobs, reach local talent across Oriental Mindoro, and upgrade only when you need more room.</p>
 
-        {/* View Switcher: Employer JobStreet style vs Service Buyer Street Job style */}
-        <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: 4, borderRadius: 12, border: '1px solid #cbd5e1' }}>
-          <button
-            onClick={() => setViewMode('employer')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 0,
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 13,
-              background: viewMode === 'employer' ? '#1e3a8a' : 'transparent',
-              color: viewMode === 'employer' ? '#fff' : '#475569',
-              boxShadow: viewMode === 'employer' ? '0 2px 8px rgba(30, 58, 138, 0.25)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <IconBuilding size={16} /> Employers &amp; MSMEs (JobStreet Style)
-          </button>
-          <button
-            onClick={() => setViewMode('hirer')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 0,
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 13,
-              background: viewMode === 'hirer' ? '#047857' : 'transparent',
-              color: viewMode === 'hirer' ? '#fff' : '#475569',
-              boxShadow: viewMode === 'hirer' ? '0 2px 8px rgba(4, 120, 87, 0.25)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <IconWrench size={16} /> Clients &amp; Service Buyers (Street Job Gigs)
-          </button>
-        </div>
-      </div>
+          {isAdmin && <div className="sub-seg" role="tablist" aria-label="Account type">
+            <button role="tab" aria-selected={viewMode === 'employer'} className={viewMode === 'employer' ? 'on' : ''} onClick={() => setViewMode('employer')}>
+              <IconBuilding size={15} /> Employers &amp; MSMEs
+            </button>
+            <button role="tab" aria-selected={viewMode === 'hirer'} className={viewMode === 'hirer' ? 'on' : ''} onClick={() => setViewMode('hirer')}>
+              <IconWrench size={15} /> Service buyers
+            </button>
+          </div>}
 
-      {/* ── Active Subscription Status Card ───────────────── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-        color: '#fff',
-        borderRadius: 16,
-        padding: '20px 26px',
-        marginBottom: 28,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 16,
-        boxShadow: '0 10px 30px rgba(15,23,42,0.12)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: 'rgba(245, 158, 11, 0.15)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            color: '#f59e0b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <IconSpark size={24} />
+          <div className="sub-seg small" role="tablist" aria-label="Billing period">
+            <button role="tab" aria-selected={billingCycle === 'monthly'} className={billingCycle === 'monthly' ? 'on' : ''} onClick={() => setBillingCycle('monthly')}>Monthly</button>
+            <button role="tab" aria-selected={billingCycle === 'quarterly'} className={billingCycle === 'quarterly' ? 'on' : ''} onClick={() => setBillingCycle('quarterly')}>
+              Quarterly <em>Save 20%</em>
+            </button>
           </div>
+        </header>
+
+        <div className="sub-grid">
+          {PLAN_SETS[viewMode].map(plan => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              cycle={billingCycle}
+              isCurrent={plan.free ? FREE_TIERS.includes(activeTier) : activeTier === plan.id}
+              onPaidPlan={!FREE_TIERS.includes(activeTier)}
+              onChoose={canBuy ? setCheckoutPlan : () => setNotice({ tone: 'info', title: 'Plans are for hiring accounts', text: 'Hiring plans are bought from an employer or client account.' })}
+            />
+          ))}
+        </div>
+
+        <div className="sub-status">
           <div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600 }}>
-              Kasalukuyang Subscription Plan
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-              <span>
-                {activeTier === 'employer_growth' ? 'MSME Growth / Negosyo Pro' :
-                 activeTier === 'employer_enterprise' ? 'Corporate Enterprise Unlimited' :
-                 activeTier === 'hirer_service_pass' ? 'Home & Office Service Pass' :
-                 activeTier === 'hirer_vip_pass' ? 'VIP Buyer Pass Unlimited' :
-                 'Libre / Starter Free Tier'}
+            <b>{loading ? 'Loading your plan…' : (FREE_TIERS.includes(activeTier) ? 'You are on the free plan' : 'Your plan is active')}</b>
+            <span>
+              {expiresAt && !FREE_TIERS.includes(activeTier)
+                ? `Valid until ${new Date(expiresAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}. Plans do not renew automatically.`
+                : 'The free plan never expires.'}
+            </span>
+            {usage && (
+              <span className="sub-usage">
+                <b>{usage.active}{usage.limit >= 0 ? ` of ${usage.limit}` : ''}</b> active posts ·
+                <b> {featuredCredits}</b> featured left ·
+                <b> {usage.contact_unlimited ? 'Unlimited' : contactCredits}</b> contact unlocks
               </span>
-              <span className={`chip ${activeTier !== 'free' && activeTier !== 'employer_starter' && activeTier !== 'hirer_free' ? 'green' : 'gold'}`} style={{ fontSize: 11, fontWeight: 700 }}>
-                {activeTier !== 'free' && activeTier !== 'employer_starter' && activeTier !== 'hirer_free' ? 'Active Pro' : 'Free Member'}
-              </span>
-            </div>
-            <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
-              {expiresAt ? `Valid until ${new Date(expiresAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}` : 'Walang expiration ang basic free access.'}
-            </div>
+            )}
           </div>
+          <button className="sub-link" onClick={openHistory}><IconCalendar size={14} /> Payment receipts</button>
         </div>
 
-        {/* Credit Badges */}
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ background: 'rgba(255,255,255,0.08)', padding: '10px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Worker Contact Unlocks</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8' }}>{contactCredits} <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)' }}>left</span></div>
-          </div>
-
-          <div style={{ background: 'rgba(255,255,255,0.08)', padding: '10px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Featured Job Badges</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>{featuredCredits} <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.5)' }}>slots</span></div>
-          </div>
-
-          <button
-            onClick={openHistory}
-            className="btn btn-xs"
-            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', padding: '8px 14px', fontSize: 12 }}
-          >
-            <IconCalendar size={13} /> Payment Receipts
-          </button>
-        </div>
+        <p className="sub-foot">
+          <GCashIcon size={16} />
+          Prices are in Philippine pesos. Pay securely with GCash, Maya, or card through PayMongo.
+        </p>
       </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          STYLE 1: EMPLOYERS & MSMEs (JobStreet / Corporate Style)
-          ───────────────────────────────────────────────────────────── */}
-      {viewMode === 'employer' && (
-        <div className="employer-subscription-view" style={{ animation: 'fadeIn 0.25s ease' }}>
-          {/* JobStreet-Inspired Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
-            color: '#fff',
-            borderRadius: 16,
-            padding: '36px 32px',
-            marginBottom: 32,
-            position: 'relative',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <div style={{ maxWidth: 680, position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f59e0b', color: '#1e3a8a', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginBottom: 14 }}>
-                <IconShield size={13} /> JobStreet Partner Hiring Solutions for Mindoro MSMEs
-              </div>
-              <h2 style={{ fontSize: 32, fontWeight: 800, margin: '0 0 10px', lineHeight: 1.2, color: '#fff' }}>
-                Hire Faster, Screen Verified Local Talent in Oriental Mindoro
-              </h2>
-              <p style={{ fontSize: 15, color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
-                Itaas ang inyong job postings sa unahan ng search results, mag-access ng 1,000+ verified TESDA Skills Passports, at makipag-ugnayan agad sa mga karapat-dapat na aplikante gamit ang JobStreet corporate hiring tools.
-              </p>
-            </div>
-
-            {/* Decorative background logo */}
-            <div style={{ position: 'absolute', right: -20, bottom: -40, opacity: 0.08, pointerEvents: 'none' }}>
-              <IconBuilding size={320} />
-            </div>
-          </div>
-
-          {/* Billing Cycle Picker */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 30 }}>
-            <span style={{ fontSize: 14, fontWeight: billingCycle === 'monthly' ? 700 : 500, color: billingCycle === 'monthly' ? 'var(--navy-d)' : 'var(--muted)' }}>
-              Monthly Billing
-            </span>
-            <button
-              onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'quarterly' : 'monthly')}
-              style={{
-                width: 52,
-                height: 28,
-                borderRadius: 20,
-                background: billingCycle === 'quarterly' ? '#1e3a8a' : '#cbd5e1',
-                position: 'relative',
-                border: 0,
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              <div style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: '#fff',
-                position: 'absolute',
-                top: 3,
-                left: billingCycle === 'quarterly' ? 26 : 4,
-                transition: 'left 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }} />
-            </button>
-            <span style={{ fontSize: 14, fontWeight: billingCycle === 'quarterly' ? 700 : 500, color: billingCycle === 'quarterly' ? 'var(--navy-d)' : 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              Quarterly Saver (3 Months)
-              <span className="chip gold" style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px' }}>SAVE 20%</span>
-            </span>
-          </div>
-
-          {/* 3 JobStreet-style Pricing Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-            {/* 1. Starter Libre */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '1px solid var(--line)',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip gray" style={{ fontSize: 11, fontWeight: 700 }}>FREE TRIAL</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-d)', margin: '0 0 6px' }}>Starter Libre</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Pangunahing pag-post ng 1 bakante para sa maliliit na negosyo at tindahan.
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--navy-d)' }}>
-                  ₱0 <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>/ habambuhay</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  '1 Active Standard Job Post',
-                  '5 Candidate Resume & Contact Unlocks',
-                  'Standard Mindoro Job Board Listing',
-                  'Basic Applicant Review & Status Tracking',
-                  'Standard Email Notification',
-                  'Community Support'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#16a34a', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                disabled
-                className="btn btn-light"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, padding: 12 }}
-              >
-                Kasalukuyang Default Plan
-              </button>
-            </div>
-
-            {/* 2. Negosyo Pro (Most Popular / JobStreet Best Choice) */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '2px solid #1e3a8a',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 12px 36px rgba(30, 58, 138, 0.12)',
-              position: 'relative',
-              transform: 'scale(1.02)'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: -14,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#1e3a8a',
-                color: '#fff',
-                padding: '4px 16px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: '.04em',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5
-              }}>
-                <IconStar size={12} color="#fbbf24" /> MOST POPULAR • JOBSTREET BEST PICK
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip gold" style={{ fontSize: 11, fontWeight: 700 }}>MSME GROWTH</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-d)', margin: '0 0 6px' }}>Negosyo Pro</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Kumpletong hiring suite para sa lumalawak na kumpanya at negosyo sa Mindoro.
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#1e3a8a' }}>
-                  ₱{billingCycle === 'quarterly' ? '1,199' : '499'}
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
-                    {billingCycle === 'quarterly' ? ' / 3 buwan (Save 20%)' : ' / buwan'}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  'Up to 5 Active Job Postings sabay-sabay',
-                  '2 Featured & "Urgent Hiring" Badges (Nangunguna sa Search)',
-                  '30 Direct Worker Scout & Skills Passport Unlocks',
-                  'Automated Interview Scheduler & Applicant Notes',
-                  'Verified Business Trust Gold Shield Badge',
-                  'Direct SMS & WhatsApp Candidate Alerts',
-                  'Smart AI Match Scoring sa mga aplikante',
-                  'Priority Admin Verification Queue'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#1e3a8a', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span style={{ fontWeight: i < 3 ? 600 : 400 }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setCheckoutPlan({
-                  id: 'employer_growth',
-                  name: 'Negosyo Pro (MSME Growth)',
-                  price_monthly: 499,
-                  price_quarter: 1199,
-                  job_posts: 5,
-                  featured_slots: 2,
-                  contact_credits: 30
-                })}
-                className="btn btn-navy"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 800, padding: 12, fontSize: 14 }}
-              >
-                Piliin ang Negosyo Pro <IconArrow size={16} />
-              </button>
-            </div>
-
-            {/* 3. Corporate Enterprise */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '1px solid var(--line)',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip navy" style={{ fontSize: 11, fontWeight: 700 }}>ENTERPRISE UNLIMITED</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-d)', margin: '0 0 6px' }}>Corporate Enterprise</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Para sa malalaking resort hotels, construction firms, at retail chains.
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: 'var(--navy-d)' }}>
-                  ₱{billingCycle === 'quarterly' ? '3,599' : '1,499'}
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
-                    {billingCycle === 'quarterly' ? ' / 3 buwan (Save 20%)' : ' / buwan'}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  'Walang limitasyong Active Job Posts',
-                  '10 Featured Urgent Badges + Social Media Job Blast',
-                  'Unlimited Worker Scouting & Direct Contact Unlocks',
-                  'Top Ranked Placement sa Mindoro Job Searches',
-                  'Instant PESO & TESDA Certified Worker Recommendations',
-                  'Dedicated HanapBuhay Account Specialist',
-                  'Custom Company Hiring Banner sa Homepage',
-                  'VIP 24/7 Priority Assistance'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#16a34a', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span style={{ fontWeight: i < 3 ? 600 : 400 }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setCheckoutPlan({
-                  id: 'employer_enterprise',
-                  name: 'Corporate Enterprise Unlimited',
-                  price_monthly: 1499,
-                  price_quarter: 3599,
-                  job_posts: -1,
-                  featured_slots: 10,
-                  contact_credits: 9999
-                })}
-                className="btn btn-light"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, padding: 12 }}
-              >
-                Mag-upgrade sa Enterprise <IconArrow size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────
-          STYLE 2: CLIENTS & SERVICE BUYERS (Street Job On-Demand Gigs Style)
-          ───────────────────────────────────────────────────────────── */}
-      {viewMode === 'hirer' && (
-        <div className="hirer-subscription-view" style={{ animation: 'fadeIn 0.25s ease' }}>
-          {/* Street Job On-Demand Hero */}
-          <div style={{
-            background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
-            color: '#fff',
-            borderRadius: 16,
-            padding: '36px 32px',
-            marginBottom: 32,
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 12px 30px rgba(4, 120, 87, 0.2)'
-          }}>
-            <div style={{ maxWidth: 680, position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef08a', color: '#14532d', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginBottom: 14 }}>
-                <IconSpark size={13} /> Street Job On-Demand Service Pass
-              </div>
-              <h2 style={{ fontSize: 32, fontWeight: 800, margin: '0 0 10px', lineHeight: 1.2, color: '#fff' }}>
-                Direktang Tawag at Mabilisang Gawa sa Oriental Mindoro!
-              </h2>
-              <p style={{ fontSize: 15, color: '#d1fae5', lineHeight: 1.6, margin: '0 0 20px' }}>
-                Kailangan mo ba agad ng karpintero, tubero, electrician, driver, masahista, o home service repair? Kunin ang Street Job Service Pass para ma-unlock agad ang totoong numero ng telepono at makatanggap ng multiple quotes sa loob lamang ng ilang minuto!
-              </p>
-
-              {/* 3 Quick Value Badges */}
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600 }}>
-                  <IconPhone size={14} color="#fef08a" /> Instant Tawag &amp; SMS
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600 }}>
-                  <IconShield size={14} color="#fef08a" /> 100% TESDA Certified Workers
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600 }}>
-                  <IconClock size={14} color="#fef08a" /> Same-Day Urgent Dispatch
-                </div>
-              </div>
-            </div>
-
-            {/* Decorative background logo */}
-            <div style={{ position: 'absolute', right: -20, bottom: -40, opacity: 0.1, pointerEvents: 'none' }}>
-              <IconWrench size={320} />
-            </div>
-          </div>
-
-          {/* Billing Cycle Picker */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 30 }}>
-            <span style={{ fontSize: 14, fontWeight: billingCycle === 'monthly' ? 700 : 500, color: billingCycle === 'monthly' ? '#064e3b' : 'var(--muted)' }}>
-              1 Month Pass
-            </span>
-            <button
-              onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'quarterly' : 'monthly')}
-              style={{
-                width: 52,
-                height: 28,
-                borderRadius: 20,
-                background: billingCycle === 'quarterly' ? '#047857' : '#cbd5e1',
-                position: 'relative',
-                border: 0,
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              <div style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: '#fff',
-                position: 'absolute',
-                top: 3,
-                left: billingCycle === 'quarterly' ? 26 : 4,
-                transition: 'left 0.2s',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }} />
-            </button>
-            <span style={{ fontSize: 14, fontWeight: billingCycle === 'quarterly' ? 700 : 500, color: billingCycle === 'quarterly' ? '#064e3b' : 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              3-Month Season Pass
-              <span className="chip green" style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px' }}>SAVE 20%</span>
-            </span>
-          </div>
-
-          {/* 3 Street Job On-Demand Service Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-            {/* 1. Pay As You Go */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '1px solid var(--line)',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip gray" style={{ fontSize: 11, fontWeight: 700 }}>BASIC HIRER</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: '#064e3b', margin: '0 0 6px' }}>Libreng Buyer</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Pang-minsanang paghahanap ng serbisyo at simpleng pagkukumpuni.
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#064e3b' }}>
-                  ₱0 <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>/ habambuhay</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  '1 Active Service Request or Gig',
-                  '3 Direct Worker Contact Unlocks',
-                  'Standard Worker Response (< 24 oras)',
-                  'HanapBuhay In-App Chat Messaging',
-                  'Community Verified Worker Ratings'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#16a34a', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                disabled
-                className="btn btn-light"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, padding: 12 }}
-              >
-                Kasalukuyang Default Plan
-              </button>
-            </div>
-
-            {/* 2. Service Pass (Household Favorite) */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '2px solid #047857',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 12px 36px rgba(4, 120, 87, 0.12)',
-              position: 'relative',
-              transform: 'scale(1.02)'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: -14,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#047857',
-                color: '#fff',
-                padding: '4px 16px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: '.04em',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5
-              }}>
-                <IconSpark size={12} color="#fef08a" /> HOUSEHOLD FAVORITE • STREET JOB PASS
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip green" style={{ fontSize: 11, fontWeight: 700 }}>HOME &amp; BIZ PASS</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: '#064e3b', margin: '0 0 6px' }}>Service Pass Pro</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Direktang tawagan ang mga karpintero, tubero, electrician, at helpers nang walang delay!
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#047857' }}>
-                  ₱{billingCycle === 'quarterly' ? '599' : '249'}
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
-                    {billingCycle === 'quarterly' ? ' / 3 buwan (Save 20%)' : ' / buwan'}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  '15 Instant Phone & Contact Unlocks (Tawag Agad)',
-                  'Up to 5 Active Service Requests sabay-sabay',
-                  'Urgent Service Broadcast Tag (Push alert sa local pros)',
-                  'Mabilisang Same-Day Response (< 2 oras)',
-                  'TESDA-Certified Craftsman Priority Matching',
-                  'HanapBuhay Service Buyer Dispute Protection Guarantee'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#047857', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span style={{ fontWeight: i < 3 ? 600 : 400 }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setCheckoutPlan({
-                  id: 'hirer_service_pass',
-                  name: 'Home & Office Service Pass Pro',
-                  price_monthly: 249,
-                  price_quarter: 599,
-                  active_gigs: 5,
-                  contact_credits: 15
-                })}
-                className="btn"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 800, padding: 12, fontSize: 14, background: '#047857', color: '#fff' }}
-              >
-                Kumuha ng Service Pass <IconArrow size={16} />
-              </button>
-            </div>
-
-            {/* 3. VIP Buyer Pass */}
-            <div style={{
-              background: '#fff',
-              borderRadius: 16,
-              border: '1px solid var(--line)',
-              padding: 28,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span className="chip gold" style={{ fontSize: 11, fontWeight: 700 }}>VIP INSTANT DISPATCH</span>
-              </div>
-              <h3 style={{ fontSize: 22, fontWeight: 800, color: '#064e3b', margin: '0 0 6px' }}>VIP Buyer Pass</h3>
-              <p style={{ fontSize: 13, color: 'var(--muted)', minHeight: 38, margin: '0 0 18px' }}>
-                Para sa mga property managers, events, at madalas mag-hire ng mga technician.
-              </p>
-
-              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#064e3b' }}>
-                  ₱{billingCycle === 'quarterly' ? '1,499' : '599'}
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
-                    {billingCycle === 'quarterly' ? ' / 3 buwan (Save 20%)' : ' / buwan'}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                {[
-                  'Unlimited Direct Phone, SMS & WhatsApp Unlocks',
-                  'Unlimited Active Service Gigs & Projects',
-                  'Priority Same-Day Dispatch (< 30 minutong tugon)',
-                  'Multi-Bid Instant Quotes (Hanggang 10 biddings bawat gig)',
-                  'Guaranteed TESDA National Certificate (NC II/III) Pros',
-                  'VIP Hotline Booking Concierge Assistant',
-                  '100% Service Quality & Satisfaction Coverage'
-                ].map((feat, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
-                    <span style={{ color: '#16a34a', flexShrink: 0 }}><IconCheck size={16} /></span>
-                    <span style={{ fontWeight: i < 3 ? 600 : 400 }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setCheckoutPlan({
-                  id: 'hirer_vip_pass',
-                  name: 'VIP Buyer Pass Unlimited',
-                  price_monthly: 599,
-                  price_quarter: 1499,
-                  active_gigs: -1,
-                  contact_credits: 9999
-                })}
-                className="btn btn-light"
-                style={{ width: '100%', justifyContent: 'center', fontWeight: 700, padding: 12 }}
-              >
-                Mag-upgrade sa VIP Buyer <IconArrow size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Checkout / GCash / Maya Modal ─────────────────── */}
       {checkoutPlan && (
         <div
@@ -937,7 +460,7 @@ export default function Subscription({ user, call, updateUser }) {
             <div style={{
               padding: '18px 24px',
               borderBottom: '1px solid var(--line)',
-              background: viewMode === 'employer' ? '#1e3a8a' : '#047857',
+              background: '#1f1e1d',
               color: '#fff',
               display: 'flex',
               justifyContent: 'space-between',
@@ -973,7 +496,7 @@ export default function Subscription({ user, call, updateUser }) {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
                   <span style={{ fontWeight: 700, color: 'var(--navy-d)', fontSize: 15 }}>Total:</span>
-                  <strong style={{ fontSize: 26, color: viewMode === 'employer' ? '#1e3a8a' : '#047857', fontWeight: 900 }}>
+                  <strong style={{ fontSize: 26, color: '#1f1e1d', fontWeight: 900 }}>
                     ₱{billingCycle === 'quarterly' ? Number(checkoutPlan.price_quarter).toLocaleString() : Number(checkoutPlan.price_monthly).toLocaleString()}
                   </strong>
                 </div>
@@ -1093,7 +616,7 @@ export default function Subscription({ user, call, updateUser }) {
               Subscription Activated!
             </h3>
             <p style={{ fontSize: 13.5, color: 'var(--muted)', margin: '0 0 24px' }}>
-              Maraming salamat! Aktibo na ang iyong <strong>{successReceipt.planName}</strong> membership via GCash.
+              Thank you! Your <strong>{successReceipt.planName}</strong> membership is now active via GCash.
             </p>
 
             <div style={{ background: '#f8fafc', padding: 18, borderRadius: 12, border: '1px solid var(--line)', textAlign: 'left', marginBottom: 24, fontSize: 13 }}>

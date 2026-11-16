@@ -12,3 +12,15 @@ vendor/
 backend/runtime/*
 !backend/runtime/.htaccess
 !backend/runtime/index.html
+
+# user uploads (avatars are stored in the DB now)
+backend/public/uploads/
+
+# Firebase service account keys: never commit
+firebase-key.json
+*-firebase-adminsdk-*.json
+
+# database dumps and backups: never commit (they hold personal data)
+*.sql
+*.sql.gz
+backups/

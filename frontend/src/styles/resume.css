@@ -1,0 +1,88 @@
+/* ─ Resume Builder & certificate upload (worker dashboard) ─────────────── */
+.rb-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); gap: 20px; align-items: start }
+.rb-grid > * { min-width: 0 } /* the 595px preview paper must not widen its column */
+.rb-preview-col { position: sticky; top: 84px }
+.rb-section { margin-bottom: 18px }
+.rb-section > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px }
+.rb-section > header h2 { font-size: 17px; letter-spacing: -.02em }
+.rb-section > header p { font-size: 12.5px; color: var(--muted); margin-top: 2px }
+.rb-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px }
+.rb-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 14px }
+.rb-item { border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 14px 0; margin-bottom: 12px; background: var(--soft); position: relative }
+.rb-item .field { margin-bottom: 12px }
+.rb-remove { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer }
+.rb-remove:hover { background: var(--red-l); color: var(--red) }
+.rb-skill { display: grid; grid-template-columns: minmax(0, 1fr) 150px 36px; gap: 8px; align-items: center; margin-bottom: 8px }
+.rb-skill .rb-remove { position: static }
+.rb-skill .in input, .rb-skill .in select { height: 44px }
+.rb-add { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--navy-soft); border: 1px dashed rgba(13,27,62,.25); border-radius: 10px; padding: 9px 14px; cursor: pointer }
+.rb-add:hover { background: #dde5f2 }
+.rb-check { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--r-md); margin-bottom: 18px; font-size: 13.5px; line-height: 1.5 }
+.rb-check.ok { background: var(--green-l); color: #065f46; border: 1px solid #a7f3d0 }
+.rb-check.warn { background: var(--amber-l); color: #92400e; border: 1px solid #fde68a }
+.rb-check ul { margin: 4px 0 0 18px; padding: 0 }
+.rb-swatches { display: flex; gap: 8px }
+.rb-swatch { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0 }
+.rb-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--navy) }
+.rb-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.rb-save-state { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px }
+
+/* Paper preview: drawn at A4 width (595px) then scaled to the column */
+.rb-paper-wrap { overflow: hidden; border-radius: 10px; box-shadow: var(--shadow); background: #fff }
+.rb-paper { width: 595px; min-height: 842px; transform-origin: top left; background: #fff; color: #374151; font-family: Helvetica, Arial, sans-serif; font-size: 10px; line-height: 1.45 }
+.rb-paper .pp-band { padding: 26px 46px 18px; color: #fff; display: flex; gap: 18px; justify-content: space-between; border-bottom: 4px solid }
+.rb-paper .pp-name { font-size: 24px; font-weight: 700; line-height: 1.15; margin-bottom: 8px; overflow-wrap: anywhere }
+.rb-paper .pp-contact { font-size: 9.5px; color: #e2e8f0; overflow-wrap: anywhere }
+.rb-paper .pp-photo { width: 92px; height: 92px; object-fit: cover; border: 3px solid #fff; flex-shrink: 0 }
+.rb-paper .pp-body { padding: 8px 46px 40px }
+.rb-paper h4 { font-size: 10.5px; font-weight: 700; text-transform: uppercase; margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1.2px solid; position: relative; letter-spacing: 0 }
+.rb-paper h4::after { content: ''; position: absolute; left: 0; bottom: -2.4px; width: 46px; height: 2.4px; background: var(--pp-accent) }
+.rb-paper .pp-skills { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; color: #1f2937 }
+.rb-paper .pp-skills span::before { content: ''; display: inline-block; width: 4px; height: 4px; background: var(--pp-accent); margin-right: 6px; vertical-align: middle }
+.rb-paper .pp-row { display: flex; justify-content: space-between; gap: 12px; color: #111827; font-weight: 700; font-size: 10.5px }
+.rb-paper .pp-row small { font-weight: 400; color: #6b7280; font-size: 9.5px; white-space: nowrap }
+.rb-paper .pp-meta { font-size: 9.5px; color: #4b5563; margin-bottom: 6px }
+.rb-paper .pp-details { font-size: 9.5px; white-space: pre-line; margin-bottom: 8px }
+.rb-paper .pp-kv { display: grid; grid-template-columns: 100px 1fr; font-size: 9.5px }
+.rb-paper .pp-kv b { color: #1f2937 }
+.rb-paper .pp-foot { font-size: 7.5px; color: #9ca3af; padding: 0 46px 18px }
+
+/* Certificate upload (Skills Passport) */
+.cu-drop { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px; border: 2px dashed #cbd5e1; border-radius: var(--r-md); background: var(--soft) }
+.cu-drop.busy { border-color: var(--gold) }
+.cu-progress { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; margin-top: 10px }
+.cu-progress i { display: block; height: 100%; background: var(--gold); width: var(--w, 0%); transition: width .3s }
+.cu-review { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 18px; margin-top: 16px }
+.cu-thumb { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 10px }
+.cu-thumb.pdf { display: grid; place-items: center; color: var(--red); font-weight: 800 }
+.cu-list { display: grid; gap: 10px; margin-top: 16px }
+.cu-cert { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff }
+.cu-cert-ic { width: 40px; height: 40px; border-radius: 10px; background: var(--gold-l); color: var(--amber); display: grid; place-items: center; flex-shrink: 0 }
+.cu-cert h4 { font-size: 14px; letter-spacing: -.01em; overflow-wrap: anywhere }
+.cu-cert p { font-size: 12px; color: var(--muted) }
+.cu-cert .cu-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0 }
+
+@media (max-width: 1100px) {
+  .rb-grid { grid-template-columns: minmax(0, 1fr) }
+  .rb-preview-col { position: static }
+}
+@media (max-width: 640px) {
+  .rb-2, .rb-3 { grid-template-columns: 1fr }
+  .rb-skill { grid-template-columns: minmax(0, 1fr) 36px }
+  .rb-skill > :nth-child(2) { grid-column: 1; grid-row: 2 }
+  .cu-review { grid-template-columns: 1fr }
+  .cu-thumb { max-height: 220px }
+  .cu-cert { flex-wrap: wrap }
+  .cu-cert .cu-actions { margin-left: 52px }
+}
+
+/* certificate panel: what is accepted, and the first-upload button */
+.cu-sub { font-size: 13px; color: var(--muted); margin: 3px 0 0; max-width: 62ch; }
+.cu-drop-btn { width: 100%; border: 1.5px dashed #cbd5e1; background: var(--soft); cursor: pointer; font: inherit; }
+.cu-drop-btn:hover { border-color: var(--navy); background: #fff; }
+.cu-rules { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; }
+.cu-rules li { display: flex; align-items: flex-start; gap: 6px; color: var(--muted); }
+.cu-rules li svg { flex-shrink: 0; margin-top: 2px; }
+.cu-rules li.ok svg { color: var(--green); }
+.cu-rules li.no svg { color: var(--red); }
+

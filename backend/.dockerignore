@@ -1,3 +1,11 @@
 .env
 .git
 certs/*.json
+set-firebase-key.php
+runtime/logs
+runtime/cache
+*.log
+*.md
+firebase-key.json
+*-firebase-adminsdk-*.json
+seed_accounts.php

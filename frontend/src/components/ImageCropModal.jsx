@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { IconCheck, IconX } from './icons.jsx'
+import { tr } from '../lang/dash.js'
 
 /**
  * ImageCropModal — Interactive Photo Cropper and Adjuster
@@ -124,7 +125,7 @@ export default function ImageCropModal({
     const img = imgRef.current
     if (!img) return
 
-    const OUTPUT_SIZE = 512
+    const OUTPUT_SIZE = 320
     const outCanvas = document.createElement('canvas')
     outCanvas.width = OUTPUT_SIZE
     outCanvas.height = OUTPUT_SIZE
@@ -150,7 +151,7 @@ export default function ImageCropModal({
     // Export as Blob and DataURL
     outCanvas.toBlob(
       (blob) => {
-        const dataUrl = outCanvas.toDataURL('image/jpeg', 0.92)
+        const dataUrl = outCanvas.toDataURL('image/jpeg', 0.85)
         if (blob) {
           onCrop(blob, dataUrl)
         }
@@ -203,7 +204,7 @@ export default function ImageCropModal({
               {title}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--muted)', margin: '2px 0 0 0' }}>
-              Drag to reposition, adjust zoom or rotate
+              {tr("Drag to reposition, adjust zoom or rotate")}
             </p>
           </div>
           <button
@@ -295,7 +296,7 @@ export default function ImageCropModal({
           </div>
 
           <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
-            Tip: Scroll to zoom in/out or drag with mouse
+            {tr("Tip: Scroll to zoom in/out or drag with mouse")}
           </span>
         </div>
 
@@ -304,13 +305,13 @@ export default function ImageCropModal({
           {/* Zoom Slider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy-d)', minWidth: 42 }}>
-              Zoom
+              {tr("Zoom")}
             </span>
             <button
               className="btn btn-light btn-xs"
               style={{ width: 28, height: 28, padding: 0, fontSize: 14, fontWeight: 700 }}
               onClick={() => setZoom(z => Math.max(1, +(z - 0.2).toFixed(2)))}
-              title="Zoom out"
+              title={tr("Zoom out")}
             >
               −
             </button>
@@ -327,7 +328,7 @@ export default function ImageCropModal({
               className="btn btn-light btn-xs"
               style={{ width: 28, height: 28, padding: 0, fontSize: 14, fontWeight: 700 }}
               onClick={() => setZoom(z => Math.min(3, +(z + 0.2).toFixed(2)))}
-              title="Zoom in"
+              title={tr("Zoom in")}
             >
               +
             </button>
@@ -343,17 +344,17 @@ export default function ImageCropModal({
                 className="btn btn-light btn-xs"
                 style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 onClick={handleRotate}
-                title="Rotate 90 degrees"
+                title={tr("Rotate 90 degrees")}
               >
-                ↻ Rotate 90°
+                {tr("↻ Rotate 90°")}
               </button>
               <button
                 className="btn btn-light btn-xs"
                 style={{ fontSize: 12 }}
                 onClick={handleReset}
-                title="Reset position and zoom"
+                title={tr("Reset position and zoom")}
               >
-                Reset
+                {tr("Reset")}
               </button>
             </div>
 
@@ -364,7 +365,7 @@ export default function ImageCropModal({
                 onClick={onCancel}
                 disabled={saving}
               >
-                Cancel
+                {tr("Cancel")}
               </button>
               <button
                 className="btn btn-primary btn-sm"
@@ -375,12 +376,12 @@ export default function ImageCropModal({
                 {saving ? (
                   <>
                     <span className="spin" style={{ width: 14, height: 14 }} />
-                    Saving…
+                    {tr("Saving…")}
                   </>
                 ) : (
                   <>
                     <IconCheck size={14} />
-                    Apply &amp; Save
+                    {tr("Apply & Save")}
                   </>
                 )}
               </button>

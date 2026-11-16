@@ -1,0 +1,158 @@
+/* Help & Support (users) and the Support inbox (admins) */
+.sp-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px }
+.sp-hd h1 { display: flex; align-items: center; gap: 10px; font-size: 26px; letter-spacing: -.03em }
+.sp-hd h1 svg { color: var(--gold) }
+.sp-hd p { color: var(--muted); font-size: 14px; margin-top: 4px; max-width: 640px }
+
+.sp-layout { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px }
+.sp-layout.sp-first { grid-template-columns: minmax(0, 1fr) minmax(240px, 340px) }
+.sp-layout > .panel { min-width: 0; padding: 18px }
+
+/* list */
+.sp-list h2 { font-size: 12px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; font-weight: 700; margin: 0 0 10px }
+.sp-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 70vh; overflow-y: auto }
+.sp-row { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; color: inherit; transition: border-color .15s, background .15s }
+.sp-row:hover { border-color: #cbd5e1 }
+.sp-row.on { border-color: var(--navy); background: var(--navy-soft) }
+.sp-row.unread { border-left: 3px solid var(--gold) }
+.sp-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.sp-row-top b { font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.sp-row-top time { flex-shrink: 0; font-size: 11.5px; color: var(--muted) }
+.sp-row.unread .sp-row-top b { font-weight: 800 }
+.sp-row-sub { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.sp-row-prev { font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4 }
+.sp-row-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 3px; font-size: 11.5px; color: var(--muted) }
+.sp-dot { font-size: 10.5px; font-weight: 700; color: #92400e; background: var(--gold-l); padding: 1px 7px; border-radius: 99px }
+
+.sp-status { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap }
+.sp-status.open { background: var(--gold-l); color: #92400e }
+.sp-status.answered { background: var(--green-l); color: var(--green) }
+.sp-status.resolved { background: var(--soft); color: var(--muted); border: 1px solid var(--line) }
+
+.sp-empty, .sp-pick { text-align: center; color: var(--muted); padding: 36px 12px; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px }
+.sp-empty svg { color: var(--green) }
+.sp-pick svg { color: #cbd5e1 }
+.sp-pick p { max-width: 340px }
+
+/* conversation */
+.sp-thread { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.sp-thread-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
+.sp-thread-hd h2 { font-size: 18px; letter-spacing: -.02em; line-height: 1.3; overflow-wrap: anywhere }
+.sp-thread-hd p { font-size: 12.5px; color: var(--muted); margin-top: 3px }
+.sp-back { display: none; align-self: flex-start; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: 700 13px var(--body); color: var(--navy); cursor: pointer }
+
+.sp-user { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); font-size: 13px }
+.sp-user b { color: var(--ink) }
+.sp-role { font-size: 11px; font-weight: 700; color: var(--navy); background: var(--navy-soft); padding: 2px 8px; border-radius: 99px }
+.sp-verified { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--green); background: var(--green-l); padding: 2px 8px; border-radius: 99px }
+.sp-inactive { font-size: 11px; font-weight: 700; color: var(--red); background: var(--red-l); padding: 2px 8px; border-radius: 99px }
+.sp-user-line { display: flex; flex-wrap: wrap; gap: 4px 14px; width: 100%; color: var(--muted) }
+.sp-user-line a, .sp-user-line span { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); min-width: 0; overflow-wrap: anywhere }
+.sp-user-line a:hover { color: var(--navy); text-decoration: underline }
+
+.sp-msgs { list-style: none; margin: 0; padding: 4px 2px; display: flex; flex-direction: column; gap: 10px; max-height: min(56vh, 520px); overflow-y: auto }
+.sp-msgs li { display: flex }
+.sp-msgs li.mine { justify-content: flex-end }
+.sp-bubble { max-width: min(560px, 86%); padding: 10px 14px; border-radius: 14px; background: var(--soft); border: 1px solid var(--line) }
+.sp-msgs li.mine .sp-bubble { background: var(--navy); border-color: var(--navy); color: #fff; border-bottom-right-radius: 4px }
+.sp-msgs li.theirs .sp-bubble { border-bottom-left-radius: 4px }
+.sp-msgs li.theirs.team .sp-bubble { background: var(--gold-l); border-color: #fde3b0 }
+.sp-author { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 3px }
+.sp-msgs li.theirs.team .sp-author { color: #92400e }
+.sp-msgs li.mine .sp-author { color: rgba(255,255,255,.7) }
+.sp-body { font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: inherit }
+.sp-msgs li.theirs .sp-body { color: var(--text) }
+.sp-bubble time { display: block; margin-top: 4px; font-size: 11px; color: var(--muted) }
+.sp-msgs li.mine .sp-bubble time { color: rgba(255,255,255,.6); text-align: right }
+
+.sp-note { display: flex; align-items: flex-start; gap: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.45 }
+.sp-note svg { flex-shrink: 0; margin-top: 2px }
+
+.sp-reply { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px }
+.sp-reply textarea { width: 100%; resize: vertical; min-height: 76px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; font: 14px/1.5 var(--body); color: var(--ink); background: #fff }
+.sp-reply textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 4px rgba(13,27,62,.08) }
+.sp-reply-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap }
+.sp-reply-actions .btn { display: inline-flex; align-items: center; gap: 6px }
+
+.sp-err { font-size: 13px; font-weight: 600; color: var(--red); background: var(--red-l); padding: 8px 12px; border-radius: 8px }
+
+/* new request */
+.sp-new h2 { font-size: 19px; letter-spacing: -.02em }
+.sp-sub { font-size: 13px; color: var(--muted); margin: 4px 0 16px; overflow-wrap: anywhere }
+.sp-topics { border: 0; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 6px }
+.sp-topics legend { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 8px; padding: 0 }
+.sp-topics label { position: relative; display: inline-flex; align-items: center; padding: 7px 13px; border: 1.5px solid var(--line); border-radius: 99px; font-size: 13px; font-weight: 600; color: var(--text); background: #fff; cursor: pointer }
+.sp-topics label:hover { border-color: #cbd5e1 }
+.sp-topics label.on { border-color: var(--navy); background: var(--navy); color: #fff }
+.sp-topics input { position: absolute; opacity: 0; width: 1px; height: 1px }
+.sp-topics label:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px }
+.sp-new .in textarea { padding-left: 16px; min-height: 140px }
+.sp-count { font-size: 11.5px; color: var(--muted); text-align: right; margin-bottom: 12px }
+.sp-new-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px }
+.sp-new-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px }
+
+/* quick answers */
+.sp-faq { padding: 18px }
+.sp-faq h2 { font-size: 15px; margin-bottom: 8px }
+.sp-faq details { border-top: 1px solid var(--line); padding: 10px 0 }
+.sp-faq details:first-of-type { border-top: 0 }
+.sp-faq summary { cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--ink) }
+.sp-faq details p { font-size: 13px; color: var(--text); line-height: 1.55; margin-top: 6px }
+.sp-faq a { color: var(--navy); font-weight: 600; text-decoration: underline }
+
+/* admin tools */
+.sp-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px }
+.sp-tools .ap-tabs { margin-bottom: 0 }
+.sp-tab-n { display: inline-block; min-width: 18px; margin-left: 4px; padding: 1px 6px; border-radius: 99px; background: var(--line); color: var(--muted); font-size: 11px; text-align: center }
+.ap-tab.on .sp-tab-n { background: var(--navy); color: #fff }
+.sp-search { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 38px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--muted); flex: 1 1 240px; max-width: 340px }
+.sp-search:focus-within { border-color: var(--navy) }
+.sp-search input { border: 0; outline: 0; background: transparent; font: 14px var(--body); color: var(--ink); width: 100%; min-width: 0 }
+
+@media (max-width: 900px) {
+  .sp-layout, .sp-layout.sp-first { grid-template-columns: minmax(0, 1fr) }
+  .sp-layout.has-detail .sp-list { display: none }
+  .sp-layout:not(.has-detail):not(.sp-first) .sp-detail { display: none }
+  .sp-back { display: inline-flex }
+  .sp-list ul { max-height: none }
+}
+@media (max-width: 560px) {
+  .sp-hd { flex-direction: column }
+  .sp-hd h1 { font-size: 22px }
+  .sp-layout > .panel { padding: 14px }
+  .sp-bubble { max-width: 92% }
+  .sp-search { max-width: none }
+  .sp-new-actions .btn { flex: 1 }
+}
+
+/* shown when the server's support tables don't exist yet (migration 017) */
+.sp-soon { display: flex; flex-direction: column; align-items: flex-start; gap: 10px }
+.sp-soon > svg { color: var(--amber) }
+.sp-soon h2 { font-size: 18px; letter-spacing: -.02em }
+.sp-soon p { font-size: 14px; color: var(--text); line-height: 1.55; max-width: 620px }
+.sp-soon code { font-size: 13px; background: var(--soft); border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere }
+
+/* ── Screenshots on a help request ────────────────── */
+.sp-shots { border: 1px dashed var(--line); border-radius: var(--r-md); padding: 12px 14px; margin: 4px 0 14px; background: var(--soft); }
+.sp-shots-h { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.sp-shots-h em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 12px; }
+.sp-shots-p { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; line-height: 1.5; }
+
+.shot-picker { display: grid; gap: 9px; }
+.shot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.shot-row small { font-size: 11.5px; color: var(--muted); }
+.shot-err { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--red); margin: 0; }
+
+.shot-list { list-style: none; display: flex; gap: 9px; flex-wrap: wrap; margin: 0; padding: 0; }
+.shot-list li { position: relative; width: 92px; height: 72px; border-radius: 9px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+.shot-list img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shot-list button {
+  position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 6px;
+  border: 0; background: rgba(13, 27, 62, .78); color: #fff; display: grid; place-items: center; cursor: pointer;
+}
+.shot-list button:hover { background: var(--red); }
+
+.shot-strip { list-style: none; display: flex; gap: 7px; flex-wrap: wrap; margin: 8px 0 0; padding: 0; }
+.shot-strip li { width: 104px; height: 78px; }
+.shot-strip button { padding: 0; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff; cursor: zoom-in; width: 100%; height: 100%; display: block; }
+.shot-strip img { width: 100%; height: 100%; object-fit: cover; display: block; }

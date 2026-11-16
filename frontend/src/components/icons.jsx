@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 export function Mark({ size = 36, light = false, className = '' }) {
   return (
     <img
-      src={light ? '/images/logo-mark-light.svg' : '/images/logo-mark.svg'}
-      alt="HanapBuhay"
+      src="/images/logo-mark.png"
+      alt="hanapbuhay"
       className={className}
       style={{
         height: size,
@@ -24,12 +24,12 @@ export function Logo({ light = false, to = '/', height = 44, className = '' }) {
     <Link
       to={to}
       className={`logo ${light ? 'logo-light' : ''} ${className}`}
-      aria-label="HanapBuhay - Find. Apply. Get Hired."
+      aria-label="hanapbuhay home"
       style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
     >
       <img
-        src={light ? '/images/logo-light.svg' : '/images/logo.svg'}
-        alt="HanapBuhay - Find. Apply. Get Hired."
+        src={light ? '/images/logo-light.png' : '/images/logo.png'}
+        alt="hanapbuhay"
         style={{
           height: height,
           width: 'auto',
@@ -86,6 +86,16 @@ export const IconEdit     = (p) => <Icon {...p}><path d="M11 4H4a2 2 0 0 0-2 2v1
 export const IconGlobe    = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M2 12h20M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10A15 15 0 0 1 8 12a15 15 0 0 1 4-10z"/></Icon>
 export const IconPhone    = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.47 18a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.92-8.38A2 2 0 0 1 3.55 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17z"/></Icon>
 export const IconClock    = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></Icon>
+export const IconHelp     = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/></Icon>
+
+export const IconHandshake= (p) => <Icon {...p}><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></Icon>
+export const IconCard     = (p) => <Icon {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></Icon>
+export const IconBadge    = (p) => <Icon {...p}><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></Icon>
+export const IconBookmark = (p) => <Icon {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></Icon>
+export const IconQr       = (p) => <Icon {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h3M21 17v4h-1"/></Icon>
+export const IconLink     = (p) => <Icon {...p}><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></Icon>
+export const IconPrinter  = (p) => <Icon {...p}><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></Icon>
+export const IconDownload = (p) => <Icon {...p}><path d="M12 3v12m0 0-5-5m5 5 5-5M4 21h16"/></Icon>
 
 export const Eye = ({ off, size = 19, ...p }) => <Icon size={size} {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>{off && <path d="M3 3l18 18"/>}</Icon>
 export const IconEye = Eye

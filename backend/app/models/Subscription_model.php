@@ -5,9 +5,8 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * ------------------------------------------------------------------
  * Subscription Model
  * ------------------------------------------------------------------
- * Manages differentiated subscription plans, credits, and transactions
- * for Employers & MSMEs (JobStreet corporate hiring style) and
- * Clients & Service Buyers (Street Job on-demand service pass style).
+ * Plans, credits and plan changes for employers (Employer plans) and
+ * clients (Service Buyer Pass). Payments themselves live in libraries/Payments.php.
  */
 class Subscription_model extends Model
 {
@@ -24,153 +23,146 @@ class Subscription_model extends Model
      */
     public function get_plans_catalog(): array
     {
+        // Plan ids stay the same as before so existing subscriptions keep working.
+        // Every feature listed here is enforced in code (post limits, featured slots, contact unlocks).
         return [
-            // ─────────────────────────────────────────────────────────────
-            // 1. Employers & MSMEs (JobStreet / Corporate Recruitment Style)
-            // ─────────────────────────────────────────────────────────────
             'employer' => [
-                'style_name'  => 'JobStreet Partner Talent Solutions',
-                'description' => 'Designed for SMEs, contractors, retail, resorts, and businesses across Oriental Mindoro looking to recruit skilled staff.',
+                'style_name'  => 'Employer plans',
+                'description' => 'For businesses, resorts, contractors and shops in Oriental Mindoro hiring staff.',
                 'plans' => [
                     [
-                        'id'            => 'employer_starter',
-                        'name'          => 'Starter Libre',
-                        'badge'         => 'Free Trial',
-                        'tagline'       => 'Pangunahing pag-post para sa maliliit na negosyo',
-                        'price_monthly' => 0,
-                        'price_quarter' => 0,
-                        'job_posts'     => 1,
-                        'featured_slots'=> 0,
+                        'id'             => 'employer_starter',
+                        'name'           => 'Starter',
+                        'badge'          => 'Free',
+                        'tagline'        => 'Post your first job and hire',
+                        'price_monthly'  => 0,
+                        'price_quarter'  => 0,
+                        'job_posts'      => 1,
+                        'featured_slots' => 0,
                         'contact_credits'=> 5,
-                        'popular'       => false,
-                        'features'      => [
-                            '1 Active Standard Job Post',
-                            '5 Candidate Resume & Contact Unlocks',
-                            'Standard Mindoro Job Board Listing',
-                            'Basic Applicant Review & Status Tracking',
-                            'Email Alerts on New Applications',
-                            'Standard Community Support'
-                        ]
+                        'popular'        => false,
+                        'features'       => [
+                            '1 open job post at a time',
+                            '5 worker contact unlocks',
+                            'Applicant tracking with match scores',
+                            'Interview scheduling and job offers',
+                            'Find Workers search',
+                        ],
                     ],
                     [
-                        'id'            => 'employer_growth',
-                        'name'          => 'Negosyo Pro / MSME Growth',
-                        'badge'         => 'Most Popular • Street Job Best Pick',
-                        'tagline'       => 'Kumpletong hiring suite para sa lumalagong negosyo sa Mindoro',
-                        'price_monthly' => 499,
-                        'price_quarter' => 1199, // ~20% off
-                        'job_posts'     => 5,
-                        'featured_slots'=> 2,
+                        'id'             => 'employer_growth',
+                        'name'           => 'Business',
+                        'badge'          => 'Most popular',
+                        'tagline'        => 'For small businesses that hire often',
+                        'price_monthly'  => 499,
+                        'price_quarter'  => 1199,
+                        'job_posts'      => 5,
+                        'featured_slots' => 2,
                         'contact_credits'=> 30,
-                        'popular'       => true,
-                        'features'      => [
-                            'Up to 5 Active Job Postings simultaneously',
-                            '2 Featured & "Urgent Hiring" Badges (Top of Search)',
-                            '30 Direct Worker Scout & Skills Passport Unlocks',
-                            'Automated Interview Scheduler & Applicant Notes',
-                            'Verified Business Trust Gold Shield Badge',
-                            'Direct SMS & WhatsApp Candidate Alerts',
-                            'Smart AI Skills Match Scoring',
-                            'Priority Admin Queue Endorsement'
-                        ]
+                        'popular'        => true,
+                        'features'       => [
+                            'Up to 5 open job posts',
+                            '2 featured posts (shown first for 30 days)',
+                            '30 worker contact unlocks',
+                            'Unused credits carry over when you renew',
+                            'Applicant tracking with match scores',
+                            'Interview scheduling and job offers',
+                            'Find Workers search',
+                        ],
                     ],
                     [
-                        'id'            => 'employer_enterprise',
-                        'name'          => 'Corporate Enterprise Unlimited',
-                        'badge'         => 'Maximum Hiring Power',
-                        'tagline'       => 'Walang limitasyong pag-hire para sa malalaking kumpanya at hotel resorts',
-                        'price_monthly' => 1499,
-                        'price_quarter' => 3599, // ~20% off
-                        'job_posts'     => -1, // Unlimited
-                        'featured_slots'=> 10,
-                        'contact_credits'=> 9999, // Unlimited
-                        'popular'       => false,
-                        'features'      => [
-                            'Unlimited Active Job Posts & Openings',
-                            '10 Featured Urgent Badges + Social Media Job Blast',
-                            'Unlimited Worker Scouting & Direct Contact Unlocks',
-                            'Top Ranked Placement in Mindoro Job Searches',
-                            'Instant PESO & TESDA Certified Worker Recommendations',
-                            'Dedicated HanapBuhay Account Specialist',
-                            'Custom Company Hiring Banner on Homepage',
-                            'VIP 24/7 Priority Assistance'
-                        ]
-                    ]
-                ]
+                        'id'             => 'employer_enterprise',
+                        'name'           => 'Business Plus',
+                        'badge'          => 'Unlimited',
+                        'tagline'        => 'For resorts, hotels and large employers',
+                        'price_monthly'  => 1499,
+                        'price_quarter'  => 3599,
+                        'job_posts'      => -1,
+                        'featured_slots' => 10,
+                        'contact_credits'=> 9999,
+                        'popular'        => false,
+                        'features'       => [
+                            'Unlimited open job posts',
+                            '10 featured posts (shown first for 30 days)',
+                            'Unlimited worker contact unlocks',
+                            'Unused credits carry over when you renew',
+                            'Applicant tracking with match scores',
+                            'Interview scheduling and job offers',
+                            'Find Workers search',
+                        ],
+                    ],
+                ],
             ],
-
-            // ─────────────────────────────────────────────────────────────
-            // 2. Clients & Service Buyers (Street Job / On-Demand Service Gigs Style)
-            // ─────────────────────────────────────────────────────────────
             'hirer' => [
-                'style_name'  => 'Street Job On-Demand Service Pass',
-                'description' => 'Fast, direct booking pass para sa mga may-ari ng bahay, opisina, at project clients na nangangailangan agad ng serbisyo.',
+                'style_name'  => 'Service Buyer Pass',
+                'description' => 'For households, offices and project owners who hire workers for gigs and services.',
                 'plans' => [
                     [
-                        'id'            => 'hirer_free',
-                        'name'          => 'Libreng Buyer',
-                        'badge'         => 'Pay-As-You-Go',
-                        'tagline'       => 'Pang-minsanang paghahanap ng serbisyo',
-                        'price_monthly' => 0,
-                        'price_quarter' => 0,
-                        'active_gigs'   => 1,
+                        'id'             => 'hirer_free',
+                        'name'           => 'Free',
+                        'badge'          => 'Free',
+                        'tagline'        => 'For an occasional gig',
+                        'price_monthly'  => 0,
+                        'price_quarter'  => 0,
+                        'active_gigs'    => 1,
+                        'job_posts'      => 1,
+                        'featured_slots' => 0,
                         'contact_credits'=> 3,
-                        'popular'       => false,
-                        'features'      => [
-                            '1 Active Service Request or Gig',
-                            '3 Direct Worker Contact Unlocks',
-                            'Standard Worker Response (< 24 oras)',
-                            'HanapBuhay In-App Chat Messaging',
-                            'Community Verified Worker Ratings'
-                        ]
+                        'popular'        => false,
+                        'features'       => [
+                            '1 open gig at a time',
+                            '3 worker contact unlocks',
+                            'Proposals, contracts and milestones',
+                            'Browse workers and services',
+                        ],
                     ],
                     [
-                        'id'            => 'hirer_service_pass',
-                        'name'          => 'Home & Office Service Pass',
-                        'badge'         => 'Household Favorite',
-                        'tagline'       => 'Direktang tawag at urgent booking para sa bahay o pwesto',
-                        'price_monthly' => 249,
-                        'price_quarter' => 599,
-                        'active_gigs'   => 5,
+                        'id'             => 'hirer_service_pass',
+                        'name'           => 'Service Buyer Pass',
+                        'badge'          => 'Most popular',
+                        'tagline'        => 'For homes and shops that need help often',
+                        'price_monthly'  => 249,
+                        'price_quarter'  => 599,
+                        'active_gigs'    => 5,
+                        'job_posts'      => 5,
+                        'featured_slots' => 1,
                         'contact_credits'=> 15,
-                        'popular'       => true,
-                        'features'      => [
-                            '15 Instant Phone & Contact Unlocks (Tawag Agad)',
-                            'Up to 5 Active Service Requests sabay-sabay',
-                            'Urgent Service Broadcast Tag (Push Alert sa local workers)',
-                            'Fast Same-Day Response (< 2 oras)',
-                            'TESDA-Certified Craftsman Priority Matching',
-                            'HanapBuhay Service Buyer Dispute Protection Guarantee'
-                        ]
+                        'popular'        => true,
+                        'features'       => [
+                            'Up to 5 open gigs',
+                            '1 featured gig (shown first for 30 days)',
+                            '15 worker contact unlocks',
+                            'Unused credits carry over when you renew',
+                            'Proposals, contracts and milestones',
+                            'Browse workers and services',
+                        ],
                     ],
                     [
-                        'id'            => 'hirer_vip_pass',
-                        'name'          => 'VIP Buyer Pass Unlimited',
-                        'badge'         => 'VIP Instant Dispatch',
-                        'tagline'       => 'Unli-access sa pinakamahuhusay na service pros sa Mindoro',
-                        'price_monthly' => 599,
-                        'price_quarter' => 1499,
-                        'active_gigs'   => -1, // Unlimited
-                        'contact_credits'=> 9999, // Unlimited
-                        'popular'       => false,
-                        'features'      => [
-                            'Unlimited Direct Phone, SMS & WhatsApp Unlocks',
-                            'Unlimited Active Service Gigs & Projects',
-                            'Priority Same-Day Dispatch (< 30 minutong tugon)',
-                            'Multi-Bid Instant Quotes (Hanggang 10 biddings bawat gig)',
-                            'Guaranteed TESDA National Certificate (NC II/III) Pros',
-                            'VIP Hotline Booking Concierge Assistant',
-                            '100% Service Satisfaction Coverage'
-                        ]
-                    ]
-                ]
-            ]
+                        'id'             => 'hirer_vip_pass',
+                        'name'           => 'Service Buyer Pass Plus',
+                        'badge'          => 'Unlimited',
+                        'tagline'        => 'For property managers and frequent projects',
+                        'price_monthly'  => 599,
+                        'price_quarter'  => 1499,
+                        'active_gigs'    => -1,
+                        'job_posts'      => -1,
+                        'featured_slots' => 3,
+                        'contact_credits'=> 9999,
+                        'popular'        => false,
+                        'features'       => [
+                            'Unlimited open gigs',
+                            '3 featured gigs (shown first for 30 days)',
+                            'Unlimited worker contact unlocks',
+                            'Unused credits carry over when you renew',
+                            'Proposals, contracts and milestones',
+                            'Browse workers and services',
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
-    /**
-     * Get active subscription or default free profile for a user.
-     */
     public function get_user_subscription(int $user_id, array $user): array
     {
         $sub = $this->db->table($this->table)
@@ -223,6 +215,67 @@ class Subscription_model extends Model
     /**
      * Subscribe user to a plan.
      */
+    /** Find a plan definition by id across both catalogs. */
+    public function find_plan(string $plan_id): ?array
+    {
+        foreach ($this->get_plans_catalog() as $cat) {
+            foreach ($cat['plans'] ?? [] as $p) {
+                if (($p['id'] ?? '') === $plan_id) return $p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Active job posts allowed for this user's current plan.
+     * -1 = unlimited. Expired paid plans fall back to the free tier.
+     */
+    public function job_post_limit(array $user): int
+    {
+        $tier = (string) ($user['subscription_tier'] ?? '');
+        $expires = (string) ($user['subscription_expires_at'] ?? '');
+        $expired = $expires !== '' && strtotime($expires) < time();
+        $plan = ($tier !== '' && !$expired) ? $this->find_plan($tier) : null;
+        if (!$plan) {
+            $plan = $this->find_plan(($user['account_type'] ?? '') === 'hirer' ? 'hirer_free' : 'employer_starter');
+        }
+        $limit = $plan['job_posts'] ?? $plan['active_gigs'] ?? 1;
+        return (int) $limit;
+    }
+
+    /** The plan this user is on right now (an expired paid plan counts as the free one). */
+    public function current_plan(array $user): array
+    {
+        $tier = (string) ($user['subscription_tier'] ?? '');
+        $expires = (string) ($user['subscription_expires_at'] ?? '');
+        $expired = $expires !== '' && strtotime($expires) < time();
+        $plan = ($tier !== '' && !$expired) ? $this->find_plan($tier) : null;
+        return $plan ?: $this->find_plan(($user['account_type'] ?? '') === 'hirer' ? 'hirer_free' : 'employer_starter');
+    }
+
+    /** Is the current plan a paid one that has not ended? */
+    public function has_active_paid_plan(array $user): bool
+    {
+        $plan = $this->current_plan($user);
+        return (float) ($plan['price_monthly'] ?? 0) > 0;
+    }
+
+    /** Unlimited contact unlocks (Enterprise, VIP) while the plan is active. */
+    public function contact_unlimited(array $user): bool
+    {
+        return (int) ($this->current_plan($user)['contact_credits'] ?? 0) >= 9999;
+    }
+
+    /** The plans this account type may buy: employers buy employer plans, clients buy client plans. */
+    public function plans_for(array $user): array
+    {
+        $type = ($user['account_type'] ?? '') === 'hirer' ? 'hirer' : 'employer';
+        return $this->get_plans_catalog()[$type]['plans'] ?? [];
+    }
+
+    /** How long one featured post stays featured. */
+    public const FEATURE_DAYS = 30;
+
     public function subscribe(int $user_id, array $user, array $params): array
     {
         $plan_id       = trim((string) ($params['plan_id'] ?? ''));
@@ -251,26 +304,38 @@ class Subscription_model extends Model
 
         $duration_days = ($billing_cycle === 'quarterly' || $billing_cycle === 'annual') ? 90 : 30;
         $now = date('Y-m-d H:i:s');
-        $expires = date('Y-m-d H:i:s', strtotime("+{$duration_days} days"));
 
-        $new_contact_credits = (int) ($selected_plan['contact_credits'] ?? 10);
-        $new_featured_credits = (int) ($selected_plan['featured_slots'] ?? 0);
+        // Renewing the SAME plan early adds the new days on top of the days left, so paying
+        // early never loses time. Switching to a different paid plan starts it today.
+        $cur_tier    = (string) ($user['subscription_tier'] ?? '');
+        $cur_expires = (string) ($user['subscription_expires_at'] ?? '');
+        $still_on    = $cur_expires !== '' && strtotime($cur_expires) > time();
+        $from        = ($still_on && $cur_tier === $plan_id) ? strtotime($cur_expires) : time();
+        $expires     = date('Y-m-d H:i:s', $from + $duration_days * 86400);
 
-        // Deactivate previous active or pending subscriptions
-        $this->db->table($this->table)
-            ->where('user_id', $user_id)
-            ->where('status', 'active')
-            ->update(['status' => 'superseded']);
+        // Unused credits from a plan that is still running carry over into the new one.
+        $plan_contact  = (int) ($selected_plan['contact_credits'] ?? 10);
+        $plan_featured = (int) ($selected_plan['featured_slots'] ?? 0);
+        $carry_contact  = $still_on ? max(0, (int) ($user['contact_credits'] ?? 0)) : 0;
+        $carry_featured = $still_on ? max(0, (int) ($user['featured_credits'] ?? 0)) : 0;
+        $new_contact_credits  = $plan_contact >= 9999 ? 9999 : min(9999, $plan_contact + ($price > 0 ? $carry_contact : 0));
+        $new_featured_credits = $plan_featured + ($price > 0 ? $carry_featured : 0);
+        if ($price <= 0) {
+            // the free plan: keep whatever credits are left, never top them back up
+            $new_contact_credits  = max(0, (int) ($user['contact_credits'] ?? $plan_contact));
+            $new_featured_credits = max(0, (int) ($user['featured_credits'] ?? 0));
+            $expires = null;
+        }
 
-        $this->db->table($this->table)
-            ->where('user_id', $user_id)
-            ->where('status', 'pending')
-            ->where('payment_reference !=', $reference)
-            ->update(['status' => 'abandoned']);
+        // The checkout row being paid for (if any) becomes the active row itself, so one
+        // payment is one row in the history — never a "pending" twin left behind.
+        $own_id = (int) ($params['sub_id'] ?? 0);
 
-        // Insert new active subscription record
-        $this->db->table($this->table)->insert([
-            'user_id'             => $user_id,
+        // Retire the previous active plan and any other unpaid checkouts
+        $this->db->raw("UPDATE {$this->table} SET status = 'superseded' WHERE user_id = ? AND status = 'active' AND id <> ?", [$user_id, $own_id]);
+        $this->db->raw("UPDATE {$this->table} SET status = 'abandoned' WHERE user_id = ? AND status = 'pending' AND id <> ?", [$user_id, $own_id]);
+
+        $row = [
             'account_type'        => $account_type,
             'plan_id'             => $plan_id,
             'plan_name'           => $selected_plan['name'],
@@ -283,10 +348,15 @@ class Subscription_model extends Model
             'featured_credits'    => $new_featured_credits,
             'status'              => 'active',
             'starts_at'           => $now,
-            'expires_at'          => $expires,
-            'created_at'          => $now,
-        ]);
-        $sub_id = $this->db->last_id();
+            'expires_at'          => $expires ?? $now,
+        ];
+        if ($own_id) {
+            $this->db->table($this->table)->where('id', $own_id)->update($row);
+            $sub_id = $own_id;
+        } else {
+            $this->db->table($this->table)->insert($row + ['user_id' => $user_id, 'created_at' => $now]);
+            $sub_id = $this->db->last_id();
+        }
 
         // Update user record
         $this->db->table('users')->where('id', $user_id)->update([

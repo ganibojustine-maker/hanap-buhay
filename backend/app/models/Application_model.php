@@ -104,7 +104,7 @@ class Application_model extends Model
      * Returns the email outcome so callers can surface it to the UI:
      *   ['success' => bool, 'mode' => 'brevo'|'logged'|'skipped'|'failed', 'to' => email, 'error' => ?string]
      */
-    public function create_notification(int $user_id, string $type, string $title, string $body, string $link = ''): array
+    public function create_notification(int $user_id, string $type, string $title, string $body, string $link = '', bool $send_email = true): array
     {
         $email_to     = null;
         $email_html   = null;
@@ -116,7 +116,7 @@ class Application_model extends Model
             $user = $this->db->table('users')->where('id', $user_id)->get();
             if ($user && !empty($user['email'])) {
                 $email_to = $user['email'];
-                $recipient_name = $user['full_name'] ?? $user['username'] ?? 'HanapBuhay User';
+                $recipient_name = $user['full_name'] ?? $user['username'] ?? 'hanapbuhay User';
                 $frontend_url = rtrim((string) (getenv('APP_FRONTEND_URL') ?: 'http://localhost:5173'), '/');
                 $full_link = !empty($link) ? (str_starts_with($link, 'http') ? $link : ($frontend_url . '/' . ltrim($link, '/'))) : '';
 
@@ -127,7 +127,9 @@ class Application_model extends Model
 
                 if (class_exists('Mailer')) {
                     $email_html = \Mailer::render_notification_template($recipient_name, $type, $title, $body, $full_link);
-                    $res = \Mailer::send_notification($user, $type, $title, $body, $link);
+                    $res = $send_email
+                        ? \Mailer::send_notification($user, $type, $title, $body, $link)
+                        : ['success' => false, 'mode' => 'skipped', 'skipped' => true, 'error' => 'In-app only notification.'];
 
                     $ok   = (bool) ($res['success'] ?? false);
                     $mode = (string) ($res['mode'] ?? ($ok ? 'brevo' : 'failed'));
@@ -202,7 +204,7 @@ class Application_model extends Model
     {
         $this->db->table('notifications')
             ->where('user_id', $user_id)
-            ->where('read_at IS NULL', null, false)
+            ->where_null('read_at') // this query builder has no raw where('read_at IS NULL'): it threw, so nothing was ever marked read
             ->update(['read_at' => date('Y-m-d H:i:s')]);
     }
 }

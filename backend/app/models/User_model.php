@@ -60,11 +60,14 @@ class User_model extends Model
             ->select('id, full_name, email, role, account_type, location, phone, bio, picture, is_active, is_verified, subscription_tier, subscription_status, subscription_expires_at, contact_credits, featured_credits, created_at, updated_at');
 
         if ($query !== '') {
-            $db->group_start()
-               ->like('full_name', $query)
-               ->or_like('email', $query)
-               ->or_like('location', $query)
-               ->group_end();
+            // this query builder has grouped(), not group_start()/group_end() (searching crashed),
+            // and like() needs the % itself
+            $q = '%' . addcslashes($query, '%_\\') . '%';
+            $db->grouped(function ($d) use ($q) {
+                $d->like('full_name', $q)
+                  ->or_like('email', $q)
+                  ->or_like('location', $q);
+            });
         }
 
         if ($role !== '' && $role !== 'all') {
@@ -86,12 +89,25 @@ class User_model extends Model
         return (int) $this->db->table($this->table)->count_all_results();
     }
 
+    // raw() returns a PDOStatement, so each of these must fetch the rows
+    // (returning the statement itself sent `{"queryString": …}` to the admin charts).
     public function count_by_role(): array
     {
-        $rows = $this->db->raw(
+        return $this->db->raw(
             'SELECT role, COUNT(*) as count FROM users GROUP BY role'
-        );
-        return $rows ?: [];
+        )->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** Users per account type; admins counted as "admin", people who haven't picked a type as "none". */
+    public function count_by_account_type(): array
+    {
+        $rows = $this->db->raw(
+            "SELECT CASE WHEN role = 'admin' THEN 'admin' ELSE COALESCE(account_type, 'none') END AS type, COUNT(*) AS count
+             FROM users GROUP BY type"
+        )->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $map = ['worker' => 0, 'employer' => 0, 'hirer' => 0, 'admin' => 0, 'none' => 0];
+        foreach ($rows as $r) $map[$r['type']] = (int) $r['count'];
+        return $map;
     }
 
     public function count_active_users(): int
@@ -106,27 +122,25 @@ class User_model extends Model
 
     public function registrations_last_30_days(): array
     {
-        $rows = $this->db->raw(
+        return $this->db->raw(
             "SELECT DATE(created_at) as reg_date, COUNT(*) as count
              FROM users
              WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
              GROUP BY DATE(created_at)
              ORDER BY reg_date ASC"
-        );
-        return $rows ?: [];
+        )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function count_by_location(): array
     {
-        $rows = $this->db->raw(
+        return $this->db->raw(
             "SELECT location, COUNT(*) as count
              FROM users
              WHERE location IS NOT NULL AND location != ''
              GROUP BY location
              ORDER BY count DESC
              LIMIT 10"
-        );
-        return $rows ?: [];
+        )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function recent_users(int $limit = 10): array

@@ -309,6 +309,25 @@ class Api
      * @param integer|null $seconds
      * @return void
      */
+    /**
+     * Client IP for rate limiting. Behind a reverse proxy (Render, Cloudflare)
+     * REMOTE_ADDR is the proxy, so every user would share one bucket. When
+     * TRUST_PROXY=true we take the first X-Forwarded-For hop instead.
+     */
+    public function client_ip(): string
+    {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $trust = filter_var(getenv('TRUST_PROXY') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+        if ($trust && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $first = trim(explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+            if (filter_var($first, FILTER_VALIDATE_IP)) {
+                $ip = $first;
+            }
+        }
+        return $ip;
+    }
+
+
     public function rate_limit($key = null, $requests = null, $seconds = null)
     {
         if (!$this->rate_limit_enabled) {
@@ -320,7 +339,7 @@ class Api
 
         // Generate safe cache key (Windows-friendly)
         if ($key === null) {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $ip = $this->client_ip();
             $raw_key = 'rate_limit:' . $ip;
         } else {
             $raw_key = 'rate_limit:' . $key;

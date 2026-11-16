@@ -1,0 +1,322 @@
+/* ──────────────────────────────────────────────────────────────
+   public.css — the shared chrome and job board used by Job Search,
+   a job posting, the Job Map and Training.
+
+   Every one of these pages renders twice: on its own for guests
+   (wrapped in PublicShell) and inside the dashboard for signed-in
+   people (`.is-embedded`, no header, no outer padding). The rules
+   below are written so the page body looks identical either way.
+   ────────────────────────────────────────────────────────────── */
+
+.public-page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.public-page > :last-child { margin-top: auto; }
+
+/* ── Header ───────────────────────────────────────────── */
+.pnav {
+  background: var(--navy);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.pnav-in {
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 64px;
+  padding: 0 clamp(16px, 3vw, 32px);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.pnav-links {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.pnav-links a {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .72);
+  padding: 8px 14px;
+  border-radius: 9px;
+  text-decoration: none;
+  transition: background .18s var(--ease), color .18s var(--ease);
+  white-space: nowrap;
+}
+.pnav-links a:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.pnav-links a.is-on { color: var(--gold); background: rgba(245, 166, 35, .14); }
+
+.pnav-cta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.pnav-links + .pnav-cta { margin-left: 0; }
+.pnav-signin { color: rgba(255, 255, 255, .85); font-weight: 600; font-size: 14px; text-decoration: none; padding: 8px 6px; white-space: nowrap; }
+/* on phones "Sign in" lives in the menu; the bar keeps the logo, Get started and the menu button */
+@media (max-width: 480px) { .pnav-cta .pnav-signin { display: none; } }
+.pnav-signin:hover { color: #fff; }
+.pnav-extra { display: inline-flex; }
+.pnav-sheet-extra { display: none; }
+@media (max-width: 860px) { .pnav-extra { display: none; } .pnav-sheet-extra { display: flex; padding: 12px 0 4px; } }
+.pnav-me { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+.pnav-me span { font-size: 13px; font-weight: 700; color: #fff; }
+
+.pnav-burger {
+  display: none;
+  background: none;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px;
+  align-items: center;
+}
+.pnav-sheet { display: none; }
+
+@media (max-width: 860px) {
+  .pnav-links { display: none; }
+  .pnav-burger { display: inline-flex; }
+  .pnav-sheet[hidden] { display: none; }
+  .pnav-sheet {
+    display: grid;
+    gap: 4px;
+    padding: 12px clamp(16px, 3vw, 32px) 20px;
+    background: var(--navy-m);
+    border-top: 1px solid rgba(255, 255, 255, .08);
+  }
+  .pnav-sheet a {
+    color: rgba(255, 255, 255, .85);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 11px 4px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  .pnav-sheet a.is-on { color: var(--gold); }
+  .pnav-sheet a.btn { border-bottom: 0; margin-top: 10px; justify-content: center; }
+}
+
+/* ── Page head (breadcrumb + title) ───────────────────── */
+.phead { background: #fff; border-bottom: 1px solid var(--line); }
+.phead-in { max-width: 1280px; margin: 0 auto; padding: 16px clamp(16px, 3vw, 32px) 18px; }
+.phead-crumbs { font-size: 13px; color: var(--muted); margin-bottom: 7px; display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+.phead-crumbs a { color: var(--navy); font-weight: 600; text-decoration: none; }
+.phead-crumbs a:hover { text-decoration: underline; }
+.phead-crumbs i { font-style: normal; margin: 0 7px; color: var(--faint); }
+.phead h1 { font-size: clamp(22px, 3vw, 28px); letter-spacing: -.035em; margin: 0 0 4px; }
+.phead p { font-size: 14px; color: var(--muted); margin: 0; max-width: 72ch; }
+
+/* ── Footer ───────────────────────────────────────────── */
+.pfoot { background: var(--navy-d); color: rgba(255, 255, 255, .6); margin-top: 40px; }
+.pfoot-in {
+  max-width: 1280px; margin: 0 auto;
+  padding: 26px clamp(16px, 3vw, 32px);
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.pfoot-in p { font-size: 12.5px; margin: 0 auto 0 0; }
+.pfoot-in nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.pfoot-in nav a { color: rgba(255, 255, 255, .72); font-size: 13px; font-weight: 600; text-decoration: none; }
+.pfoot-in nav a:hover { color: #fff; }
+
+/* ──────────────────────────────────────────────────────────────
+   Job board — list + filters, shared by /jobs and /dashboard/browse
+   ────────────────────────────────────────────────────────────── */
+
+.jb { max-width: 1280px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 32px) 56px; }
+/* Inside the dashboard the page sits where every other dashboard page sits:
+   same 28px gutter and same 1200px column as .page-inner. */
+.jb.is-embedded { padding: 28px; max-width: 1200px; }
+@media (max-width: 760px) { .jb.is-embedded { padding: 16px; } }
+
+/* search bar */
+.jb-search {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 18px 0;
+  box-shadow: var(--shadow-xs);
+}
+.jb-search .in { flex: 1 1 190px; margin: 0; }
+.jb-search .in:first-child { flex: 2 1 260px; }
+.jb-search .btn { height: 48px; padding-inline: 26px; }
+
+/* layout */
+.jb-body { display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .jb-body { grid-template-columns: minmax(0, 1fr); } }
+
+.jb-side {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+.jb.is-embedded .jb-side { top: 16px; max-height: calc(100vh - 40px); }
+@media (max-width: 980px) {
+  .jb-side { position: static; max-height: none; }
+  .jb-side[hidden] { display: none; }
+}
+.jb-side h2 { font-size: 15px; margin: 0; }
+.jb-side-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.jb-group { border-top: 1px solid var(--soft); padding-top: 14px; margin-top: 14px; }
+.jb-group:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+.jb-group h3 {
+  font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); margin: 0 0 9px;
+}
+.jb-group .check { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; font-size: 13.5px; cursor: pointer; }
+.jb-more { background: none; border: 0; padding: 2px 0; color: var(--navy); font-weight: 700; font-size: 12.5px; cursor: pointer; }
+.jb-more:hover { text-decoration: underline; }
+
+.jb-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.jb-count { font-size: 14px; color: var(--muted); margin: 0; }
+.jb-count b { color: var(--ink); }
+.jb-sort { display: flex; align-items: center; gap: 8px; }
+.jb-sort select {
+  height: 38px; border: 1px solid var(--line); border-radius: 9px;
+  padding: 0 10px; font-size: 13px; background: #fff; color: var(--ink); font-weight: 600;
+}
+.jb-filter-toggle { display: none; }
+@media (max-width: 980px) { .jb-filter-toggle { display: inline-flex; } }
+
+.jb-list { display: grid; gap: 12px; }
+.jb-empty { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 44px 20px; text-align: center; }
+.jb-empty p { color: var(--muted); margin: 0 0 16px; }
+
+/* ── Job row (JobStreet / LinkedIn style result card) ───── */
+.jrow {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 14px;
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease), transform .18s var(--ease);
+  position: relative;
+}
+.jrow:hover { border-color: #cbd5e1; box-shadow: var(--shadow-sm); }
+.jrow.is-match { border-left: 3px solid var(--green); }
+.jrow.is-featured { background: linear-gradient(180deg, #FFFCF5 0%, #fff 70px); }
+
+.jrow-logo {
+  width: 56px; height: 56px; border-radius: 14px; overflow: hidden;
+  background: var(--navy-soft); display: grid; place-items: center; position: relative;
+}
+.jrow-logo img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; inset: 0; }
+.jrow-logo span { font-family: var(--display); font-weight: 800; font-size: 19px; color: var(--navy); }
+
+.jrow-main { min-width: 0; }
+.jrow-title {
+  font-size: 16.5px; font-weight: 700; color: var(--ink); text-decoration: none;
+  display: inline-block; line-height: 1.3;
+}
+.jrow-title:hover { color: var(--navy-l); text-decoration: underline; }
+.jrow-co { font-size: 13.5px; color: var(--muted); margin: 2px 0 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.jrow-co .vchk { color: var(--blue); display: inline-flex; }
+.jrow-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 9px 0 0; font-size: 13px; color: var(--muted); }
+.jrow-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.jrow-pay { font-weight: 800; font-size: 15px; color: var(--ink); margin: 10px 0 0; }
+.jrow-pay small { font-weight: 600; color: var(--muted); font-size: 12.5px; }
+.jrow-snip {
+  font-size: 13px; color: var(--text); margin: 8px 0 0; line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.jrow-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.jrow-tag {
+  font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background: var(--soft); color: var(--muted); border: 1px solid var(--line);
+}
+.jrow-tag.has { background: var(--green-l); color: var(--green); border-color: #a7f3d0; }
+.jrow-tag.gap { background: var(--amber-l); color: var(--amber); border-color: #fde68a; }
+.jrow-tag.new { background: var(--blue-l); color: var(--blue-d); border-color: #bfdbfe; }
+.jrow-tag.feat { background: var(--gold-l); color: var(--amber); border-color: #fde68a; }
+
+.jrow-side { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.jrow-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.jrow-save {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line);
+  background: #fff; color: var(--muted); display: grid; place-items: center; cursor: pointer;
+  transition: .18s var(--ease);
+}
+.jrow-save:hover { border-color: var(--navy); color: var(--navy); }
+.jrow-save.on { background: var(--navy); border-color: var(--navy); color: var(--gold); }
+
+@media (max-width: 680px) {
+  .jrow { grid-template-columns: 44px minmax(0, 1fr); padding: 14px; }
+  .jrow-logo { width: 44px; height: 44px; border-radius: 11px; }
+  .jrow-logo span { font-size: 16px; }
+  .jrow-side { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* ── Match score dial ─────────────────────────────────── */
+.mscore {
+  display: grid; place-items: center; text-align: center;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: conic-gradient(var(--tone) calc(var(--p) * 1%), var(--line) 0);
+  position: relative; flex-shrink: 0;
+}
+.mscore::after {
+  content: ''; position: absolute; inset: 5px; border-radius: 50%; background: #fff;
+}
+.mscore b, .mscore span { position: relative; z-index: 1; line-height: 1; }
+.mscore b { font-size: 15px; font-weight: 800; color: var(--ink); }
+.mscore span { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 1px; }
+.mscore.strong { --tone: var(--green); }
+.mscore.good   { --tone: var(--gold); }
+.mscore.low    { --tone: #cbd5e1; }
+.mscore.lg { width: 84px; height: 84px; }
+.mscore.lg b { font-size: 21px; }
+
+/* ── Pagination ───────────────────────────────────────── */
+.jb-pager { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 26px; flex-wrap: wrap; }
+
+/* ── Skeletons ────────────────────────────────────────── */
+.jb-skel { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; }
+
+/* stat row under a public page title */
+.phead-stats { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 14px; }
+.phead-stats b { display: block; font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1.1; }
+.phead-stats span { font-size: 12.5px; color: var(--muted); }
+
+/* ── Search, simplified: one bar, one filter row, full-width results ── */
+/* width:100% — .jb is a flex item with auto margins, which would otherwise shrink it to fit */
+.jb { max-width: 1200px; width: 100%; box-sizing: border-box; }
+.jb.is-embedded { max-width: 1200px; }
+.jb-search .jb-q { flex: 3 1 280px; }
+.jb-search .jb-where { flex: 2 1 200px; }
+.jb-filters {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 16px;
+  flex-wrap: wrap; margin: -6px 0 16px;
+}
+.jb-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.jb-types button {
+  border: 1px solid var(--line); background: #fff; color: var(--text); cursor: pointer;
+  font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 999px; transition: .15s var(--ease);
+}
+.jb-types button:hover { border-color: var(--navy); }
+.jb-types button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.jb-selects { display: flex; gap: 8px; }
+.jb-selects select {
+  height: 36px; border: 1px solid var(--line); border-radius: 999px; padding: 0 30px 0 14px;
+  font-size: 13px; font-weight: 600; color: var(--ink); background-color: #fff; cursor: pointer;
+}
+.jb-clear { background: none; border: 0; color: var(--navy); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0; }
+.jb-clear:hover { text-decoration: underline; }
+.jb-grid.is-busy, .jb-list.is-busy { opacity: .55; pointer-events: none; transition: opacity .15s; }
+.jb-page { font-size: 13px; color: var(--muted); padding: 0 6px; }
+
+/* the title lines up with the 980px results column below it */
+.phead-in.narrow { max-width: 1200px; }

@@ -53,23 +53,7 @@ class Create_skills_passport_table
                 ->create_table('training_courses');
         }
 
-        // Messages
-        if (!$this->_lava->dbforge->table_exists('messages')) {
-            $this->_lava->dbforge
-                ->add_field([
-                    'id'          => ['type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE, 'null' => FALSE],
-                    'sender_id'   => ['type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => FALSE],
-                    'receiver_id' => ['type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => FALSE],
-                    'job_id'      => ['type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE, 'default' => NULL],
-                    'body'        => ['type' => 'TEXT', 'null' => FALSE],
-                    'read_at'     => ['type' => 'DATETIME', 'null' => TRUE, 'default' => NULL],
-                    'created_at'  => ['type' => 'DATETIME', 'null' => FALSE, 'default' => 'CURRENT_TIMESTAMP'],
-                ])
-                ->add_key('id', primary: TRUE)
-                ->add_key('sender_id', name: 'msg_sender_idx')
-                ->add_key('receiver_id', name: 'msg_receiver_idx')
-                ->create_table('messages');
-        }
+        // (messages table removed: chat is stored in Firebase, see migration 013)
 
         // Notifications
         if (!$this->_lava->dbforge->table_exists('notifications')) {

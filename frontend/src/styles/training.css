@@ -1,0 +1,131 @@
+/* ──────────────────────────────────────────────────────────
+   training.css — the TESDA course catalogue.
+   Shared by the public /training page and /dashboard/training.
+   ────────────────────────────────────────────────────────── */
+
+.tc { max-width: 1240px; margin: 0 auto; padding: 22px clamp(16px, 3vw, 32px) 56px; }
+.tc.is-embedded { padding: 28px; max-width: 1200px; }
+@media (max-width: 760px) { .tc.is-embedded { padding: 16px; } }
+
+/* ── My courses ───────────────────────────────────── */
+.tc-mine {
+  background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--green);
+  border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 18px;
+}
+.tc-mine-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.tc-mine-hd h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+.tc-mine-hd span { font-size: 12.5px; color: var(--muted); }
+.tc-mine ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tc-mine li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--soft); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 13px;
+}
+.tc-mine li b { display: block; font-size: 14px; color: var(--ink); }
+.tc-mine li small { font-size: 12px; color: var(--muted); }
+.tc-mine-tip { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+
+/* ── Filters ──────────────────────────────────────── */
+.tc-filters {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 12px; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.tc-filters .in { flex: 1 1 180px; margin: 0; }
+.tc-filters .in:first-child { flex: 2 1 260px; }
+
+.tc-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.tc-bar p { font-size: 13.5px; color: var(--muted); margin: 0; }
+.tc-bar b { color: var(--ink); }
+.tc-gap-count { color: var(--green); font-weight: 700; }
+
+.tc-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tc-chips button {
+  border: 1.5px solid var(--line); background: #fff; color: var(--muted);
+  font-size: 12.5px; font-weight: 700; padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  transition: .18s var(--ease);
+}
+.tc-chips button:hover { border-color: var(--navy); color: var(--navy); }
+.tc-chips button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+.tc-hint {
+  background: var(--gold-l); border: 1px solid #fde68a; border-radius: var(--r-md);
+  padding: 11px 14px; font-size: 13.5px; color: #92400e; margin: 0 0 14px;
+}
+.tc-hint a { color: #92400e; font-weight: 700; }
+
+.tc-empty { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 40px 20px; text-align: center; color: var(--muted); }
+
+/* ── Grid ─────────────────────────────────────────── */
+.tc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 16px; }
+
+.tc-card {
+  background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl);
+  overflow: hidden; display: flex; flex-direction: column;
+  transition: box-shadow .22s var(--ease), transform .22s var(--ease), border-color .22s var(--ease);
+}
+.tc-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); border-color: #cbd5e1; }
+.tc-card.is-gap { border-color: #a7f3d0; }
+
+.tc-shot { height: 136px; position: relative; overflow: hidden; background: var(--navy-soft); }
+.tc-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tc-shot::after { content: ''; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--green); }
+.tc-card.is-gap .tc-shot::after { background: linear-gradient(90deg, var(--green), var(--gold)); }
+
+.tc-flag {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(4, 120, 87, .94); color: #fff; font-size: 11px; font-weight: 800;
+  padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px;
+  letter-spacing: .02em;
+}
+.tc-save {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 9px;
+  border: 0; background: rgba(255, 255, 255, .92); color: var(--muted);
+  display: grid; place-items: center; cursor: pointer; transition: .18s var(--ease);
+  box-shadow: var(--shadow-xs);
+}
+.tc-save:hover { color: var(--navy); }
+.tc-save.on { background: var(--navy); color: var(--gold); }
+
+.tc-body { padding: 18px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+.tc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tc-tag {
+  font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 4px; letter-spacing: .02em; text-transform: uppercase;
+}
+.tc-tag.cat { background: var(--gold-l); color: var(--amber); }
+.tc-tag.tesda { background: var(--green-l); color: var(--green); }
+.tc-tag.nc { background: var(--navy-soft); color: var(--navy); }
+.tc-tag.near { background: var(--blue-l); color: var(--blue-d); }
+
+.tc-card h3 { font-size: 16.5px; letter-spacing: -.02em; line-height: 1.32; margin: 0; color: var(--ink); }
+.tc-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0; }
+
+.tc-gap-why {
+  font-size: 12.5px; color: #065f46; background: var(--green-l); border: 1px solid #a7f3d0;
+  border-radius: var(--r-sm); padding: 8px 10px; margin: 0; display: flex; gap: 6px; align-items: flex-start; line-height: 1.5;
+}
+.tc-gap-why svg { flex-shrink: 0; margin-top: 2px; }
+
+.tc-facts { margin: 4px 0 0; display: grid; gap: 6px; border-top: 1px solid var(--soft); padding-top: 10px; }
+.tc-facts > div { display: flex; gap: 10px; font-size: 12.5px; align-items: flex-start; }
+.tc-facts dt { color: var(--muted); display: inline-flex; align-items: center; gap: 5px; min-width: 112px; flex-shrink: 0; }
+.tc-facts dd { margin: 0; color: var(--text); }
+
+.tc-what { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--navy); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.tc-what:hover { text-decoration: underline; }
+.tc-what-body { font-size: 12.5px; color: var(--muted); margin: 0; line-height: 1.55; }
+
+.tc-actions { margin-top: auto; padding-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tc-enrolled { font-size: 12.5px; font-weight: 700; color: var(--green); display: inline-flex; align-items: center; gap: 5px; }
+
+/* ── How it works ─────────────────────────────────── */
+.tc-how {
+  margin-top: 40px; background: var(--navy); border-radius: var(--r-2xl);
+  padding: clamp(22px, 4vw, 44px); color: rgba(255, 255, 255, .78);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 26px; align-items: center;
+}
+@media (max-width: 860px) { .tc-how { grid-template-columns: minmax(0, 1fr); } }
+.tc-how h2 { color: #fff; font-size: clamp(20px, 3vw, 29px); letter-spacing: -.035em; margin: 8px 0 10px; }
+.tc-how p { font-size: 14.5px; line-height: 1.7; max-width: 62ch; margin: 0; }
+.tc-how b { color: #fff; }
+.tc-how small { display: block; margin-top: 10px; font-size: 12px; color: rgba(255, 255, 255, .5); }
+.tc-how-cta { display: flex; gap: 10px; flex-wrap: wrap; }

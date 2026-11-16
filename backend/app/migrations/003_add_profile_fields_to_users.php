@@ -15,7 +15,8 @@ class Add_profile_fields_to_users {
 
     private function has_column($name)
     {
-        $stmt = $this->_lava->db->raw("SHOW COLUMNS FROM users LIKE ?", [$name]);
+        // information_schema, not SHOW COLUMNS ... LIKE ?: MySQL 8.4 rejects a placeholder in SHOW
+        $stmt = $this->_lava->db->raw("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = ?", [$name]);
         return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
     }
 

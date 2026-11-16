@@ -3,7 +3,7 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 
 /**
  * ------------------------------------------------------------------
- * HanapBuhay Mailer Library
+ * hanapbuhay Mailer Library
  * ------------------------------------------------------------------
  * Handles transactional email notifications via the Brevo (Sendinblue)
  * HTTP API.  Falls back to file logging in development mode when no
@@ -38,7 +38,7 @@ class Mailer
 
         $api_key      = trim(self::get_env('BREVO_API_KEY', ''));
         $from_address = trim(self::get_env('MAIL_FROM_ADDRESS', 'noreply@hanapbuhay.ph'));
-        $from_name    = trim(self::get_env('MAIL_FROM_NAME', 'HanapBuhay Oriental Mindoro'));
+        $from_name    = trim(self::get_env('MAIL_FROM_NAME', 'hanapbuhay Oriental Mindoro'));
 
         // Fallback to log mode when no API key is set
         if (empty($api_key)) {
@@ -131,7 +131,21 @@ class Mailer
      * off optional email alerts in Settings. These are transactional events the
      * worker must not miss (e.g. being hired).
      */
-    public const ALWAYS_EMAIL_TYPES = ['hired', 'for_interview', 'test'];
+    // 'support' = an answer to a help request the user sent themselves
+    // 'interview_reminder' = the day-before reminder of an interview the employer scheduled
+    public const ALWAYS_EMAIL_TYPES = ['hired', 'for_interview', 'test', 'password_reset', 'password_changed', 'email_verify', 'system', 'support', 'interview_reminder'];
+
+    /** Each kind of email has its own switch in Settings (notification_prefs); missing = on. */
+    public const TYPE_PREF = [
+        'application'        => 'email_applications',   // employer/client: someone applied
+        'application_status' => 'email_updates',        // worker: shortlisted, viewed, not selected
+        'certificate'        => 'email_updates',        // worker: certificate checked
+        'invite'             => 'email_invites',        // worker: an employer invited you to apply
+        'message'            => 'email_messages',
+        'review'             => 'email_reviews',
+        'follow'             => 'email_social',
+        'job_posted'         => 'email_posts',          // employer/client: your post is live
+    ];
 
     /**
      * Send a notification email if the recipient has email notifications enabled.
@@ -144,11 +158,16 @@ class Mailer
      * @param string $cta_label  Optional Call-to-action button label
      * @return array
      */
-    public static function send_notification(array $recipient, string $type, string $title, string $message, string $link = '', string $cta_label = 'View on HanapBuhay'): array
+    public static function send_notification(array $recipient, string $type, string $title, string $message, string $link = '', string $cta_label = 'View on hanapbuhay'): array
     {
         $prefs = $recipient['notification_prefs'] ?? null;
         if (!empty($prefs) && !in_array($type, self::ALWAYS_EMAIL_TYPES, true)) {
             $parsed = is_array($prefs) ? $prefs : json_decode($prefs, true);
+            $key = self::TYPE_PREF[$type] ?? null;
+            if (is_array($parsed) && $key && array_key_exists($key, $parsed) && !$parsed[$key]) {
+                return ['success' => false, 'mode' => 'skipped', 'skipped' => true,
+                        'error' => 'Recipient turned off this kind of email in Settings.', 'reason' => 'Recipient turned off this kind of email in Settings.'];
+            }
             if (is_array($parsed) && isset($parsed['email']) && !$parsed['email']) {
                 return [
                     'success' => false,
@@ -161,7 +180,7 @@ class Mailer
         }
 
         $email = $recipient['email'] ?? '';
-        $name  = $recipient['full_name'] ?? $recipient['username'] ?? 'HanapBuhay User';
+        $name  = $recipient['full_name'] ?? $recipient['username'] ?? 'hanapbuhay User';
 
         if (empty($email)) {
             return ['success' => false, 'mode' => 'failed', 'error' => 'Recipient has no email address.'];
@@ -175,13 +194,13 @@ class Mailer
 
         $html = self::render_notification_template($name, $type, $title, $message, $full_link, $cta_label);
 
-        return self::send($email, $name, "[HanapBuhay] " . $title, $html);
+        return self::send($email, $name, "[hanapbuhay] " . $title, $html);
     }
 
     /**
-     * Generate modern, responsive HTML email template for HanapBuhay.
+     * Generate modern, responsive HTML email template for hanapbuhay.
      */
-    public static function render_notification_template(string $recipient_name, string $type, string $title, string $message, string $cta_url = '', string $cta_label = 'View on HanapBuhay'): string
+    public static function render_notification_template(string $recipient_name, string $type, string $title, string $message, string $cta_url = '', string $cta_label = 'View on hanapbuhay'): string
     {
         $type_labels = [
             'application'        => 'Job Application',
@@ -191,6 +210,12 @@ class Mailer
             'hired'              => 'Job Offer / Hired 🎉',
             'message'            => 'New Message',
             'test'               => 'Test Notification',
+            'password_reset'     => 'Password Reset',
+            'email_verify'       => 'Email Verification',
+            'system'             => 'Account Update',
+            'support'            => 'Help & Support',
+            'interview_reminder' => 'Interview Reminder',
+            'review'             => 'Worker Review',
         ];
 
         $badge = $type_labels[$type] ?? 'Notification';
@@ -235,7 +260,7 @@ HTML;
         <div style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 24px 32px; color: #ffffff;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <div>
-                    <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">HanapBuhay</h1>
+                    <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">hanapbuhay</h1>
                     <p style="margin: 2px 0 0 0; font-size: 12px; color: #a7f3d0;">Oriental Mindoro Employment &amp; Skills Portal</p>
                 </div>
             </div>
@@ -268,7 +293,7 @@ HTML;
 
         <!-- Footer -->
         <div style="background: #f8fafc; padding: 16px 32px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b;">
-            &copy; {$year} HanapBuhay Phase 1 &middot; Provincial Government of Oriental Mindoro
+            &copy; {$year} hanapbuhay Phase 1 &middot; Provincial Government of Oriental Mindoro
         </div>
     </div>
 </body>

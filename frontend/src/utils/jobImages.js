@@ -42,7 +42,11 @@ export const ROLE_PHOTOS = {
 /**
  * Returns a high-res realistic photo URL based on job title, category or company
  */
+import { fileUrl } from '../api.js'
+
+/** The poster's own photo when they uploaded one (migration 020), else a photo for the kind of work. */
 export function getJobImage(job = {}) {
+  if (Number(job.image_v) > 0 && job.id) return fileUrl(`/jobs/${job.id}/image?v=${job.image_v}`)
   const text = `${job.title || ''} ${job.category || ''} ${job.company || ''} ${job.job_type || ''}`.toLowerCase()
   for (const [key, path] of Object.entries(ROLE_PHOTOS)) {
     if (text.includes(key)) return path
@@ -64,6 +68,28 @@ export function getJobImage(job = {}) {
  * Course photo mapping
  */
 export const COURSE_PHOTOS = {
+  // more specific words first: the first match wins
+  beverage: '/images/fnb.jpg',
+  barista: '/images/fnb.jpg',
+  bartending: '/images/fnb.jpg',
+  events: '/images/service_crew.jpg',
+  housekeeping: '/images/service_crew.jpg',
+  'front office': '/images/service_crew.jpg',
+  cookery: '/images/food.jpg',
+  electronic: '/images/electrician.jpg',
+  masonry: '/images/construction.jpg',
+  carpentry: '/images/construction.jpg',
+  'tile setting': '/images/construction.jpg',
+  plumbing: '/images/construction.jpg',
+  painting: '/images/construction.jpg',
+  'heavy equipment': '/images/construction.jpg',
+  driving: '/images/mechanic.jpg',
+  motorcycle: '/images/mechanic.jpg',
+  'animal production': '/images/agriculture.jpg',
+  crops: '/images/agriculture.jpg',
+  massage: '/images/caregiver.jpg',
+  dressmaking: '/images/designer.jpg',
+  'nail care': '/images/designer.jpg',
   welding: '/images/welder.jpg',
   computer: '/images/computer.jpg',
   electrical: '/images/electrical-nc.jpg',

@@ -6,8 +6,13 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     libcurl4-openssl-dev \
-    && docker-php-ext-install pdo pdo_mysql \
+    && docker-php-ext-install pdo pdo_mysql zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Production PHP settings (no error display, no version banner, sane upload limits)
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && { echo "expose_php=Off"; echo "display_errors=Off"; echo "upload_max_filesize=10M"; echo "post_max_size=12M"; echo "memory_limit=256M"; } > "$PHP_INI_DIR/conf.d/zz-hanapbuhay.ini" \
+    && sed -i 's/^ServerTokens .*/ServerTokens Prod/; s/^ServerSignature .*/ServerSignature Off/' /etc/apache2/conf-available/security.conf
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -36,5 +41,7 @@ RUN mkdir -p /var/www/html/runtime/logs /var/www/html/runtime/cache \
     && chmod -R 755 /var/www/html \
     && chmod -R 777 /var/www/html/runtime
 
-# Bind Apache to Render's dynamic PORT environment variable (defaults to 10000)
-CMD ["sh", "-c", "sed -i \"s/Listen 80/Listen ${PORT:-10000}/g\" /etc/apache2/ports.conf && sed -i \"s/:80/:${PORT:-10000}/g\" /etc/apache2/sites-available/000-default.conf && apache2-foreground"]
+# Start: apply pending database migrations, then bind Apache to Render's PORT (default 10000).
+# (CRs stripped in case the script was checked out on Windows)
+RUN sed -i 's/\r$//' /var/www/html/docker-start.sh && chmod +x /var/www/html/docker-start.sh
+CMD ["sh", "/var/www/html/docker-start.sh"]

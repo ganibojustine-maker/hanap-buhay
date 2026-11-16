@@ -23,8 +23,8 @@ export default function Onboarding() {
     <AuthLayout showcase={false} back={{ onClick: logout, children: 'Sign out' }}>
       <div className="auth-box wide">
         <p className="eyebrow rise">Welcome, {user.full_name?.split(' ')[0] || 'friend'}</p>
-        <h1 className="rise" style={{ '--d': '.05s' }}>How will you use Hanapbuhay?</h1>
-        <p className="sub rise" style={{ '--d': '.1s' }}>One last step. This sets up the right tools for you.</p>
+        <h1 className="rise" style={{ '--d': '.05s' }}>How will you use hanapbuhay?</h1>
+        <p className="sub rise" style={{ '--d': '.1s' }}>One last step. You get the tools for it.</p>
         <TypePicker value={type} onChange={setType} />
         <ErrorNote>{error}</ErrorNote>
         <button className="btn btn-primary btn-lg btn-block" disabled={!type || busy} onClick={save}>

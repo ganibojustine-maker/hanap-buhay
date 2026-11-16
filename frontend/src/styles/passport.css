@@ -1,0 +1,76 @@
+/* Public Skills Passport (/p/:token): screen + one-page print */
+.pp-page { min-height: 100vh; background: #f3f5f9; padding-bottom: 40px }
+.pp-top { max-width: 860px; margin: 0 auto; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.pp-top-actions .btn { display: inline-flex; align-items: center; gap: 6px }
+.pp-sheet { max-width: 860px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid var(--line); padding: 30px 34px; box-shadow: 0 10px 30px rgba(13,27,62,.06) }
+.pp-gone { text-align: center; padding: 56px 24px }
+.pp-gone h1 { font-size: 24px; margin-bottom: 8px }
+.pp-gone p { color: var(--muted); max-width: 440px; margin: 0 auto 20px; line-height: 1.6 }
+
+.pp-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 20px; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--line) }
+.pp-photo { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; border: 3px solid var(--gold); background: #e2e8f0 }
+.pp-photo img { width: 100%; height: 100%; object-fit: cover; display: block }
+.pp-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); margin: 0 0 4px }
+.pp-who h1 { font-size: 28px; letter-spacing: -.03em; margin: 0 0 6px; line-height: 1.15 }
+.pp-line { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13.5px; color: var(--muted); margin: 0 }
+.pp-line span { display: inline-flex; align-items: center; gap: 5px }
+.pp-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px }
+.pp-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: var(--soft); color: var(--muted); border: 1px solid var(--line) }
+.pp-badge.ok { background: var(--green-l); color: var(--green); border-color: #a7f3d0 }
+.pp-badge.open { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe }
+.pp-qr { width: 104px; height: 104px }
+.pp-qr svg { width: 100%; height: 100%; display: block }
+
+.pp-sec { padding: 20px 0; border-bottom: 1px solid var(--soft) }
+.pp-sec h2 { font-size: 15px; letter-spacing: -.01em; margin: 0 0 10px; display: flex; align-items: center; gap: 6px }
+.pp-sec h2 span { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--soft); border-radius: 99px; padding: 1px 8px }
+.pp-bio { font-size: 14.5px; line-height: 1.65; color: var(--text); margin: 0; white-space: pre-line }
+.pp-muted { color: var(--muted); font-size: 14px; margin: 0 }
+.pp-facts { display: grid; gap: 6px; margin: 0 }
+.pp-facts div { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; font-size: 14px }
+.pp-facts dt { font-weight: 700; color: var(--muted) }
+.pp-facts dd { margin: 0; color: var(--text) }
+.pp-skills { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px }
+.pp-skills li { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); font-size: 13.5px; font-weight: 600; color: var(--ink) }
+.pp-skills li.v { background: var(--green-l); border-color: #a7f3d0 }
+.pp-skills li.v svg { color: var(--green) }
+.pp-skills em { font-style: normal; font-weight: 600; font-size: 11.5px; color: var(--muted) }
+.pp-skills b { font-size: 10.5px; background: var(--gold-l); color: var(--amber); padding: 1px 6px; border-radius: 99px }
+.pp-note { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--green); margin: 10px 0 0 }
+.pp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px }
+.pp-list li { display: grid; gap: 2px }
+.pp-list b { font-size: 14.5px; color: var(--ink) }
+.pp-list span { font-size: 13px; color: var(--muted) }
+.pp-list p { font-size: 13.5px; color: var(--text); margin: 4px 0 0; line-height: 1.55; white-space: pre-line }
+.pp-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px }
+
+.pp-contact { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: var(--navy); color: #fff; border-radius: 16px; padding: 18px 20px }
+.pp-contact div { display: grid; gap: 2px; min-width: 0 }
+.pp-contact b { font-size: 16px }
+.pp-contact span { font-size: 13px; color: rgba(255,255,255,.7) }
+.pp-contact .btn { display: inline-flex; align-items: center; gap: 6px }
+.pp-foot { margin-top: 18px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: #94a3b8; word-break: break-all }
+
+@media (max-width: 640px) {
+  .pp-sheet { border-radius: 0; border-left: 0; border-right: 0; padding: 22px 16px }
+  .pp-head { grid-template-columns: auto minmax(0, 1fr); gap: 14px }
+  .pp-photo { width: 72px; height: 72px }
+  .pp-who h1 { font-size: 22px }
+  .pp-qr { display: none }
+  .pp-two { grid-template-columns: minmax(0, 1fr) }
+  .pp-top-actions .btn span { display: none }
+}
+
+@media print {
+  @page { size: A4; margin: 12mm }
+  .pp-page { background: #fff; padding: 0 }
+  .pp-top-actions, .pp-contact .btn { display: none !important }
+  .pp-top { padding: 0 0 8px }
+  .pp-sheet { border: 0; box-shadow: none; padding: 0; max-width: none }
+  .pp-head { grid-template-columns: auto minmax(0, 1fr) auto }
+  .pp-qr { display: block !important; width: 90px; height: 90px }
+  .pp-sec { padding: 12px 0; break-inside: avoid }
+  .pp-contact { background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 10px 14px }
+  .pp-contact span { color: var(--muted) }
+  .pp-skills li, .pp-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+}

@@ -132,7 +132,7 @@ $config['jwt_verify_user'] = TRUE;
 | Refresh token: 2592000 (30 days)
 |
 */
-$config['payload_token_expiration'] = 86400;
+$config['payload_token_expiration'] = 3600; // 1 hour; refresh tokens keep users signed in
 $config['refresh_token_expiration'] = 2592000;
 
 /*

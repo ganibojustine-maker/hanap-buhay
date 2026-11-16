@@ -1,413 +1,353 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+/**
+ * Landing — the public front page.
+ *
+ *   Header    SiteHeader (shared with every public page)
+ *   Hero      promise + two buttons; the real map of Oriental Mindoro with live job counts
+ *   Hiring    a slow ticker of real open jobs
+ *   Roles     three accounts, one line each
+ *   Features  four differences, one at a time: a list and a single quiet picture
+ *   Employers a hiring board that runs on its own (New → Shortlist → Hired)
+ *   How · CTA · Footer
+ *
+ * All job numbers are live. Copy lives in i18n.jsx (`lh.*`, `lp.*`), English and Filipino.
+ */
+import { useEffect, useState } from 'react'
+import BrowsePosts from '../components/BrowsePosts.jsx'
+import { Link, useLocation } from 'react-router-dom'
 import {
-  Logo, IconArrow, IconCheck, IconMenu, IconX, IconPin, IconSearch,
-  IconBriefcase, IconBook, IconMap, IconShield, IconUsers
+  IconArrow, IconPin, IconHammer, IconBuilding, IconBolt, IconCheck, IconShield, IconBook,
+  IconTrend, IconQr, IconAlert, IconSearch, IconFile, IconStar, IconBell,
 } from '../components/icons.jsx'
-import { Avatar, TOWNS } from '../components/art.jsx'
 import Reveal from '../components/Reveal.jsx'
+import MindoroMap from '../components/MindoroMap.jsx'
+import { SiteHeader, SiteFooter } from '../components/SiteHeader.jsx'
+import { useInView } from '../hooks/useInView.js'
+import { useLanguage } from '../i18n.jsx'
 import { api } from '../api.js'
-import { useAuth } from '../auth.jsx'
-import { FeaturedJobCard } from '../components/JobCard.jsx'
-import { useLanguage, LanguageSwitcher } from '../i18n.jsx'
 
-/* ─ Nav ─────────────────────────────────────────────────── */
-function Nav() {
-  const { user } = useAuth()
-  const { t } = useLanguage()
-  const [scrolled, setScrolled] = useState(false)
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const f = () => setScrolled(window.scrollY > 24)
-    f()
-    window.addEventListener('scroll', f, { passive: true })
-    return () => window.removeEventListener('scroll', f)
-  }, [])
-
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
-
-  const navLinks = [
-    ['jobs', t('nav.find_jobs')],
-    ['how', t('nav.how_it_works')],
-    ['who', t('nav.who_its_for')],
-    ['towns', t('nav.locations')],
-  ]
-
-  return (
-    <header className={`nav ${scrolled ? 'is-stuck' : ''} ${open ? 'is-open' : ''}`}>
-      <div className="nav-in">
-        <Logo light />
-        <nav aria-label="Primary" className="nav-links">
-          {navLinks.map(([id, label]) => (
-            <a key={id} href={`#${id}`}>{label}</a>
-          ))}
-        </nav>
-        <div className="nav-cta" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Exclusively located on the Landing Page */}
-          <LanguageSwitcher variant="dropdown" />
-
-          {user ? (
-            <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
-              <div className="avatar" style={{ width: 34, height: 34 }}>
-                <img
-                  src={user.picture || '/images/avatar.jpg'}
-                  alt={user.full_name || 'User'}
-                  onError={e => { e.currentTarget.style.display = 'none' }}
-                />
-                <span>{(user.full_name || user.email)[0].toUpperCase()}</span>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
-                {user.full_name?.split(' ')[0] || t('nav.dashboard')}
-              </span>
-            </Link>
-          ) : (
-            <>
-              <Link to="/login" className="nav-signin">{t('nav.sign_in')}</Link>
-              <Link to="/register" className="btn btn-primary btn-sm">{t('nav.sign_up')}</Link>
-            </>
-          )}
-
-          <button
-            className="nav-burger"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <IconX size={22} /> : <IconMenu size={22} />}
-          </button>
-        </div>
-      </div>
-
-      <div className="nav-sheet" hidden={!open}>
-        <div style={{ padding: '6px 0 14px', borderBottom: '1px solid var(--line)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{t('lang.label')}:</span>
-          <LanguageSwitcher variant="toggle" />
-        </div>
-        {navLinks.map(([id, label], i) => (
-          <a key={id} href={`#${id}`} onClick={() => setOpen(false)} style={{ '--d': `${i * 0.05}s` }}>
-            {label}
-          </a>
-        ))}
-        <Link to="/login" onClick={() => setOpen(false)}>{t('nav.sign_in')}</Link>
-        <Link to="/register" className="btn btn-navy btn-lg" onClick={() => setOpen(false)}>
-          {t('nav.create_account')} <IconArrow />
-        </Link>
-      </div>
-    </header>
-  )
+const cap = v => (v ? String(v).charAt(0).toUpperCase() + String(v).slice(1) : '')
+const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '')
+function payLine(j) {
+  const n = Number(j.salary_min || j.salary_max || 0)
+  if (!n) return null
+  const unit = { month: '/mo', day: '/day', hour: '/hr', fixed: '' }[j.pay_basis || 'month'] ?? '/mo'
+  return `₱${n.toLocaleString('en-PH')}${unit}`
 }
+const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 /* ─ Hero ────────────────────────────────────────────────── */
-function Hero() {
-  const nav = useNavigate()
+function Hero({ live, towns }) {
   const { t } = useLanguage()
-  const [q, setQ] = useState('')
-  const [loc, setLoc] = useState('')
-  const search = () => nav(`/jobs?q=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}`)
-
+  const total = towns?.total ?? live?.total
   return (
-    <section className="frame hero" aria-label="Find the right job">
-      <div className="hero-overlay" aria-hidden="true" />
-      <div className="hero-inner">
-        <div className="hero-copy">
-          <div className="hero-pill rise">
-            <i /> {t('hero.badge')}
-          </div>
-          <h1>
-            <span className="w" style={{ '--d': '0.05s' }}>{t('hero.title_line1')}</span><br />
-            <span className="w" style={{ '--d': '0.22s' }}>{t('hero.title_line2')}</span><br />
-            <span className="w gold" style={{ '--d': '.42s' }}>{t('hero.title_line3')}</span>
+    <section className="lp-hero" aria-labelledby="lp-title">
+      <div className="lp-in lp-hero-in">
+        <div className="lp-copy">
+          <p className="lp-pill rise"><i />{t('lp.hero.eyebrow')}</p>
+          <h1 id="lp-title" className="rise" style={{ '--d': '.06s' }}>
+            {t('lp.hero.title_a')} <span>{t('lp.hero.title_b')}</span>
           </h1>
-          <p className="hero-lede rise" style={{ '--d': '.55s' }}>
-            {t('hero.subtitle')}
-          </p>
-
-          {/* Search bar */}
-          <div className="hero-search rise" style={{ '--d': '.65s' }}>
-            <div className="hero-search-field">
-              <IconSearch size={16} />
-              <input
-                type="search"
-                placeholder={t('hero.search_placeholder')}
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && search()}
-              />
-            </div>
-            <div className="hero-search-field">
-              <IconPin size={16} />
-              <input
-                type="text"
-                placeholder={t('hero.location_placeholder')}
-                value={loc}
-                onChange={e => setLoc(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && search()}
-              />
-            </div>
-            <button className="btn btn-primary" onClick={search}>{t('hero.search_button')}</button>
+          <p className="lp-lede rise" style={{ '--d': '.12s' }}>{t('lp.hero.lede')}</p>
+          <div className="lp-actions rise" style={{ '--d': '.18s' }}>
+            <Link to="/register" className="btn btn-primary btn-lg">{t('lp.hero.cta')} <IconArrow /></Link>
+            <Link to="/jobs" className="btn lp-ghost btn-lg">{t('lp.hero.browse')}</Link>
           </div>
-
-          <div className="hero-stats rise" style={{ '--d': '.75s' }}>
-            <div className="hero-stat"><b>2,400+</b><span>{t('hero.stat_jobs')}</span></div>
-            <div className="hero-stat"><b>15 LGUs</b><span>{t('hero.stat_lgus')}</span></div>
-            <div className="hero-stat"><b>8,500+</b><span>{t('hero.stat_placed')}</span></div>
-          </div>
+          <ul className="lp-trust rise" style={{ '--d': '.24s' }}>
+            {['t1', 't2', 't3'].map(k => <li key={k}><IconCheck size={15} />{t(`lp.hero.${k}`)}</li>)}
+          </ul>
         </div>
-
-        {/* Hero visual */}
-        <div className="hero-visual rise" style={{ '--d': '.3s' }} aria-hidden="true">
-          <div className="hero-img-wrap">
-            <img
-              src="/images/hero.png"
-              alt="Skilled vocational trade tools, blueprints, and digital job analytics"
-              loading="eager"
-            />
-          </div>
-          <div className="hero-badge hero-badge-1">
-            <div className="badge-icon"><IconBriefcase size={20} /></div>
-            <div>
-              <b>{t('hero.badge_match')}</b>
-              <small>{t('hero.badge_match_sub')}</small>
-            </div>
-          </div>
-          <div className="hero-badge hero-badge-2">
-            <b>124</b>
-            <small>{t('hero.badge_jobs_week')}</small>
-          </div>
+        <div className="lp-map rise" style={{ '--d': '.1s' }}>
+          <span className="lp-radar" aria-hidden="true"><i /><i /><i /></span>
+          <MindoroMap counts={towns?.towns || {}} jobs={live?.jobs || []} t={t} />
+          {total != null && (
+            <p className="lp-legend"><i />{fill(t('lp.map.legend'), { n: Number(total).toLocaleString('en-PH') })}<span>{t('lp.map.hint')}</span></p>
+          )}
         </div>
       </div>
     </section>
   )
 }
 
-/* ─ Features strip ──────────────────────────────────────── */
+/* ─ Hiring now: a slow ticker of real openings ──────────── */
+function HiringNow({ live }) {
+  const { t } = useLanguage()
+  const jobs = (live?.jobs || []).slice(0, 14)
+  if (!jobs.length) return null
+  const row = copy => jobs.map(j => (
+    <Link key={j.id} to={`/jobs/${j.id}`} className="lp-tick" tabIndex={copy ? -1 : undefined}>
+      <b>{cap(j.title)}</b>
+      <span><IconPin size={12} />{String(j.location || '').split(',')[0]}</span>
+      {payLine(j) && <em>{payLine(j)}</em>}
+    </Link>
+  ))
+  return (
+    <section className="lp-now" aria-label={t('lp.now.title')}>
+      <div className="lp-in lp-now-in">
+        <span className="lp-now-label"><i />{t('lp.now.title')}</span>
+        <div className="lp-marquee">
+          <div className="lp-track">{row(false)}<span aria-hidden="true" className="lp-track-copy">{row(true)}</span></div>
+        </div>
+        <Link to="/jobs" className="lp-now-all">{t('lp.now.all')} <IconArrow size={14} /></Link>
+      </div>
+    </section>
+  )
+}
+
+/* ─ Roles ───────────────────────────────────────────────── */
+const ROLES = [['worker', IconHammer], ['employer', IconBuilding], ['hirer', IconBolt]]
+function Roles() {
+  const { t } = useLanguage()
+  return (
+    <section className="lp-sec" id="roles" aria-labelledby="lp-roles">
+      <div className="lp-in">
+        <Reveal as="h2" className="lp-h2" id="lp-roles">{t('lp.roles.title')}</Reveal>
+        <div className="lp-roles">
+          {ROLES.map(([id, Ic], i) => (
+            <Reveal key={id} delay={i * 0.06}>
+              <Link to={`/register?type=${id}`} className="lp-role">
+                <span className="lp-ic"><Ic size={22} /></span>
+                <h3>{t(`lp.roles.${id}.title`)}</h3>
+                <p>{t(`lp.roles.${id}.desc`)}</p>
+                <span className="lp-go">{t(`lp.roles.${id}.cta`)} <IconArrow size={15} /></span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─ Features: one feature at a time ───────────────────────
+   A list on the left, one quiet picture on the right. It moves on by itself every few
+   seconds (a thin line shows the time) and stops as soon as someone points at it. ─ */
+function FeatPic({ k, t }) {
+  if (k === 'passport') return (
+    <div className="fp-pass">
+      <div className="fp-pass-top"><span className="fp-mark">HB</span><small>SKILLS PASSPORT</small><IconQr size={18} /></div>
+      <b>Juan Dela Cruz</b>
+      <span>Electrician · Calapan City</span>
+      <div className="fp-chips"><i>Wiring</i><i>Solar PV</i><i>Panel install</i></div>
+      <div className="fp-pass-ft"><span><IconShield size={14} /> {t('lp.why.verified')}</span><em>NC II · TESDA</em></div>
+    </div>
+  )
+  if (k === 'match') return (
+    <div className="fp-card fp-match">
+      <span className="fp-ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" /><circle className="arc" cx="40" cy="40" r="34" /></svg><b>86%</b></span>
+      <div>
+        <b className="fp-title">Electrician · Pola</b>
+        <ul className="fp-list">
+          <li className="ok"><IconCheck size={14} /> Wiring</li>
+          <li className="ok"><IconCheck size={14} /> 3 yrs experience</li>
+          <li className="miss"><IconAlert size={14} /> NC II missing</li>
+        </ul>
+      </div>
+    </div>
+  )
+  if (k === 'verify') return (
+    <div className="fp-card fp-verify">
+      <div className="fp-doc"><span><IconFile size={18} /></span><div><b>TESDA NC II certificate</b><small>Electrical Installation</small></div></div>
+      <ul className="fp-steps">
+        {['v1', 'v2', 'v3'].map((v, i) => <li key={v} style={{ '--d': `${0.15 + i * 0.15}s` }}><span><IconCheck size={12} /></span>{t(`lp.why.${v}`)}</li>)}
+      </ul>
+    </div>
+  )
+  return (
+    <div className="fp-card fp-train">
+      <div className="fp-doc"><span className="gold"><IconBook size={18} /></span><div><b>Electrical Installation NC II</b><small>TESDA · Calapan City · {t('lp.why.free')}</small></div></div>
+      <div className="fp-prog"><div><span>{t('lp.why.after')}</span><em>72% → 95%</em></div><span className="fp-track"><i /></span></div>
+    </div>
+  )
+}
+
+const FEATS = [['passport', IconShield], ['match', IconTrend], ['verify', IconCheck], ['train', IconBook]]
 function Features() {
   const { t } = useLanguage()
-
-  const features = [
-    { icon: 'navy', Ic: IconBriefcase, title: t('feat.f1_title'), desc: t('feat.f1_desc') },
-    { icon: 'gold', Ic: IconBook,      title: t('feat.f2_title'), desc: t('feat.f2_desc') },
-    { icon: 'green',Ic: IconShield,    title: t('feat.f3_title'), desc: t('feat.f3_desc') },
-    { icon: 'blue', Ic: IconUsers,     title: t('feat.f4_title'), desc: t('feat.f4_desc') },
-  ]
-
-  return (
-    <div className="features-strip">
-      <div className="features-inner">
-        {features.map(({ icon, Ic, title, desc }, i) => (
-          <Reveal key={title} className="feature-item" delay={i * 0.08}>
-            <div className={`feature-icon ${icon}`}><Ic size={22} /></div>
-            <div><h3>{title}</h3><p>{desc}</p></div>
-          </Reveal>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ─ Featured Jobs ───────────────────────────────────────── */
-function FeaturedJobs() {
-  const { t } = useLanguage()
-  const [jobs, setJobs] = useState([])
-  const [loading, setLoading] = useState(true)
-
+  const [ref, seen] = useInView({ threshold: 0.3 })
+  const [i, setI] = useState(0)
+  const [held, setHeld] = useState(false)
   useEffect(() => {
-    api('/jobs/featured')
-      .then(r => setJobs(r.jobs || []))
-      .catch(() => setJobs(DEMO_JOBS))
-      .finally(() => setLoading(false))
-  }, [])
-
+    if (!seen || held || reduced()) return undefined
+    const id = setTimeout(() => setI(n => (n + 1) % FEATS.length), 6000)
+    return () => clearTimeout(id)
+  }, [i, seen, held])
+  const k = FEATS[i][0]
   return (
-    <section id="jobs" className="featured-jobs">
-      <Reveal className="section-head">
-        <div>
-          <p className="eyebrow" style={{ color: 'var(--gold)' }}>{t('jobs.eyebrow')}</p>
-          <h2>{t('jobs.title')}</h2>
+    <section className="lp-sec lp-dark" id="features" aria-labelledby="lp-why">
+      <div className="lp-in">
+        <Reveal as="h2" className="lp-h2" id="lp-why">{t('lp.why.title')}</Reveal>
+        <div ref={ref} className="fs" onMouseEnter={() => setHeld(true)} onMouseLeave={() => setHeld(false)}>
+          <div className="fs-list" role="tablist" aria-label={t('lh.features')}>
+            {FEATS.map(([id, Ic], n) => (
+              <button key={id} type="button" role="tab" aria-selected={n === i} aria-controls="fs-panel"
+                className={`fs-item${n === i ? ' on' : ''}`} onClick={() => setI(n)} onFocus={() => setI(n)}>
+                <span className="fs-ic"><Ic size={18} /></span>
+                <span className="fs-txt"><b>{t(`lp.why.${id}.t`)}</b><small>{t(`lp.why.${id}.d`)}</small></span>
+                {n === i && seen && !held && <i className="fs-time" key={`t${i}`} />}
+              </button>
+            ))}
+          </div>
+          <div className="fs-panel" id="fs-panel" role="tabpanel">
+            <div className="fs-stage" key={k}><FeatPic k={k} t={t} /></div>
+          </div>
         </div>
-        <Link to="/jobs" className="btn btn-outline">{t('jobs.view_all')} <IconArrow /></Link>
-      </Reveal>
-      <div className="jobs-grid">
-        {loading
-          ? Array(4).fill(0).map((_, i) => <div key={i} className="skel" style={{ height: 230, borderRadius: 18 }} />)
-          : (jobs.length ? jobs : DEMO_JOBS).slice(0, 8).map((job, i) => (
-            <Reveal key={job.id || i} delay={i * 0.06}>
-              <FeaturedJobCard job={job} variant="grid" compact style={{ height: '100%' }} />
-            </Reveal>
-          ))
-        }
       </div>
     </section>
   )
 }
-/* ─ How it works ────────────────────────────────────────── */
+
+/* ─ For employers: a hiring board that runs on its own ─── */
+const PEOPLE = { AR: ['Ana R.', 94], MD: ['Mark D.', 88], JP: ['Joy P.', 81], RL: ['Rico L.', 76] }
+const FRAMES = [
+  { cols: [['AR', 'MD', 'JP'], [], []] },
+  { cols: [['RL', 'AR', 'MD', 'JP'], [], []], toast: 'RL' },
+  { cols: [['RL', 'MD', 'JP'], ['AR'], []] },
+  { cols: [['RL', 'JP'], ['AR', 'MD'], []] },
+  { cols: [['RL', 'JP'], ['MD'], ['AR']], hired: 'AR' },
+  { cols: [['RL', 'JP'], ['MD'], ['AR']], hired: 'AR', hold: true },
+]
+function HiringBoard() {
+  const { t } = useLanguage()
+  const [ref, seen] = useInView({ threshold: 0.3 })
+  const [f, setF] = useState(0)
+  useEffect(() => {
+    if (!seen) return undefined
+    if (reduced()) { setF(4); return undefined }
+    const id = setInterval(() => setF(n => (n + 1) % FRAMES.length), 1700)
+    return () => clearInterval(id)
+  }, [seen])
+  const fr = FRAMES[f]
+  const names = [t('lp.emp.col1'), t('lp.emp.col2'), t('lp.emp.col3')]
+  return (
+    <div ref={ref} className="hb">
+      <div className="hb-top">
+        <span className="hb-live"><i />{t('lp.emp.board')}</span>
+        <span className="hb-job">Store Cashier · Calapan City</span>
+      </div>
+      <div className="hb-cols">
+        {fr.cols.map((ids, c) => (
+          <div key={c} className={`hb-col c${c}`}>
+            <div className="hb-col-hd"><span>{names[c]}</span><em>{ids.length}</em></div>
+            {ids.map(id => (
+              <div key={`${id}-${c}`} className={`hb-card${fr.hired === id && c === 2 ? ' won' : ''}`}>
+                <span className="hb-av">{id}</span>
+                <div className="hb-who"><b>{PEOPLE[id][0]}</b><span className="hb-m"><i style={{ width: `${PEOPLE[id][1]}%` }} /></span></div>
+                <em>{PEOPLE[id][1]}%</em>
+                {fr.hired === id && c === 2 && <span className="hb-won"><IconCheck size={11} /></span>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {fr.toast && (
+        <div className="hb-toast" key={`t${f}`}>
+          <span><IconBell size={14} /></span>
+          <div><b>{t('lp.emp.newapp')}</b><small>{PEOPLE[fr.toast][0]} · {PEOPLE[fr.toast][1]}% match</small></div>
+        </div>
+      )}
+      {fr.hired && !fr.hold && <div className="hb-hired" key={`h${f}`}><IconStar size={14} /> {t('lp.emp.hired')}</div>}
+    </div>
+  )
+}
+
+function Employers() {
+  const { t } = useLanguage()
+  const points = [[IconFile, 'p1'], [IconTrend, 'p2'], [IconSearch, 'p3'], [IconShield, 'p4']]
+  return (
+    <section className="lp-sec" id="employers" aria-labelledby="lp-emp">
+      <div className="lp-in lp-emp">
+        <Reveal className="lp-emp-copy">
+          <p className="lp-kicker">{t('lp.emp.kicker')}</p>
+          <h2 id="lp-emp">{t('lp.emp.title')}</h2>
+          <ul>
+            {points.map(([Ic, k]) => <li key={k}><span><Ic size={16} /></span>{t(`lp.emp.${k}`)}</li>)}
+          </ul>
+          <div className="lp-emp-cta">
+            <Link to="/register?type=employer" className="btn btn-navy btn-lg">{t('lp.emp.cta')} <IconArrow /></Link>
+            <Link to="/register?type=hirer" className="lp-textlink">{t('lp.emp.gig')} <IconArrow size={14} /></Link>
+          </div>
+        </Reveal>
+        <Reveal className="lp-emp-vis" delay={0.1}>
+          <HiringBoard />
+          <span className="ea-chip"><IconShield size={13} /> {t('lp.emp.verified')}</span>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+/* ─ How ─────────────────────────────────────────────────── */
 function How() {
   const { t } = useLanguage()
-
-  const steps = [
-    { n: '01', title: t('how.s1_title'), desc: t('how.s1_desc') },
-    { n: '02', title: t('how.s2_title'), desc: t('how.s2_desc') },
-    { n: '03', title: t('how.s3_title'), desc: t('how.s3_desc') },
-    { n: '04', title: t('how.s4_title'), desc: t('how.s4_desc') },
-  ]
-
   return (
-    <div id="how" className="how-wrap">
-      <Reveal className="how-inner">
-        <p className="eyebrow">{t('how.eyebrow')}</p>
-        <h2>{t('how.title')}</h2>
-        <div className="how-steps">
-          {steps.map(({ n, title, desc }, i) => (
-            <Reveal key={n} className="how-step" delay={i * 0.1}>
-              <div className="how-step-num">{n}</div>
-              <h3>{title}</h3>
-              <p>{desc}</p>
+    <section className="lp-sec lp-soft" id="how" aria-labelledby="lp-how">
+      <div className="lp-in">
+        <Reveal as="h2" className="lp-h2" id="lp-how">{t('lp.how.title')}</Reveal>
+        <ol className="lp-steps">
+          {[1, 2, 3].map(n => (
+            <Reveal as="li" key={n} delay={(n - 1) * 0.08}>
+              <span className="lp-num">{n}</span>
+              <h3>{t(`lp.how.${n}t`)}</h3>
+              <p>{t(`lp.how.${n}d`)}</p>
             </Reveal>
           ))}
-        </div>
-      </Reveal>
-    </div>
-  )
-}
-
-/* ─ Who it's for ────────────────────────────────────────── */
-function Who() {
-  const { t } = useLanguage()
-
-  const cards = [
-    {
-      id: 'worker',
-      who: 'worker',
-      name: t('who.worker_title'),
-      tag: t('who.worker_tag'),
-      blurb: t('who.worker_blurb'),
-      points: [t('who.worker_p1'), t('who.worker_p2'), t('who.worker_p3')],
-      cta: t('who.worker_cta')
-    },
-    {
-      id: 'employer',
-      who: 'employer',
-      name: t('who.employer_title'),
-      tag: t('who.employer_tag'),
-      blurb: t('who.employer_blurb'),
-      points: [t('who.employer_p1'), t('who.employer_p2'), t('who.employer_p3')],
-      cta: t('who.employer_cta')
-    },
-    {
-      id: 'hirer',
-      who: 'hirer',
-      name: t('who.client_title'),
-      tag: t('who.client_tag'),
-      blurb: t('who.client_blurb'),
-      points: [t('who.client_p1'), t('who.client_p2'), t('who.client_p3')],
-      cta: t('who.client_cta')
-    }
-  ]
-
-  return (
-    <section id="who" className="who-wrap">
-      <Reveal>
-        <p className="eyebrow">{t('who.eyebrow')}</p>
-        <h2>{t('who.title')}</h2>
-      </Reveal>
-      <div className="who-grid">
-        {cards.map((c, i) => (
-          <Reveal as="article" key={c.id} delay={i * 0.1} className={`who-card w${i}`}>
-            <div className="who-av"><Avatar who={c.who} /></div>
-            <h3>{c.name}</h3>
-            <em>{c.tag}</em>
-            <p>{c.blurb}</p>
-            <ul>{c.points.map(p => <li key={p}><IconCheck size={14} />{p}</li>)}</ul>
-            <Link to={`/register?type=${c.id}`} className="who-link">
-              {c.cta} <IconArrow className="arr" />
-            </Link>
-          </Reveal>
-        ))}
+        </ol>
       </div>
     </section>
   )
 }
 
-/* ─ Towns ───────────────────────────────────────────────── */
-function Towns() {
+function Cta() {
   const { t } = useLanguage()
-
   return (
-    <div id="towns" className="towns-wrap">
-      <Reveal className="towns-inner">
-        <p className="eyebrow light">{t('towns.eyebrow')}</p>
-        <h2>{t('towns.title')}</h2>
-        <div className="town-list">
-          {TOWNS.map(tName => (
-            <Link to={`/jobs?location=${encodeURIComponent(tName)}`} key={tName}>
-              <IconPin size={13} />{tName}
-            </Link>
-          ))}
+    <section className="lp-in lp-cta-wrap">
+      <Reveal className="lp-cta">
+        <h2>{t('lp.cta.title')}</h2>
+        <p>{t('lp.cta.lede')}</p>
+        <div className="lp-cta-btns">
+          <Link to="/register?type=worker" className="btn btn-primary btn-lg">{t('lp.cta.work')} <IconArrow /></Link>
+          <Link to="/register?type=employer" className="btn lp-ghost btn-lg">{t('lp.cta.hire')}</Link>
         </div>
-      </Reveal>
-    </div>
-  )
-}
-
-/* ─ CTA ─────────────────────────────────────────────────── */
-function CTA() {
-  const { t } = useLanguage()
-
-  return (
-    <section className="cta-section">
-      <Reveal as="h2">{t('cta.title')}</Reveal>
-      <Reveal as="p" delay={0.1}>{t('cta.subtitle')}</Reveal>
-      <Reveal className="hero-actions" delay={0.2}>
-        <Link to="/register" className="btn btn-navy btn-lg">
-          {t('cta.create_account')} <IconArrow />
-        </Link>
-        <Link to="/jobs" className="btn btn-outline btn-lg">
-          {t('cta.browse_jobs')}
-        </Link>
       </Reveal>
     </section>
   )
 }
 
-/* ─ Demo jobs (shown when API is unavailable) ───────────── */
-const DEMO_JOBS = [
-  { id: 1, title: 'Construction Worker', company: 'Vicor Construction Services', location: 'Calapan City', job_type: 'full-time',    salary_min: 15000, salary_max: 20000, match_pct: 92 },
-  { id: 2, title: 'Service Crew',        company: 'Oriental Food Corp',          location: 'Calapan City', job_type: 'part-time',    salary_min: 8000,  salary_max: 12000, match_pct: 75 },
-  { id: 3, title: 'Graphic Designer',    company: 'Mindoro Creative Studio',     location: 'Naujan',       job_type: 'freelance',    salary_min: 15000, salary_max: null,  match_pct: 88 },
-  { id: 4, title: 'Electrician',         company: 'DMC Home Services',           location: 'Bansud',       job_type: 'contractual',  salary_min: 12000, salary_max: 18000, match_pct: 80 },
-  { id: 5, title: 'Welder',             company: 'Mindoro Metal Works',          location: 'Bongabong',    job_type: 'contractual',  salary_min: 12000, salary_max: 18000, match_pct: 73 },
-  { id: 6, title: 'Computer Technician', company: 'Tech Mindoro',               location: 'Pinamalayan',  job_type: 'full-time',    salary_min: 18000, salary_max: 25000, match_pct: 82 },
-  { id: 7, title: 'Warehouse Staff',    company: 'Rosario Logistics',            location: 'Gloria',       job_type: 'full-time',    salary_min: 13000, salary_max: 16000, match_pct: 65 },
-  { id: 8, title: 'Boat Mechanic',      company: 'Puerto Galera Marine',         location: 'Puerto Galera',job_type: 'gig',          salary_min: 500,   salary_max: 2000,  match_pct: 70 },
-]
-
 export default function Landing() {
-  const { t } = useLanguage()
+  const { hash } = useLocation()
+  const [live, setLive] = useState(null)
+  const [towns, setTowns] = useState(null)
+  useEffect(() => {
+    let alive = true
+    api('/jobs?limit=50&sort=recent')
+      .then(r => { if (alive) setLive({ total: Number(r.total || 0), jobs: r.jobs || [] }) })
+      .catch(() => { if (alive) setLive({ total: null, jobs: [] }) })
+    api('/jobs/towns')
+      .then(r => { if (alive) setTowns({ towns: r.towns || {}, total: Number(r.total || 0) }) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+  // arriving from another page with /#features etc.
+  useEffect(() => {
+    if (!hash) return
+    const el = document.getElementById(hash.slice(1))
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+  }, [hash])
 
   return (
-    <div className="land">
-      <Nav />
-      <Hero />
-      <Features />
-      <FeaturedJobs />
-      <How />
-      <Who />
-      <Towns />
-      <CTA />
-      <footer className="wrap foot">
-        <Logo height={36} />
-        <p>© {new Date().getFullYear()} {t('foot.copy')}</p>
-        <div className="foot-links">
-          <a href="#">{t('foot.about')}</a>
-          <a href="#">{t('foot.privacy')}</a>
-          <a href="#">{t('foot.terms')}</a>
-          <a href="#">{t('foot.contact')}</a>
-        </div>
-      </footer>
+    <div className="lp">
+      <SiteHeader />
+      <main>
+        <Hero live={live} towns={towns} />
+        <HiringNow live={live} />
+        <BrowsePosts />
+        <Roles />
+        <Features />
+        <Employers />
+        <How />
+        <Cta />
+      </main>
+      <SiteFooter />
     </div>
   )
 }

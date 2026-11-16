@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "messages": {
+      "$tKey": {
+        "msgs": {
+          ".indexOn": ["ts"],
+          ".read": "auth != null && ($tKey.beginsWith(auth.uid + '_') || $tKey.endsWith('_' + auth.uid))",
+          "$mid": {
+            ".write": "auth != null && !data.exists() && newData.exists() && ($tKey.beginsWith(auth.uid + '_') || $tKey.endsWith('_' + auth.uid))",
+            ".validate": "newData.hasChildren(['from', 'body', 'ts']) && newData.child('from').val() === auth.uid && newData.child('body').isString() && newData.child('body').val().length > 0 && newData.child('body').val().length <= 2000 && newData.child('ts').isNumber()"
+          }
+        }
+      }
+    },
+
+    "threads": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$tKey": {
+          ".write": "auth != null && (($uid === auth.uid && ($tKey.beginsWith(auth.uid + '_') || $tKey.endsWith('_' + auth.uid))) || $tKey === auth.uid + '_' + $uid || $tKey === $uid + '_' + auth.uid)"
+        }
+      }
+    }
+  }
+}

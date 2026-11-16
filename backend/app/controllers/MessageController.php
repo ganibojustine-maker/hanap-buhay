@@ -2,7 +2,10 @@
 defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 
 /**
- * /api/messages — simple messaging between users.
+ * Chat itself lives in Firebase Realtime Database and never touches MySQL.
+ * This controller only provides what Firebase cannot:
+ *   POST /api/messages/notify  content-free "new message" notification
+ *   GET  /api/users/{id}       minimal public profile for a chat partner
  */
 class MessageController extends Controller
 {
@@ -11,96 +14,70 @@ class MessageController extends Controller
         parent::__construct();
         $this->call->library('api');
         $this->call->database();
-        $this->call->model('Message_model', 'message_model');
         $this->call->model('User_model', 'user_model');
+        $this->call->model('Application_model', 'application_model');
     }
 
-    // GET /api/messages/threads — conversation list
-    public function threads()
-    {
-        $this->api->require_method('GET');
-        $payload = $this->api->require_jwt();
-        $uid = (int) $payload['sub'];
-
-        $rows = $this->message_model->get_threads($uid);
-        $this->api->respond(['success' => true, 'threads' => $rows ?: []]);
-    }
-
-    // GET /api/messages/:partner_id — conversation with partner
-    public function conversation($partner_id)
-    {
-        $this->api->require_method('GET');
-        $payload = $this->api->require_jwt();
-        $uid  = (int) $payload['sub'];
-        $pid  = (int) $partner_id;
-
-        $rows = $this->message_model->get_conversation($uid, $pid);
-
-        // Mark received messages as read
-        $this->message_model->mark_as_read($uid, $pid);
-
-        $partner = $this->user_model->find_by_id($pid);
-        $partnerData = null;
-        if ($partner) {
-            $partnerData = [
-                'id'           => (int) $partner['id'],
-                'full_name'    => $partner['full_name'],
-                'email'        => $partner['email'],
-                'account_type' => $partner['account_type'],
-                'location'     => $partner['location'],
-                'picture'      => $partner['picture'] ?? null
-            ];
-        }
-
-        $this->api->respond(['success' => true, 'messages' => $rows ?: [], 'partner' => $partnerData]);
-    }
-
-    // POST /api/messages — send a message
-    public function send()
+    // POST /api/messages/notify  { receiver_id }
+    // Stores NO message text: only "X sent you a message", at most once per 10 minutes per sender.
+    public function notify()
     {
         $this->api->require_method('POST');
         $payload = $this->api->require_jwt();
-        $b = $this->api->body();
+        $me = (int) $payload['sub'];
+        $this->api->rate_limit('msg_notify_' . $me, 60, 300);
 
-        $to   = (int) ($b['receiver_id'] ?? 0);
-        $body = trim((string) ($b['body'] ?? ''));
-        if (!$to || mb_strlen($body) < 1) $this->api->respond_error('Receiver and message body are required.', 422);
-        if ($to === (int) $payload['sub']) $this->api->respond_error('Cannot message yourself.', 422);
+        $b  = $this->api->body();
+        $to = (int) ($b['receiver_id'] ?? 0);
+        if (!$to || $to === $me) $this->api->respond_error('Invalid recipient.', 422);
 
         $receiver = $this->user_model->find_by_id($to);
-        if (!$receiver) $this->api->respond_error('Recipient not found.', 404);
+        $sender   = $this->user_model->find_by_id($me);
+        if (!$receiver || (int) $receiver['is_active'] !== 1 || !$sender) {
+            $this->api->respond_error('Recipient not found.', 404);
+        }
 
-        $msg = $this->message_model->send_message([
-            'sender_id'   => (int) $payload['sub'],
-            'receiver_id' => $to,
-            'job_id'      => is_numeric($b['job_id'] ?? '') ? (int) $b['job_id'] : null,
-            'body'        => substr($body, 0, 5000),
-        ]);
+        $name  = $sender['full_name'] ?: 'Someone';
+        $title = "New message from {$name}";
 
-        try {
-            $sender = $this->user_model->find_by_id((int) $payload['sub']);
-            $sender_name = $sender ? ($sender['full_name'] ?: 'Someone') : 'Someone';
-            $this->call->model('Application_model', 'application_model');
+        $recent = $this->db->raw(
+            "SELECT id FROM notifications WHERE user_id = ? AND type = 'message' AND title = ? AND created_at > ? LIMIT 1",
+            [$to, $title, date('Y-m-d H:i:s', time() - 600)]
+        );
+        $already = $recent ? $recent->fetch(\PDO::FETCH_ASSOC) : false;
+
+        if (!$already) {
             $this->application_model->create_notification(
                 $to,
                 'message',
-                "New message from {$sender_name}",
-                substr($body, 0, 120),
-                '/dashboard/messages'
+                $title,
+                'Open Messages to read and reply.',
+                '/dashboard/messages',
+                false // in-app only, never email for chat
             );
-        } catch (\Throwable $t) {
-            error_log('[Message Notification Error] ' . $t->getMessage());
         }
 
-        $this->api->respond(['success' => true, 'message' => $msg], 201);
+        $this->api->respond(['success' => true]);
     }
 
-    // GET /api/messages/unread-count
-    public function unread_count()
+    // GET /api/users/{id} — name, type, location and photo only (no email, no phone)
+    public function profile($id)
     {
         $this->api->require_method('GET');
-        $payload = $this->api->require_jwt();
-        $count = $this->message_model->get_unread_count((int) $payload['sub']);
-        $this->api->respond(['success' => true, 'count' => (int) $count]);
+        $this->api->require_jwt();
+        $u = $this->user_model->find_by_id((int) $id);
+        if (!$u || (int) $u['is_active'] !== 1) $this->api->respond_error('User not found.', 404);
+
+        $this->call->model('Social_model', 'social_model');
+        $this->api->respond(['success' => true, 'user' => [
+            'id'           => (int) $u['id'],
+            'full_name'    => $u['full_name'],
+            'account_type' => $u['account_type'],
+            'location'     => $u['location'],
+            'picture'      => $u['picture'] ?? null,
+            'avatar_color' => isset($u['avatar_color']) ? (int) $u['avatar_color'] : ((int) $u['id'] % 8),
+            'is_verified'  => (int) ($u['is_verified'] ?? 0) === 1,
+            'rating'       => $this->social_model->rating_for((int) $u['id'], $u['account_type'] ?? null),
+        ]]);
     }
 }
