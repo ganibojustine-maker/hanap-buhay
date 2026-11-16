@@ -1,7 +1,7 @@
 # How hanapbuhay matches workers to jobs
 
 **Method:** rule-based, weighted scoring. No machine learning and no hidden numbers. Every score
-is the sum of five parts, each with a fixed maximum. The maximums add up to 100. The same code
+is built from up to five parts, each with a fixed weight. The same code
 (`backend/app/libraries/Job_matcher.php`) scores every screen: job cards, the job page, the job
 map, the employer's applicant list, Find Workers and job alerts. The worker and the employer
 always see the same number.
@@ -16,9 +16,26 @@ always see the same number.
 | **Location** | 15 | Straight-line distance between the town centres of the worker (or a town they said they would work in) and the job. Same town 15, up to 15 km 12, up to 30 km 9, up to 50 km 6, up to 80 km 3, farther 1. Unknown town: 6. |
 | **Education** | 10 | Minimum schooling from the job post. Meets it: 10. One level below: 5. Lower: 0. |
 
-**A requirement the job does not ask for counts as met.** For example, a job with no
-experience requirement gives everyone the full 15 experience points. A job is only scored on
-what it actually needs. This keeps the score fair across simple and demanding jobs.
+## Only what the job asks for is scored
+
+A part the job does not ask for is **left out**, and the weights of the remaining parts are
+rescaled to 100. A job with no experience or education requirement is scored on skills,
+certificate (if any) and distance alone. Asking for nothing never gives free points, so a worker
+cannot reach a Good match without matching what the job actually needs.
+
+## Skills are a gate
+
+The skills a job lists decide whether a worker can be a good match at all:
+
+| Situation | Highest score possible |
+|---|---|
+| The job lists skills and the worker has **none** of them | 24 (Low match) |
+| The worker has **under half** of them | 49 (never a Good match) |
+| The job **requires a TESDA NC** the worker does not hold yet | 74 (never a Strong match) |
+| The job **lists no skills** | 60 (little to compare) |
+
+In real hiring a worker who cannot do the work is not a good fit however close they live or
+however much schooling they have. These limits keep the score honest.
 
 ## Why these weights
 
@@ -33,16 +50,16 @@ what it actually needs. This keeps the score fair across simple and demanding jo
 - **Education (10)** is the smallest part. Most skilled-trade jobs in the province care more
   about skills than diplomas, but some office jobs set a minimum.
 
-The weights are constants in one place (`Job_matcher::WEIGHTS`) and can be changed and
-re-defended without touching any screen.
+The weights and the limits above are constants in one place (`Job_matcher`) and can be changed
+and re-defended without touching any screen.
 
 ## Match levels
 
 | Score | Level | What the worker sees |
 |---|---|---|
 | 75–100 | Strong match | Shown on the card in green. |
-| 50–74 | Good match | Shown on the card in gold, with the main gap. |
-| 0–49 | Low match | Shown on the card with the main gap. Applying opens a short notice that lists what is missing and offers TESDA training. The worker can still apply. |
+| 50–74 | Good match | Shown on the card in amber, with the main gap. |
+| 0–49 | Low match | Shown on the card in red, with the main gap. The apply dialog lists what is missing with a free-training link for each skill. The worker can still apply ("Apply anyway"). |
 
 ## What a worker must fill in
 
@@ -76,8 +93,8 @@ finished high school.
 | Education | 5 / 10 | One level below senior high |
 | **Total** | **41: Low match** | Gaps shown: Welding NC II, Safety Training, 2+ years |
 
-After the worker finishes a TESDA welding course and the admin accepts the NC II certificate,
-the certification part becomes 15 and the score rises to 56 (Good match) with no other change.
+After the worker finishes a TESDA welding course, the admin accepts the NC II certificate, and
+they add Safety Training, the score rises to 75 (Strong match).
 
 ## Questions a panel may ask
 

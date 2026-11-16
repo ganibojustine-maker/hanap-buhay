@@ -286,8 +286,8 @@ const FAQS = [
     ['What is the difference between a job and a gig?', 'A job is a position at a business: you apply, may be interviewed, and get hired. A gig is short, priced work for a client, like a repair: you send a proposal with your price, do the work, and get paid when it is approved.'],
   ]],
   ['Matching', [
-    ['How is my match score counted?', 'A fixed formula out of 100: skills 45, experience 15, certificates 15, distance 15, education 10. Requirements a job does not ask for count as met. Open any job and press “How this score is counted” to see your exact points.'],
-    ['My score is low. Can I still apply?', 'Yes. We show what is missing and suggest free TESDA training, then you decide. Employers see that you applied knowing the gaps.'],
+    ['How is my match score counted?', 'A fixed formula out of 100 that scores only what the job asks for: skills (the most important), experience, certificates, distance and education. If you have none of the skills a job lists, it is a Low match however close it is. Open any job and press “How this score is counted” to see your points.'],
+    ['My score is low. Can I still apply?', 'Yes. We show what is missing and link free TESDA training, then you decide.'],
     ['How do I raise my score?', 'Add your skills and levels to your Skills Passport, fill in your experience and education, and upload certificates. Once our team accepts a certificate, it counts and your score updates on every job.'],
   ]],
   ['Verification', [

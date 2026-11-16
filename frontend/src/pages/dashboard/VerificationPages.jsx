@@ -102,42 +102,34 @@ function IdStep({ call, idTypes, user, onDone }) {
 
 /* What each role reads on its own verification page. The steps themselves come from the
    server (VerificationController::status), which also differs per role. */
-const ID_TIPS = [
-  'Use a valid government ID: PhilSys National ID, driver’s license, UMID, passport, postal ID or voter’s ID.',
-  'Take the photo in good light with all four corners showing and nothing covering the text.',
-  'The name on the ID must match the name on your profile.',
-]
+const ID_TIPS = ['Use a valid government ID (PhilSys, driver’s license, UMID, passport).', 'Good light, all four corners visible.', 'The name must match your profile.']
 const ROLE_PAGE = {
   worker: {
-    title: 'Verify your worker account',
-    verifiedText: 'The Verified badge now shows on your applications, proposals and Skills Passport.',
-    intro: 'Employers and clients hire verified workers first. It takes about five minutes.',
+    title: 'Verify your account',
+    intro: 'Employers and clients hire verified workers first.',
+    verifiedText: 'The Verified badge shows on your applications and Skills Passport.',
     docTitle: 'Send a government ID',
-    docHelp: 'A photo of your ID, and a selfie holding it if you can. Our team checks it within 1 to 2 working days.',
+    docHelp: 'Checked within 1 to 2 working days.',
     tips: ID_TIPS,
-    privacy: 'Only our verification team sees your ID. Employers and clients only see the Verified badge.',
+    privacy: 'Only our team sees your ID.',
   },
   hirer: {
-    title: 'Verify your client account',
-    verifiedText: 'The Verified client badge now shows on your gigs, proposals and messages.',
-    intro: 'Workers trust verified clients, and your gigs go live without waiting for review.',
+    title: 'Verify your account',
+    intro: 'Workers trust verified clients, and your gigs go live right away.',
+    verifiedText: 'The Verified badge shows on your gigs and messages.',
     docTitle: 'Send a government ID',
-    docHelp: 'A photo of your ID, and a selfie holding it if you can. Our team checks it within 1 to 2 working days.',
+    docHelp: 'Checked within 1 to 2 working days.',
     tips: ID_TIPS,
-    privacy: 'Only our verification team sees your ID. Workers only see the Verified client badge.',
+    privacy: 'Only our team sees your ID.',
   },
   employer: {
     title: 'Verify your business',
-    verifiedText: 'The Verified business badge now shows on your job posts, and new posts go live right away.',
-    intro: 'A verified business posts jobs that go live right away and carry the Verified business badge.',
+    intro: 'Verified businesses post jobs that go live right away.',
+    verifiedText: 'The Verified business badge shows on your job posts.',
     docTitle: 'Upload your business document',
-    docHelp: 'DTI, SEC or CDA registration, a Mayor’s permit or BIR Form 2303. Our team checks the name and number within 1 to 2 working days.',
-    tips: [
-      'The business name on the document must match your business profile.',
-      'A PDF or a clear photo of the whole page, up to 5 MB.',
-      'Permits must still be valid (not expired).',
-    ],
-    privacy: 'Only our verification team sees your documents. Workers only see the Verified business badge.',
+    docHelp: 'DTI, SEC, CDA, Mayor’s permit or BIR 2303. Checked within 1 to 2 working days.',
+    tips: ['The business name must match your profile.', 'A PDF or clear photo, up to 5 MB.', 'The permit must not be expired.'],
+    privacy: 'Only our team sees your documents.',
   },
 }
 
@@ -224,7 +216,7 @@ function VerificationPage({ call, user, updateUser, role }) {
           {data.status !== 'verified' && <section className="panel">
             <h2 className="pf-h">Before you send</h2>
             <ul className="vf-tips">{page.tips.map(t => <li key={t}>{t}</li>)}</ul>
-            <p className="pf-small" style={{ margin: '10px 0 0' }}><IconShield size={12} /> {page.privacy} <Link to="/privacy">Privacy Policy</Link></p>
+            <p className="pf-small" style={{ margin: '10px 0 0' }}><IconShield size={12} /> {page.privacy}</p>
           </section>}
           {(data.history || []).length > 0 && (
             <section className="panel">

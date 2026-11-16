@@ -232,13 +232,13 @@ export function WorkerOverview({ user, call }) {
           {/* 4a — jobs */}
           <section className="ov-block">
             <div className="ov-block-hd">
-              <div><h2>{tr('Jobs for you')}</h2><p>{tr('Long-term work with an employer, best match first')}</p></div>
+              <div><h2>{tr('Jobs for you')}</h2></div>
               <Link to="/dashboard/matches" className="ov-more">{tr('All job matches')} <IconArrow size={13} /></Link>
             </div>
             {jobsForYou.length > 0 && <MatchLegend />}
             {jobsForYou.length === 0
               ? <div className="ov-empty-card">
-                  <p>{passport.skills_count === 0 ? tr('Add your skills and we will recommend jobs that fit.') : tr('No new job matches right now.')}</p>
+                  <p>{passport.skills_count === 0 ? tr('Add your skills to see jobs that fit.') : tr('No new job matches right now.')}</p>
                   <Link to={passport.skills_count === 0 ? '/dashboard/passport' : '/dashboard/browse'} className="btn btn-navy btn-sm">
                     {passport.skills_count === 0 ? tr('Add skills') : tr('Search jobs')}
                   </Link>
@@ -255,12 +255,12 @@ export function WorkerOverview({ user, call }) {
           {/* 4b — gigs */}
           <section className="ov-block">
             <div className="ov-block-hd">
-              <div><h2>{tr('Gigs for you')}</h2><p>{tr('Short paid tasks from clients near you')}</p></div>
+              <div><h2>{tr('Gigs for you')}</h2></div>
               <Link to="/dashboard/gigs" className="ov-more">{tr('All gigs')} <IconArrow size={13} /></Link>
             </div>
             {gigsForYou.length === 0
               ? <div className="ov-empty-card">
-                  <p>{tr('No new gigs right now. List a service so clients can book you directly.')}</p>
+                  <p>{tr('No new gigs right now.')}</p>
                   <Link to="/dashboard/gigs/services" className="btn btn-navy btn-sm">{tr('List a service')}</Link>
                 </div>
               : <div className="ov-cards">
@@ -320,7 +320,6 @@ export function WorkerOverview({ user, call }) {
                   </li>
                 ))}
               </ul>
-              <p className="ov-free">{tr('Free TESDA training in Oriental Mindoro')}</p>
             </section>
           )}
         </aside>

@@ -119,7 +119,7 @@ export const WORKER_SECTIONS = [
   {
     id: 'find', group: 'Jobs', to: '/dashboard/matches', icon: IconSpark, label: 'Find jobs',
     title: 'Find jobs',
-    lede: 'Jobs with employers across Oriental Mindoro, scored against your Skills Passport.',
+    lede: 'Jobs with employers, scored against your Skills Passport.',
     tabs: FIND_JOBS_TABS, paths: ['/dashboard/browse'],
   },
   {
@@ -129,7 +129,7 @@ export const WORKER_SECTIONS = [
   },
   {
     id: 'gigs', group: 'Gigs', to: '/dashboard/gigs', icon: IconHandshake, label: 'Find gigs', title: 'Find gigs',
-    lede: 'Short paid tasks from clients near you. Send your price, do the work, get paid and reviewed.',
+    lede: 'Short paid tasks from clients near you.',
     tabs: WORKER_GIG_FIND_TABS,
   },
   {
@@ -139,17 +139,17 @@ export const WORKER_SECTIONS = [
   },
   {
     id: 'services', group: 'Gigs', to: '/dashboard/gigs/services', icon: IconCard, label: 'My services', title: 'My services',
-    lede: 'Services clients can book from you directly, with your photos and prices.',
+    lede: 'Services clients can book from you.',
   },
   {
     id: 'passport', group: 'My profile', to: '/dashboard/passport', icon: IconShield, label: 'Skills Passport',
     title: 'Skills Passport',
-    lede: 'What employers and clients see: your skills, the proof behind them, and your resume.',
+    lede: 'Your skills, proof and resume.',
     tabs: PASSPORT_TABS, paths: ['/dashboard/resume'],
   },
   {
     id: 'training', group: 'My profile', to: '/dashboard/training', icon: IconBook, label: 'Training', title: 'Training & courses',
-    lede: 'Free TESDA courses in Oriental Mindoro. The ones that close your skill gaps come first.',
+    lede: 'Free TESDA courses in Oriental Mindoro.',
     action: { href: 'https://e-tesda.gov.ph/', label: 'Free online courses (e-TESDA)' },
   },
   { id: 'people', to: MESSAGES_PATH.worker, icon: IconMsgCircle, label: 'Messages', title: 'Messages', tabs: peopleTabs('worker') },

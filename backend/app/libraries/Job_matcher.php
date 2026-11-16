@@ -9,8 +9,12 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * sends a proposal, the employer's applicant profile, Find Workers and job
  * alerts, so every screen shows the same number for the same worker and job.
  *
- * Rule-based weighted scoring (weights total 100, see docs/MATCHING.md):
+ * Rule-based weighted scoring (see docs/MATCHING.md):
  *   Skills 45 · Experience 15 · Certification 15 · Location 15 · Education 10
+ * Only what a job actually asks for is scored (the weights of the other parts are dropped,
+ * so asking for nothing never hands out free points), and the skills a job lists are a gate:
+ * a worker with none of them is a Low match, and one with under half is never a Good match.
+ * A TESDA NC the job requires and the worker does not hold also keeps the score below Strong.
  *
  * "Electrical NC II" style requirements need a TESDA NC at that level: the
  * skill part counts the skill, the certification part counts the NC, and a
@@ -27,7 +31,7 @@ class Job_matcher
         'Roxas'         => [12.5858, 121.5175], 'Mansalay' => [12.5297, 121.4386], 'Bulalacao' => [12.3236, 121.3436],
     ];
 
-    /** Weights. They add up to 100; docs/MATCHING.md explains each one. */
+    /** Weights of the five parts. A part the job does not ask for is left out and the rest are rescaled to 100. */
     public const WEIGHTS = ['skills' => 45, 'experience' => 15, 'certification' => 15, 'location' => 15, 'education' => 10];
 
     /** Match levels shown on every card: the first one whose minimum the score reaches. */
@@ -49,6 +53,12 @@ class Job_matcher
 
     /** jobs.experience → minimum years */
     private const EXPERIENCE_YEARS = ['none' => 0, '1' => 1, '2-3' => 2, '4+' => 4];
+
+    /** The score a worker can reach when the job's skills are not met (see the gate in score()). */
+    private const CAP_NO_SKILLS = 24;      // none of the listed skills: always Low
+    private const CAP_FEW_SKILLS = 49;     // under half of them: never Good
+    private const CAP_NO_REQUIREMENTS = 60; // the job lists no skills, so there is little to compare
+    private const CAP_MISSING_NC = 74;      // the job requires a TESDA NC the worker does not have yet: never Strong
 
     /** Skill level → how much of a required skill it covers. */
     private const LEVEL_CREDIT = ['beginner' => 0.7, 'intermediate' => 0.85, 'advanced' => 1.0, 'expert' => 1.0];
@@ -218,8 +228,12 @@ class Job_matcher
      *   Location       15  distance between the worker's town (or a preferred town) and the job
      *   Education      10  worker's schooling vs. the minimum the job asks for
      *
-     * A requirement the job does not ask for counts as met, so a job is only scored on what it
-     * actually needs. Every part comes back with its points and a one-line explanation.
+     * Only the parts the job asks for count: a job with no experience or education requirement is
+     * scored on skills, certificate and distance alone, so "no requirement" is never a free point.
+     * Skills are a gate: none met = at most 24 (Low); under half met = at most 49 (never Good).
+     * A job that lists no skills at all is capped at 60, because there is little to compare.
+     * A required TESDA NC the worker lacks caps the score at 74 (never Strong).
+     * Every part comes back with its points (out of 100 in total) and a one-line explanation.
      *
      * @param array $worker  users row (location, preferred_towns, experience_years, education_level, resume_data)
      * @param array $skills  worker skills: skill_name, level, source, certificate, verified (bool)
@@ -280,7 +294,7 @@ class Job_matcher
         $skillNeeds = count($skillCredits);
         $skillPts = $skillNeeds ? $W['skills'] * array_sum($skillCredits) / $skillNeeds : $W['skills'];
         $have = count(array_filter($skillCredits, fn($c) => $c > 0));
-        $parts[] = ['key' => 'skills', 'label' => 'Skills', 'points' => (int) round($skillPts), 'max' => $W['skills'],
+        $parts[] = ['key' => 'skills', 'label' => 'Skills', 'applies' => $skillNeeds > 0, 'raw' => $skillPts, 'points' => (int) round($skillPts), 'max' => $W['skills'],
             'explain' => $skillNeeds
                 ? sprintf('You have %d of the %d skills this job lists.', $have, $skillNeeds)
                     . ($have > 0 && round($skillPts) < $W['skills'] && $have === $skillNeeds ? ' A higher skill level earns the rest.' : '')
@@ -301,7 +315,7 @@ class Job_matcher
             $expText = 'You have ' . $yrs($years) . '; the job asks for ' . $plus($needYears) . '.';
             if ($years < $needYears) $gaps[] = ['name' => $plus($needYears) . ' of experience', 'kind' => 'experience', 'skill' => null, 'pending' => false];
         }
-        $parts[] = ['key' => 'experience', 'label' => 'Experience', 'points' => (int) round($expPts), 'max' => $W['experience'], 'explain' => $expText];
+        $parts[] = ['key' => 'experience', 'label' => 'Experience', 'applies' => $needYears > 0, 'raw' => $expPts, 'points' => (int) round($expPts), 'max' => $W['experience'], 'explain' => $expText];
 
         // 3. Certification
         if ($ncNeeds === 0) {
@@ -311,7 +325,7 @@ class Job_matcher
             $certText = $ncCredit >= $ncNeeds ? 'You have the verified certificate this job asks for.'
                 : ($ncCredit > 0 ? 'A certificate is still being checked by our team, or one is missing.' : 'This job asks for a TESDA NC you have not added yet.');
         }
-        $parts[] = ['key' => 'certification', 'label' => 'Certificates', 'points' => (int) round($certPts), 'max' => $W['certification'], 'explain' => $certText];
+        $parts[] = ['key' => 'certification', 'label' => 'Certificates', 'applies' => $ncNeeds > 0, 'raw' => $certPts, 'points' => (int) round($certPts), 'max' => $W['certification'], 'explain' => $certText];
 
         // 4. Location
         $km = $this->distance_km($worker['location'] ?? null, $job['location'] ?? null);
@@ -327,7 +341,7 @@ class Job_matcher
         elseif ($km <= 50) { $locPts = (int) round($L * 0.4); $locText = $this->km_label($km) . ' from you.'; }
         elseif ($km <= 80) { $locPts = (int) round($L * 0.2); $locText = $this->km_label($km) . ' from you, a long trip.'; }
         else               { $locPts = 1;                     $locText = $this->km_label($km) . ' from you, the far end of the province.'; }
-        $parts[] = ['key' => 'location', 'label' => 'Location', 'points' => $locPts, 'max' => $L, 'explain' => $locText];
+        $parts[] = ['key' => 'location', 'label' => 'Location', 'applies' => true, 'raw' => $locPts, 'points' => $locPts, 'max' => $L, 'explain' => $locText];
 
         // 5. Education
         $needEdu = (string) ($job['education_level'] ?? '');
@@ -344,13 +358,33 @@ class Job_matcher
                 : 'Needs: ' . self::EDUCATION_LABELS[$needEdu] . '. You have: ' . self::EDUCATION_LABELS[$edu] . '.';
             if ($diff < 0) $gaps[] = ['name' => self::EDUCATION_LABELS[$needEdu], 'kind' => 'education', 'skill' => null, 'pending' => false];
         }
-        $parts[] = ['key' => 'education', 'label' => 'Education', 'points' => (int) round($eduPts), 'max' => $W['education'], 'explain' => $eduText];
+        $parts[] = ['key' => 'education', 'label' => 'Education', 'applies' => isset(self::EDUCATION[$needEdu]) && $needEdu !== 'none', 'raw' => $eduPts, 'points' => (int) round($eduPts), 'max' => $W['education'], 'explain' => $eduText];
 
-        $score = (int) max(0, min(100, array_sum(array_column($parts, 'points'))));
+        // only what the job asks for counts; the weights of those parts are rescaled to 100
+        $counted = array_values(array_filter($parts, fn($x) => $x['applies']));
+        $maxSum = array_sum(array_column($counted, 'max'));
+        $raw = $maxSum > 0 ? 100 * array_sum(array_column($counted, 'raw')) / $maxSum : 0;
+        foreach ($parts as &$x) {
+            $x['points'] = $x['applies'] ? (int) round($x['raw'] * 100 / $maxSum) : 0;
+            $x['max'] = $x['applies'] ? (int) round($x['max'] * 100 / $maxSum) : 0;
+            unset($x['raw']);
+        }
+        unset($x);
+        $parts = array_values(array_filter($parts, fn($x) => $x['applies']));
+
+        // the skills a job lists are a gate (see the doc above)
+        $coverage = $skillNeeds ? $have / $skillNeeds : 1.0;
+        $gate = null;
+        if ($skillNeeds === 0) $gate = self::CAP_NO_REQUIREMENTS;
+        elseif ($have === 0) $gate = self::CAP_NO_SKILLS;
+        elseif ($coverage < 0.5) $gate = self::CAP_FEW_SKILLS;
+        if ($ncNeeds > 0 && $ncCredit < $ncNeeds) $gate = min($gate ?? 100, self::CAP_MISSING_NC);
+        $score = (int) max(0, min(100, round($raw)));
+        if ($gate !== null) $score = min($score, $gate);
         $level = self::level_of($score);
 
         $reasons = [];
-        $reasons[] = $needs ? sprintf('Has %d of %d skills', count($matched), count($needs)) : 'No specific skills listed';
+        $reasons[] = $skillNeeds ? sprintf('Has %d of %d skills', $have, $skillNeeds) : 'No specific skills listed';
         if ($km !== null) $reasons[] = $km == 0 ? 'Same town' : $this->km_label($km) . ' away';
         if ($verifiedHits) $reasons[] = 'Verified certificate';
 
@@ -359,6 +393,8 @@ class Job_matcher
             'level'       => $level['key'],
             'level_label' => $level['label'],
             'parts'       => $parts,
+            'skills_have' => $have,
+            'skills_need' => $skillNeeds,
             'gaps'        => $gaps,
             'distance_km' => $km,
             'matched'     => $matched,
@@ -366,8 +402,8 @@ class Job_matcher
             'verified'    => $verifiedHits,
             'reasons'     => $reasons,
             // older screens read these
-            'skills_pts'  => $parts[0]['points'],
-            'place_pts'   => $parts[3]['points'],
+            'skills_pts'  => 0,
+            'place_pts'   => 0,
             'trust_pts'   => 0,
         ];
     }

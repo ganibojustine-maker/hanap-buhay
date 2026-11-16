@@ -40,7 +40,7 @@ function FitCheck({ match }) {
     return (
       <div className="qa-fit strong" role="status">
         <IconCheck size={16} />
-        <span><b>{tr('Strong match')} · {match.score}%</b> {tr('You have what this employer asked for.')}</span>
+        <span><b>{tr('Strong match')} · {match.score}%</b></span>
       </div>
     )
   }
@@ -52,9 +52,7 @@ function FitCheck({ match }) {
         {level.key === 'low' ? <IconAlert size={16} /> : <IconCheck size={16} />}
         <span>
           <b>{tr(level.label)} · {match.score}%</b>{' '}
-          {level.key === 'low'
-            ? tr('This job asks for things your profile doesn’t show yet. You can still apply, but employers usually pick people who meet more of the requirements.')
-            : tr('You meet most requirements. Mention related experience in your message for what is missing.')}
+          {level.key === 'low' ? tr('You’re missing key requirements. You can still apply.') : tr('A few requirements are missing.')}
         </span>
       </div>
       {gaps.length > 0 && (
@@ -77,10 +75,7 @@ function FitCheck({ match }) {
         </ul>
       )}
       {skillGaps.length > 0 && (
-        <p className="qa-fit-foot">
-          {tr('Already have one of these skills?')} <Link to="/dashboard/passport"><IconPlus size={12} /> {tr('Add it to your Skills Passport')}</Link>
-          {' · '}<Link to="/dashboard/training">{tr('See all training')}</Link>
-        </p>
+        <p className="qa-fit-foot"><Link to="/dashboard/passport"><IconPlus size={12} /> {tr('I have this skill: add it to my passport')}</Link></p>
       )}
     </div>
   )
@@ -150,7 +145,7 @@ export default function QuickApplyModal({ job, user, skills, onClose, onSubmit }
         <textarea id={`${titleId}-note`} ref={area} value={note} maxLength={MAX} rows={6} disabled={busy}
           onChange={e => { setNote(e.target.value); if (error) setError(null) }} />
         <div className="qa-meta">
-          <span>{tr('Edit it as you like. The employer also sees your profile and Skills Passport.')}</span>
+          <span>{tr('The employer also sees your Skills Passport.')}</span>
           <span aria-live="polite">{note.length.toLocaleString()} / {MAX.toLocaleString()}</span>
         </div>
 

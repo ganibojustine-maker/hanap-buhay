@@ -85,18 +85,17 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
         <div>
           <p className="ma-kicker">How you match</p>
           <h2 id="ma-h">{verdict}</h2>
-          <p className="ma-sum">{m.matched.length + m.missing.length > 0 ? `You have ${m.matched.length} of ${m.matched.length + m.missing.length} requirements.` : 'The employer did not list specific skills.'}{where ? ` The job is ${where}.` : ''}</p>
+          <p className="ma-sum">{m.skills_need > 0 ? `${m.skills_have} of ${m.skills_need} skills` : 'No skills listed'}{where ? ` · ${where}` : ''}</p>
         </div>
       </header>
 
       {gaps.length > 0 && (
         <div className="ma-gaps">
-          <p className="ma-gap-line"><b>Missing:</b> {gaps.map(g => g.name).join(', ')}</p>
           <ul className="ma-list">
             {gaps.map(g => (
               <li key={g.name} className="missing">
                 <span className="ma-ic" aria-hidden="true"><IconX size={13} /></span>
-                <div className="ma-main"><b>{g.name}</b>{g.pending && <small>Your certificate is being checked</small>}</div>
+                <div className="ma-main"><b>{g.name}</b>{g.pending && <small>Being checked</small>}</div>
                 <span className="ma-state">
                   {g.kind === 'experience' || g.kind === 'education'
                     ? <Link to="/dashboard/profile" className="ma-learn">Update profile</Link>
@@ -108,7 +107,7 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
           {gaps.some(g => g.kind === 'certificate' || g.kind === 'skill') && user.account_type === 'worker' && call && (
             upload
               ? <div style={{ marginTop: 10 }}><CertificateUpload call={call} user={user} onSaved={() => { setUpload(false); onChanged?.() }} /></div>
-              : <p className="pf-small" style={{ margin: '8px 0 0' }}>Finished a training? <button type="button" className="ma-learn" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }} onClick={() => setUpload(true)}>Upload your certificate</button>. Once our team accepts it, it counts here and your score goes up.</p>
+              : <p className="pf-small" style={{ margin: '8px 0 0' }}><button type="button" className="ma-learn" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }} onClick={() => setUpload(true)}>Upload a certificate</button></p>
           )}
         </div>
       )}
@@ -125,8 +124,8 @@ export function MatchAnalysis({ job, user, basePath = '/jobs', call, onChanged }
               </li>
             ))}
           </ul>
-          <p className="pf-small">A fixed formula: skills 45, experience 15, certificates 15, distance 15, education 10. Anything the job does not ask for counts as met. <Link to="/faq#matching">More about matching</Link></p>
-          {gaps.some(g => g.course) && <Link to={training} className="ma-more">Free TESDA courses for these gaps <IconArrow size={12} /></Link>}
+          <p className="pf-small">Only what the job asks for is scored. <Link to="/faq#matching">More</Link></p>
+          {gaps.some(g => g.course) && <Link to={training} className="ma-more">Free TESDA courses <IconArrow size={12} /></Link>}
         </details>
       )}
     </section>

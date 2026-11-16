@@ -34,6 +34,7 @@
   --red:     #DC2626;
   --red-l:   #FEF2F2;
   --amber:   #D97706;
+  --amber-d: #B45309;   /* "Good match" and other amber text or fills that need readable contrast */
   --amber-l: #FFFBEB;
 
   /* ── Typography ───────────────────────── */
@@ -991,7 +992,7 @@ tr:hover td { background: var(--soft) }
 /* ── Match score gauge (components/MatchRing.jsx) ─────── */
 .mring { position: relative; display: grid; place-items: center; flex-shrink: 0; --tone: var(--blue); }
 .mring.strong { --tone: var(--green); }
-.mring.good { --tone: #B45309; }
+.mring.good { --tone: var(--amber-d); }
 .mring.low { --tone: var(--red); }
 .mring svg { position: absolute; inset: 0; }
 .mring-track { stroke: #E8EDF5; }
@@ -1072,7 +1073,7 @@ tr:hover td { background: var(--soft) }
 }
 
 /* ── the match scale (utils/match.js): Strong green · Good amber · Low red ── */
-.jc-flag.score.good { background: #B45309; color: #fff; }
+.jc-flag.score.good { background: var(--amber-d); color: #fff; }
 .jc-flag.score.low { background: var(--red); color: #fff; }
 .mlg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin: 0 0 12px }
 .mlg-t { font-weight: 700; color: var(--ink) }
@@ -1080,7 +1081,7 @@ tr:hover td { background: var(--soft) }
 .mlg-i i { width: 10px; height: 10px; border-radius: 50%; display: inline-block }
 .mlg-i b { color: var(--ink); font-weight: 700 }
 .mlg-i.strong i { background: var(--green) }
-.mlg-i.good i { background: #B45309 }
+.mlg-i.good i { background: var(--amber-d) }
 .mlg-i.low i { background: var(--red) }
 .mlg-how { margin-left: auto; font-weight: 600; color: var(--navy) }
 @media (max-width: 560px) { .mlg-how { margin-left: 0 } }
