@@ -24,3 +24,6 @@ firebase-key.json
 *.sql
 *.sql.gz
 backups/
+
+# Render env files with secrets: never commit
+render-env/
