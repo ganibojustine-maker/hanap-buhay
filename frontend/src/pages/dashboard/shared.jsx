@@ -109,6 +109,10 @@ export function ApplicationTracker({ status, interviewDate, interviewNotes, cale
           )
         })}
       </div>
+      {/* phones: the dots only, and one line saying where you are */}
+      <p className="tracker-now">
+        {isRejected ? tr('Not Selected') : `${tr('Step')} ${currentStep} ${tr('of')} ${steps.length} · ${tr(steps[currentStep - 1]?.label || '')}`}
+      </p>
 
       {/* Stage-specific callout / guidance */}
       {status === 'for_interview' && (

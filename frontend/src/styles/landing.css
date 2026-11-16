@@ -352,16 +352,16 @@ html:has(.lp) { scroll-padding-top: 80px }
   .gj-grid { grid-template-columns: 1fr 1fr }
 }
 @media (max-width: 960px) {
-  .lp-hero-in { grid-template-columns: 1fr; padding-top: 112px; text-align: center; justify-items: center }
+  .lp-hero-in { grid-template-columns: minmax(0, 1fr); padding-top: 112px; text-align: center; justify-items: center }
   .lp-hero h1 { margin: 0 auto }
   .lp-hero h1 span { display: inline }
   .lp-lede { margin-left: auto; margin-right: auto }
   .lp-actions, .lp-trust { justify-content: center }
   .lp-map { min-height: 0; width: 100%; padding-bottom: 54px }
   .mm { height: min(64vh, 560px) }
-  .lp-roles { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto }
-  .lp-emp { grid-template-columns: 1fr }
-  .fs { grid-template-columns: 1fr }
+  .lp-roles { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin: 0 auto }
+  .lp-emp { grid-template-columns: minmax(0, 1fr) }
+  .fs { grid-template-columns: minmax(0, 1fr) }
   .fs-panel { min-height: 320px; padding: 22px }
 }
 @media (max-width: 640px) {
@@ -384,7 +384,7 @@ html:has(.lp) { scroll-padding-top: 80px }
   .hb-col { min-height: 220px; padding: 6px }
   .hb-card { flex-wrap: wrap; gap: 4px; padding: 7px }
   .hb-card em { display: none }
-  .lp-steps { grid-template-columns: 1fr; gap: 32px }
+  .lp-steps { grid-template-columns: minmax(0, 1fr); gap: 32px }
   .lp-steps::before { display: none }
   .lp-cta-btns .btn { width: 100%; justify-content: center }
   .lp-foot nav { margin-left: 0; width: 100% }
@@ -392,7 +392,7 @@ html:has(.lp) { scroll-padding-top: 80px }
   .gj-f, .gj-f-town { flex: none }
   .gj-f + .gj-f { border-left: 0; border-top: 1px solid var(--line) }
   .gj-search .btn { width: 100%; justify-content: center; margin-top: 6px }
-  .gj-grid { grid-template-columns: 1fr }
+  .gj-grid { grid-template-columns: minmax(0, 1fr) }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp-pill i, .lp-now-label i, .mm-pulse, .lp-radar i, .hb-live i, .fs-stage, .fp-steps li { animation: none !important }

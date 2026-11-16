@@ -67,10 +67,10 @@
   .rb-preview-col { position: static }
 }
 @media (max-width: 640px) {
-  .rb-2, .rb-3 { grid-template-columns: 1fr }
+  .rb-2, .rb-3 { grid-template-columns: minmax(0, 1fr) }
   .rb-skill { grid-template-columns: minmax(0, 1fr) 36px }
   .rb-skill > :nth-child(2) { grid-column: 1; grid-row: 2 }
-  .cu-review { grid-template-columns: 1fr }
+  .cu-review { grid-template-columns: minmax(0, 1fr) }
   .cu-thumb { max-height: 220px }
   .cu-cert { flex-wrap: wrap }
   .cu-cert .cu-actions { margin-left: 52px }

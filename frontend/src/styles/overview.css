@@ -333,3 +333,11 @@
 .ej-thumb span { position: absolute; inset: auto 0 0 0; background: rgba(13,27,62,.72); color: #fff; font-size: 10.5px; font-weight: 700; text-align: center; padding: 3px 0; opacity: 0; transition: opacity .15s; }
 .ej-thumb:hover span { opacity: 1; }
 @media (max-width: 700px) { .ej-thumb { width: 100%; height: 140px; } }
+
+/* phones: a stat card is icon, number, label and one short line, stacked, with room to read all of it */
+@media (max-width: 760px) {
+  .ov .ov-stat { display: block; padding: 14px }
+  .ov .ov-stat-ic { width: 34px; height: 34px; margin-bottom: 8px }
+  .ov .ov-stat-l { font-size: 13px; line-height: 1.25 }
+  .ov .ov-stat small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3 }
+}

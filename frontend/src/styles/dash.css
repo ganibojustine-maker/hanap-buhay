@@ -402,13 +402,13 @@
 /* ── Responsive Dashboard ───────────────────────────────── */
 @media (max-width: 1100px) { .dash-stats { grid-template-columns: repeat(2,1fr) } }
 @media (max-width: 860px) {
-  .dash-grid { grid-template-columns: 1fr }
-  .dash-grid-3 { grid-template-columns: 1fr }
+  .dash-grid { grid-template-columns: minmax(0, 1fr) }
+  .dash-grid-3 { grid-template-columns: minmax(0, 1fr) }
   .welcome-banner { flex-direction: column; align-items: flex-start; min-height: 0; padding-bottom: 0 }
   .welcome-banner-art { align-self: flex-end; margin-top: -20px }
-  .messages-layout { grid-template-columns: 1fr }
+  .messages-layout { grid-template-columns: minmax(0, 1fr) }
   .msg-sidebar { display: none }
-  .map-layout { grid-template-columns: 1fr; height: auto }
+  .map-layout { grid-template-columns: minmax(0, 1fr); height: auto }
   .map-filters { display: none }
 }
 @media (max-width: 600px) {
@@ -416,7 +416,7 @@
   .messages-layout { height: calc(100vh - 56px) }
 }
 @media (max-width: 480px) {
-  .dash-stats { grid-template-columns: 1fr }
+  .dash-stats { grid-template-columns: minmax(0, 1fr) }
   .steps em { display: none }
   .umenu-name { display: none }
   .umenu-btn { padding-right: 8px }
@@ -453,12 +453,18 @@
 .ja-chips button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff }
 @media (max-width: 520px) { .ja-towns { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 
-/* Application tracker on small phones: four steps share the width instead of
-   each needing 75px (which made the card wider than a 390px screen) */
-@media (max-width: 480px) {
-  .app-tracker { padding: 12px 8px }
-  .tracker-step { min-width: 0; flex: 1 1 0; font-size: 11px }
+/* Application tracker on phones: seven labels cannot fit, so the dots stay and the labels give
+   way to one line ("Step 4 of 7 · Interview") */
+.tracker-now { display: none; margin: 8px 0 0; font-size: 13px; font-weight: 700; color: var(--ink) }
+@media (max-width: 640px) {
+  .app-tracker { padding: 12px 10px; gap: 0 }
+  .tracker-step { min-width: 0; flex: 0 0 auto }
+  .tracker-circle { width: 24px; height: 24px; margin-bottom: 0; font-size: 11px }
+  .tracker-label { display: none }
+  .tracker-line { min-width: 4px; top: 0 }
+  .tracker-now { display: block }
 }
+
 
 /* EN / FIL language switch (workers): topbar and Settings */
 .lang-tg { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 99px; background: #fff; flex-shrink: 0 }

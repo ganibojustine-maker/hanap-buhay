@@ -288,7 +288,7 @@ function Topbar({ user, onToggleSidebar, call, onSupportCount }) {
             {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
           </button>
           {notifOpen && (
-            <div className="umenu-pop" style={{ width: 360, right: 0, padding: 0, maxHeight: 460, overflowY: 'auto', zIndex: 70, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)' }}>
+            <div className="umenu-pop notif-pop" role="dialog" aria-label={tr('Notifications & Emails')}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <b style={{ fontSize: 13, color: 'var(--navy-d)' }}>{tr("Notifications & Emails")}</b>

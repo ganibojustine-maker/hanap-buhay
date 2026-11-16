@@ -339,7 +339,7 @@ img,svg { display: block; max-width: 100% }
 
 /* ── Sidebar layout shared by all dashboard views ───────── */
 .sidebar-layout {
-  display: grid; grid-template-columns: 260px 1fr;
+  display: grid; grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh; background: var(--bg);
 }
 .sidebar {
@@ -593,13 +593,13 @@ tr:hover td { background: var(--soft) }
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
-  .sidebar-layout { grid-template-columns: 1fr }
+  .sidebar-layout { grid-template-columns: minmax(0, 1fr) }
   .sidebar { display: none }
   .sidebar-layout.mob-open .sidebar { display: flex; position: fixed; inset: 0; z-index: 60 }
   .stat-grid { grid-template-columns: repeat(2,1fr) }
 }
 @media (max-width: 600px) {
-  .stat-grid { grid-template-columns: 1fr }
+  .stat-grid { grid-template-columns: minmax(0, 1fr) }
   .page-inner { padding: 16px }
   .topbar { padding: 12px 16px }
 }
@@ -614,7 +614,7 @@ tr:hover td { background: var(--soft) }
 
 /* ── Sidebar + Dashboard shell ──────────────────────────── */
 .sidebar-layout {
-  display: grid; grid-template-columns: 240px 1fr; min-height: 100vh;
+  display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh;
 }
 .sidebar {
   background: var(--navy); color: #fff;
@@ -735,10 +735,10 @@ tr:hover td { background: var(--soft) }
 
 /* ── Sidebar responsive ─────────────────────────────────── */
 @media (max-width: 1100px) {
-  .sidebar-layout { grid-template-columns: 200px 1fr }
+  .sidebar-layout { grid-template-columns: 200px minmax(0, 1fr) }
 }
 @media (max-width: 900px) {
-  .sidebar-layout { grid-template-columns: 1fr }
+  .sidebar-layout { grid-template-columns: minmax(0, 1fr) }
   .sidebar { display: none; position: fixed; inset: 0; height: 100vh; z-index: 60 }
   .sidebar.mob-open { display: flex }
   .mob-close-btn { display: flex !important }
@@ -819,7 +819,7 @@ tr:hover td { background: var(--soft) }
 .fjp-more:hover { text-decoration: underline }
 
 @media (max-width: 1100px) { .jc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
-@media (max-width: 640px)  { .jc-grid { grid-template-columns: 1fr } }
+@media (max-width: 640px)  { .jc-grid { grid-template-columns: minmax(0, 1fr) } }
 
 /* ═══════════════════════════════════════════════════════════
    Subscription page — calm, paper-like pricing layout
@@ -877,7 +877,7 @@ tr:hover td { background: var(--soft) }
 .sub-link:hover { background: #F5F3EA }
 .sub-foot { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 22px 0 0; font-size: 12.5px; color: var(--mut-w); text-align: center; flex-wrap: wrap }
 
-@media (max-width: 980px) { .sub-grid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto } .sub-tagline { min-height: 0 } }
+@media (max-width: 980px) { .sub-grid { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin: 0 auto } .sub-tagline { min-height: 0 } }
 @media (max-width: 560px) {
   .sub-paper { padding: 30px 16px 22px; border-radius: 18px }
   .sub-seg + .sub-seg { margin: 10px 0 0 }
@@ -1104,3 +1104,71 @@ tr:hover td { background: var(--soft) }
 
 /* sidebar group headings (nav.js "group") */
 .nav-group { display: block; margin: 14px 12px 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.45) }
+
+/* nothing inside a page may make the page wider than the screen */
+.page-inner { min-width: 0 }
+.page-inner > *, .panel, .pf-card, .pf-stack > * { min-width: 0 }
+
+/* ── phones: safe areas, panels, tap sizes ── */
+/* iPhones draw the clock and wifi over the page (viewport-fit=cover): leave room for them */
+.topbar { padding-top: env(safe-area-inset-top, 0px); height: calc(64px + env(safe-area-inset-top, 0px)) }
+.sidebar { padding-top: env(safe-area-inset-top, 0px) }
+.page-inner { padding-bottom: max(28px, env(safe-area-inset-bottom, 0px)) }
+
+.notif-pop { width: 360px; right: 0; padding: 0; max-height: 460px; overflow-y: auto; z-index: 70; box-shadow: 0 20px 25px -5px rgba(0,0,0,.15) }
+@media (max-width: 640px) {
+  /* a bell in the middle of the bar would push a 360px panel off the left edge: pin it to the screen */
+  .notif-pop { position: fixed; left: 8px; right: 8px; width: auto; top: calc(64px + env(safe-area-inset-top, 0px) + 6px); max-height: calc(100dvh - 90px) }
+  .topbar { padding-left: 12px; padding-right: 12px; gap: 6px }
+  .topbar-right { gap: 6px }
+}
+@media (hover: none) and (pointer: coarse) {
+  /* a finger needs about 44px */
+  .tb-menu, .notif-btn { min-width: 44px; min-height: 44px }
+  .btn-sm { min-height: 38px }
+}
+
+/* ---- Phone refinements: profile stats, passport rows, map filters, job cards ---- */
+@media (max-width: 640px) {
+  .rep-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .rep-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rep-links > * { justify-content: center; text-align: center; }
+  .up-head { grid-template-columns: minmax(0, 1fr); }
+  .up-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .up-actions { min-width: 0; }
+  .sp-score { gap: 14px; }
+  .sp-counts { width: 100%; justify-content: space-between; gap: 10px; }
+  .sp-skill { grid-template-columns: auto minmax(0, 1fr) !important; }
+  .sp-skill > :not(.sp-skill-ic):not(.sp-skill-main) { grid-column: 2; justify-self: start; }
+  .sp-skill-x { min-width: 40px; min-height: 40px; }
+  .jm2-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jm2-filters > input, .jm2-filters > :first-child { grid-column: 1 / -1; }
+  .ej-card .btn, .ej-card a.btn { min-height: 40px; }
+  .btn-sm, .chip-btn, .pf-tabs button { min-height: 40px; }
+  table td, table th { word-break: break-word; }
+}
+
+/* Phone: selects and toolbars never wider than the screen */
+.top-progress { overflow: hidden; }
+@media (max-width: 640px) {
+  .jb-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .jb-selects select, .tl-forjob, .jb-sort select { max-width: 100%; min-width: 0; width: 100%; }
+  .tp-back, .mlg-how, .auth-link, .lp-textlink { display: inline-flex; align-items: center; min-height: 40px; }
+}
+
+/* Phone: wide legal tables scroll inside their own box instead of squeezing */
+@media (max-width: 640px) {
+  .legal-body table, .info-body table, article table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .legal-body td, .legal-body th, .info-body td, .info-body th, article td, article th { min-width: 120px; }
+}
+@media (max-width: 640px) {
+  .sp-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sp-counts { flex: 1 0 100%; order: 3; }
+  .sp-counts span { font-size: 10px; letter-spacing: .02em; }
+}
+@media (max-width: 640px) {
+  .sp-strength { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .sp-strength > div:last-child { width: 100%; }
+  .sp-strength .sp-counts { gap: 8px; }
+  .sp-strength .sp-counts span { white-space: nowrap; }
+}
